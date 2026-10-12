@@ -13,8 +13,24 @@ Usage in a test:
         assert response.status_code == 200
 """
 
+import sys
+
 import pytest
 from django.contrib.auth import get_user_model
+from django.template.context import BaseContext
+
+# Python 3.14 + Django 4.2 compatibility:
+# In Python 3.14, copy(super()) inside BaseContext.__copy__ does not copy
+# instance attributes (__dict__) correctly, causing template rendering errors.
+if sys.version_info >= (3, 14):
+
+    def _patched_base_context_copy(self):
+        duplicate = object.__new__(self.__class__)
+        duplicate.__dict__.update(self.__dict__)
+        duplicate.dicts = self.dicts[:]
+        return duplicate
+
+    BaseContext.__copy__ = _patched_base_context_copy
 
 User = get_user_model()
 

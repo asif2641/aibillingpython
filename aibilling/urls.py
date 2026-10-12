@@ -19,6 +19,8 @@ from django.contrib import admin
 from django.urls import include, path
 from django.views.i18n import set_language
 
+from aibilling.views import dashboard_view
+
 urlpatterns = [
     # Language switcher — must be outside i18n_patterns.
     # POST to this URL with a "language" form field to change the active language.
@@ -26,6 +28,8 @@ urlpatterns = [
 ]
 
 urlpatterns += i18n_patterns(
+    # Main dashboard view at root of localized paths (/en/, /ur/)
+    path("", dashboard_view, name="dashboard"),
     # Django admin panel.
     path("admin/", admin.site.urls),
     # Accounts app (login, logout, password change, etc.)
