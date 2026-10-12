@@ -14,10 +14,10 @@
 | 1 | Project scaffolding & environment setup | Backend Agent | ✅ Done | Django apps, settings, tests, README |
 | 2 | Custom User model, roles & auth | Backend Agent | ✅ Done | 5-attempt lockout, forms, services, admin |
 | 3 | Base dashboard layout (shell) | Frontend Agent | ✅ Done | Responsive sidebar, topbar, cards, mobile nav |
-| 4 | English ↔ Urdu / RTL | Frontend Agent | 🔄 In Progress | Ready for Group B |
-| 5 | Light / dark theme | Frontend Agent | 🔄 In Progress | Ready for Group B |
-| 6 | QA — write Phase 1 tests | QA Agent | ✅ Done | 54 tests passing across suite |
-| 7 | QC review & Gate Report | QC + Browser QA | ⏳ Waiting | After Tasks 4-5 |
+| 4 | English ↔ Urdu / RTL | Frontend Agent | ✅ Done | Full Urdu translations (.po/.mo) & RTL layout |
+| 5 | Light / dark theme | Frontend Agent | ✅ Done | Tailwind dark mode with localStorage toggle |
+| 6 | QA — write Phase 1 tests | QA Agent | ✅ Done | 69 tests passing with 93% coverage |
+| 7 | QC review & Gate Report | QC + Browser QA | 🔄 In Progress | Ready for final Phase 1 Gate Review |
 
 ---
 
