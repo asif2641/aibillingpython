@@ -1,0 +1,136 @@
+{% load i18n static %}<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="{% if LANGUAGE_BIDI %}rtl{% else %}ltr{% endif %}" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>{% block title %}{% trans "Dashboard" %} — Bill Scanner & Ledger{% endblock %}</title>
+
+    <!-- Tailwind CSS v3 via CDN with Dark Mode configured -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            200: '#c7d2fe',
+                            300: '#a5b4fc',
+                            400: '#818cf8',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            800: '#3730a3',
+                            900: '#312e81',
+                            950: '#1e1b4b',
+                        },
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+                        arabic: ['"Noto Sans Arabic"', 'Tahoma', 'sans-serif'],
+                    },
+                },
+            },
+        };
+    </script>
+
+    <!-- HTMX for dynamic asynchronous updates -->
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+
+    <!-- Alpine.js for lightweight client-side state -->
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <!-- Google Fonts: Inter (Latin) & Noto Sans Arabic (Urdu RTL) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Pre-render Theme Check to avoid flash of light mode -->
+    <script>
+        (function() {
+            try {
+                const storedTheme = localStorage.getItem('theme');
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                if (storedTheme === 'dark' || (!storedTheme && prefersDark)) {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+            } catch (e) {
+                // Fallback gracefully if localStorage is unavailable
+            }
+        })();
+    </script>
+
+    <style>
+        [x-cloak] { display: none !important; }
+        
+        html[dir="rtl"] {
+            font-family: 'Noto Sans Arabic', 'Inter', system-ui, sans-serif;
+        }
+        
+        html[dir="ltr"] {
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        /* Smooth scroll and theme transition */
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        /* Loading indicator for HTMX */
+        .htmx-indicator {
+            display: none;
+        }
+        .htmx-request .htmx-indicator,
+        .htmx-request.htmx-indicator {
+            display: inline-flex;
+        }
+    </style>
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body 
+    class="h-full bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 antialiased transition-colors duration-200"
+    x-data="baseApp()"
+    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+
+    {% block layout %}
+        {% block content %}{% endblock %}
+    {% endblock %}
+
+    <script>
+        function baseApp() {
+            return {
+                darkMode: document.documentElement.classList.contains('dark'),
+                sidebarOpen: false,
+                sidebarCollapsed: false,
+                toggleTheme() {
+                    this.darkMode = !this.darkMode;
+                    if (this.darkMode) {
+                        document.documentElement.classList.add('dark');
+                        try { localStorage.setItem('theme', 'dark'); } catch(e){}
+                    } else {
+                        document.documentElement.classList.remove('dark');
+                        try { localStorage.setItem('theme', 'light'); } catch(e){}
+                    }
+                },
+                toggleSidebar() {
+                    this.sidebarOpen = !this.sidebarOpen;
+                },
+                closeSidebar() {
+                    this.sidebarOpen = false;
+                },
+                toggleCollapse() {
+                    this.sidebarCollapsed = !this.sidebarCollapsed;
+                }
+            };
+        }
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

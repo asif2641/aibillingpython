@@ -1,0 +1,217 @@
+# Translation of aibilling to Urdu (ur).
+# Copyright (C) 2026
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: aibilling 1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-12 16:00+0000\n"
+"PO-Revision-Date: 2026-10-12 16:00+0000\n"
+"Last-Translator: UI Agent\n"
+"Language-Team: Urdu <ur@li.org>\n"
+"Language: ur\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Dashboard"
+msgstr "ڈیش بورڈ"
+
+msgid "Scan Bill"
+msgstr "بل اسکین کریں"
+
+msgid "Add Bill"
+msgstr "بل شامل کریں"
+
+msgid "Bills"
+msgstr "تمام بلز"
+
+msgid "Vendors"
+msgstr "دکاندار / وینڈرز"
+
+msgid "Customers"
+msgstr "گاہک / کسٹمرز"
+
+msgid "Items"
+msgstr "اشیاء"
+
+msgid "Reports"
+msgstr "رپورٹس"
+
+msgid "Ledger"
+msgstr "کھاتہ"
+
+msgid "Categories"
+msgstr "اقسام"
+
+msgid "Settings"
+msgstr "ترتیبات"
+
+msgid "Total Spend"
+msgstr "کل خرچ"
+
+msgid "Total Bills"
+msgstr "کل بلز"
+
+msgid "Outstanding Credit"
+msgstr "بقیہ رقم"
+
+msgid "Average Bill"
+msgstr "اوسط بل"
+
+msgid "Login"
+msgstr "لاگ ان"
+
+msgid "Logout"
+msgstr "لاگ آوٹ"
+
+msgid "Sign In"
+msgstr "لاگ ان"
+
+msgid "Sign out"
+msgstr "لاگ آوٹ"
+
+msgid "Sign out of account"
+msgstr "اکاؤنٹ سے لاگ آوٹ کریں"
+
+msgid "Username"
+msgstr "صارف نام"
+
+msgid "Password"
+msgstr "پاس ورڈ"
+
+msgid "Super Admin"
+msgstr "سپر ایڈمن"
+
+msgid "Staff"
+msgstr "اسٹاف"
+
+msgid "Recent Activity"
+msgstr "حالیہ سرگرمی"
+
+msgid "No bills recorded yet"
+msgstr "ابھی تک کوئی بل شامل نہیں کیا گیا"
+
+msgid "Upload a receipt photo, screenshot, or PDF to let AI extract all items automatically, or record a manual bill entry."
+msgstr "پہلا بل اسکین کرنے کے لیے تصویر اپلوڈ کریں یا کیمرہ استعمال کریں، یا ہاتھ سے درج کریں۔"
+
+msgid "Welcome back!"
+msgstr "خوش آمدید!"
+
+msgid "Here is a financial snapshot of your scanned bills and khata ledgers."
+msgstr "یہ آپ کے بلوں اور کھاتوں کا خلاصہ ہے۔"
+
+msgid "Your account is locked due to 5 consecutive failed login attempts. Please try again after 15 minutes."
+msgstr "مسلسل 5 غلط کوششوں کی وجہ سے آپ کا اکاؤنٹ عارضی طور پر لاک کر دیا گیا ہے۔ براہ کرم 15 منٹ بعد دوبارہ کوشش کریں۔"
+
+msgid "Invalid username or password. Please try again."
+msgstr "صارف نام یا پاس ورڈ غلط ہے۔ براہ کرم دوبارہ کوشش کریں۔"
+
+msgid "Please enter a correct %(username)s and password. Note that both fields may be case-sensitive."
+msgstr "براہ کرم درست %(username)s اور پاس ورڈ درج کریں۔ نوٹ کریں کہ دونوں فیلڈز کیس حساس ہو سکتی ہیں۔"
+
+msgid "Please enter a correct username and password. Note that both fields may be case-sensitive."
+msgstr "براہ کرم درست صارف نام اور پاس ورڈ درج کریں۔ نوٹ کریں کہ دونوں فیلڈز کیس حساس ہو سکتی ہیں۔"
+
+msgid "Enter your credentials to access your billing ledger"
+msgstr "اپنے بلنگ کھاتے تک رسائی کے لیے اپنی اسناد درج کریں"
+
+msgid "Sign in to your account"
+msgstr "اپنے اکاؤنٹ میں لاگ ان کریں"
+
+msgid "Authentication Notice"
+msgstr "تصدیقی اطلاع"
+
+msgid "vs previous period"
+msgstr "پچھلی مدت کے مقابلے میں"
+
+msgid "All processed documents"
+msgstr "تمام پروسیس شدہ دستاویزات"
+
+msgid "Pending party balances"
+msgstr "بقیہ کھاتہ جات"
+
+msgid "Per bill average"
+msgstr "فی بل اوسط"
+
+msgid "Activity will sync automatically"
+msgstr "سرگرمی خودکار طریقے سے مطابقت پذیر ہو جائے گی"
+
+msgid "Loading live data..."
+msgstr "براہ راست ڈیٹا لوڈ ہو رہا ہے..."
+
+msgid "Toggle light and dark theme mode"
+msgstr "لائٹ اور ڈارک تھیم تبدیل کریں"
+
+msgid "Switch to English"
+msgstr "انگریزی میں تبدیل کریں"
+
+msgid "Switch to Urdu language"
+msgstr "اردو میں تبدیل کریں"
+
+msgid "Open sidebar menu"
+msgstr "مینو کھولیں"
+
+msgid "Close navigation menu"
+msgstr "مینو بند کریں"
+
+msgid "Menu"
+msgstr "مینو"
+
+msgid "All rights reserved."
+msgstr "جملہ حقوق محفوظ ہیں۔"
+
+msgid "role"
+msgstr "کردار"
+
+msgid "Determines what actions this user can perform."
+msgstr "تعین کرتا ہے کہ یہ صارف کیا کارروائیاں کر سکتا ہے۔"
+
+msgid "account locked"
+msgstr "اکاؤنٹ مقفل"
+
+msgid "Designates whether this user is locked out due to failed logins."
+msgstr "ظاہر کرتا ہے کہ آیا یہ صارف ناکام لاگ ان کی وجہ سے مقفل ہے۔"
+
+msgid "locked until"
+msgstr "تک مقفل"
+
+msgid "The account lock is automatically lifted after this datetime (UTC)."
+msgstr "اس وقت کے بعد اکاؤنٹ کا قفل خودکار طور پر کھل جائے گا۔"
+
+msgid "failed login attempts"
+msgstr "لاگ ان کی ناکام کوششیں"
+
+msgid "Counter reset to 0 on successful login."
+msgstr "کامیاب لاگ ان پر کاؤنٹر صفر پر ری سیٹ ہو جائے گا۔"
+
+msgid "last login attempt"
+msgstr "آخری لاگ ان کی کوشش"
+
+msgid "Datetime (UTC) of the most recent login attempt, successful or not."
+msgstr "حالیہ لاگ ان کی کوشش کی تاریخ اور وقت۔"
+
+msgid "user"
+msgstr "صارف"
+
+msgid "users"
+msgstr "صارفین"
+
+msgid "Accounts"
+msgstr "اکاؤنٹس"
+
+msgid "Role & Security"
+msgstr "کردار اور سیکیورٹی"
+
+msgid "Unlock selected user accounts"
+msgstr "منتخب صارف اکاؤنٹس ان لاک کریں"
+
+msgid "Successfully unlocked %(count)d account(s)."
+msgstr "کامیابی کے ساتھ %(count)d اکاؤنٹ ان لاک کر دیے گئے۔"
+
+msgid "Lock selected user accounts for 15 minutes"
+msgstr "منتخب اکاؤنٹس کو 15 منٹ کے لیے لاک کریں"
+
+msgid "Successfully locked %(count)d account(s)."
+msgstr "کامیابی کے ساتھ %(count)d اکاؤنٹ لاک کر دیے گئے۔"

@@ -1,0 +1,13 @@
+line-length = 100
+
+[lint]
+select = ["E", "F", "W", "I", "N", "UP", "S", "B", "A", "C4", "DTZ", "T20", "RET", "SIM"]
+ignore = ["S101", "S105", "S106", "E501", "N806"]
+
+[lint.per-file-ignores]
+"tests/*" = ["S", "T20"]
+"*/migrations/*" = ["E501", "N806"]
+
+[format]
+quote-style = "double"
+

@@ -1,0 +1,624 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% block title %}{% trans "Dashboard" %} — Bill Scanner & Ledger{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex flex-col md:flex-row bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100">
+
+    <!-- ========================================================================= -->
+    <!-- MOBILE SIDEBAR BACKDROP & DRAWER -->
+    <!-- ========================================================================= -->
+    <div 
+        x-show="sidebarOpen" 
+        x-cloak
+        class="fixed inset-0 z-50 md:hidden flex"
+        role="dialog" 
+        aria-modal="true"
+        aria-label="Navigation Sidebar">
+        
+        <!-- Backdrop -->
+        <div 
+            x-show="sidebarOpen"
+            x-transition:enter="transition-opacity ease-linear duration-200"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="transition-opacity ease-linear duration-200"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            @click="sidebarOpen = false"
+            class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm">
+        </div>
+
+        <!-- Off-canvas drawer -->
+        <div 
+            x-show="sidebarOpen"
+            x-transition:enter="transition ease-in-out duration-300 transform"
+            x-transition:enter-start="{% if LANGUAGE_BIDI %}translate-x-full{% else %}-translate-x-full{% endif %}"
+            x-transition:enter-end="translate-x-0"
+            x-transition:leave="transition ease-in-out duration-300 transform"
+            x-transition:leave-start="translate-x-0"
+            x-transition:leave-end="{% if LANGUAGE_BIDI %}translate-x-full{% else %}-translate-x-full{% endif %}"
+            class="relative flex-1 flex flex-col max-w-xs w-full bg-white dark:bg-slate-800 shadow-2xl border-r border-slate-200 dark:border-slate-700">
+            
+            <!-- Drawer header -->
+            <div class="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl">🧾</span>
+                    <span class="font-bold text-lg text-slate-900 dark:text-white">aibilling</span>
+                </div>
+                <button 
+                    @click="sidebarOpen = false" 
+                    type="button" 
+                    class="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700" 
+                    aria-label="Close navigation menu">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <!-- Drawer navigation links -->
+            <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1" aria-label="Mobile Sidebar Links">
+                <a href="{% url 'dashboard' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium bg-primary-50 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400 border border-primary-100 dark:border-primary-900/50">
+                    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                    <span>{% trans "Dashboard" %}</span>
+                </a>
+                <a href="#scan-bill" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                    <svg class="w-5 h-5 flex-shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    <span>{% trans "Scan Bill" %}</span>
+                </a>
+                <a href="#add-bill" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                    <svg class="w-5 h-5 flex-shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    <span>{% trans "Add Bill" %}</span>
+                </a>
+                <a href="#bills" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                    <svg class="w-5 h-5 flex-shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    <span>{% trans "Bills" %}</span>
+                </a>
+                <a href="#vendors" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                    <svg class="w-5 h-5 flex-shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                    <span>{% trans "Vendors" %}</span>
+                </a>
+                <a href="#customers" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                    <svg class="w-5 h-5 flex-shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                    <span>{% trans "Customers" %}</span>
+                </a>
+                <a href="#items" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                    <svg class="w-5 h-5 flex-shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                    <span>{% trans "Items" %}</span>
+                </a>
+                <a href="#reports" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                    <svg class="w-5 h-5 flex-shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                    <span>{% trans "Reports" %}</span>
+                </a>
+                <a href="#ledger" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                    <svg class="w-5 h-5 flex-shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span>{% trans "Ledger" %}</span>
+                </a>
+                <a href="#categories" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                    <svg class="w-5 h-5 flex-shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+                    <span>{% trans "Categories" %}</span>
+                </a>
+                <a href="#settings" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                    <svg class="w-5 h-5 flex-shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    <span>{% trans "Settings" %}</span>
+                </a>
+            </nav>
+        </div>
+    </div>
+
+
+    <!-- ========================================================================= -->
+    <!-- DESKTOP COLLAPSIBLE SIDEBAR -->
+    <!-- ========================================================================= -->
+    <aside 
+        class="hidden md:flex flex-col flex-shrink-0 bg-white dark:bg-slate-800/90 border-r border-slate-200 dark:border-slate-800 transition-all duration-300 z-30"
+        :class="sidebarCollapsed ? 'w-20' : 'w-64'"
+        aria-label="Desktop Sidebar Navigation">
+        
+        <!-- App Logo & Branding -->
+        <div class="h-16 flex items-center px-4 border-b border-slate-200 dark:border-slate-800 justify-between">
+            <a href="{% url 'dashboard' %}" class="flex items-center gap-2.5 overflow-hidden">
+                <span class="text-2xl flex-shrink-0">🧾</span>
+                <span 
+                    x-show="!sidebarCollapsed" 
+                    x-transition
+                    class="font-bold text-lg text-slate-900 dark:text-white whitespace-nowrap">
+                    aibilling
+                </span>
+            </a>
+            <button 
+                @click="toggleCollapse()" 
+                type="button" 
+                class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                aria-label="Collapse sidebar"
+                title="Collapse or expand sidebar">
+                <svg class="w-5 h-5 transform transition-transform" :class="sidebarCollapsed ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Desktop Navigation Items (11 links) -->
+        <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1" aria-label="Main Navigation">
+            <!-- 1. Dashboard -->
+            <a href="{% url 'dashboard' %}" 
+               class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold bg-primary-50 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400 border border-primary-100 dark:border-primary-900/40 shadow-sm"
+               title="{% trans "Dashboard" %}">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                <span x-show="!sidebarCollapsed" class="whitespace-nowrap transition-opacity">{% trans "Dashboard" %}</span>
+            </a>
+
+            <!-- 2. Scan Bill -->
+            <a href="#scan-bill" 
+               class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors"
+               title="{% trans "Scan Bill" %}">
+                <svg class="w-5 h-5 flex-shrink-0 text-slate-500 group-hover:text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                <span x-show="!sidebarCollapsed" class="whitespace-nowrap">{% trans "Scan Bill" %}</span>
+            </a>
+
+            <!-- 3. Add Bill -->
+            <a href="#add-bill" 
+               class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors"
+               title="{% trans "Add Bill" %}">
+                <svg class="w-5 h-5 flex-shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                <span x-show="!sidebarCollapsed" class="whitespace-nowrap">{% trans "Add Bill" %}</span>
+            </a>
+
+            <!-- 4. Bills -->
+            <a href="#bills" 
+               class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors"
+               title="{% trans "Bills" %}">
+                <svg class="w-5 h-5 flex-shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                <span x-show="!sidebarCollapsed" class="whitespace-nowrap">{% trans "Bills" %}</span>
+            </a>
+
+            <!-- 5. Vendors -->
+            <a href="#vendors" 
+               class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors"
+               title="{% trans "Vendors" %}">
+                <svg class="w-5 h-5 flex-shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                <span x-show="!sidebarCollapsed" class="whitespace-nowrap">{% trans "Vendors" %}</span>
+            </a>
+
+            <!-- 6. Customers -->
+            <a href="#customers" 
+               class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors"
+               title="{% trans "Customers" %}">
+                <svg class="w-5 h-5 flex-shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                <span x-show="!sidebarCollapsed" class="whitespace-nowrap">{% trans "Customers" %}</span>
+            </a>
+
+            <!-- 7. Items -->
+            <a href="#items" 
+               class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors"
+               title="{% trans "Items" %}">
+                <svg class="w-5 h-5 flex-shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                <span x-show="!sidebarCollapsed" class="whitespace-nowrap">{% trans "Items" %}</span>
+            </a>
+
+            <!-- 8. Reports -->
+            <a href="#reports" 
+               class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors"
+               title="{% trans "Reports" %}">
+                <svg class="w-5 h-5 flex-shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                <span x-show="!sidebarCollapsed" class="whitespace-nowrap">{% trans "Reports" %}</span>
+            </a>
+
+            <!-- 9. Ledger -->
+            <a href="#ledger" 
+               class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors"
+               title="{% trans "Ledger" %}">
+                <svg class="w-5 h-5 flex-shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span x-show="!sidebarCollapsed" class="whitespace-nowrap">{% trans "Ledger" %}</span>
+            </a>
+
+            <!-- 10. Categories -->
+            <a href="#categories" 
+               class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors"
+               title="{% trans "Categories" %}">
+                <svg class="w-5 h-5 flex-shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+                <span x-show="!sidebarCollapsed" class="whitespace-nowrap">{% trans "Categories" %}</span>
+            </a>
+
+            <!-- 11. Settings -->
+            <a href="#settings" 
+               class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors"
+               title="{% trans "Settings" %}">
+                <svg class="w-5 h-5 flex-shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                <span x-show="!sidebarCollapsed" class="whitespace-nowrap">{% trans "Settings" %}</span>
+            </a>
+        </nav>
+    </aside>
+
+
+    <!-- ========================================================================= -->
+    <!-- MAIN WORKSPACE & TOP BAR -->
+    <!-- ========================================================================= -->
+    <div class="flex-1 flex flex-col min-w-0 pb-20 md:pb-8">
+
+        <!-- ===================================================================== -->
+        <!-- TOP BAR -->
+        <!-- ===================================================================== -->
+        <header class="h-16 flex-shrink-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-20">
+            
+            <!-- Left section: Mobile menu button & breadcrumbs/greeting -->
+            <div class="flex items-center gap-3">
+                <button 
+                    @click="sidebarOpen = true" 
+                    type="button" 
+                    class="md:hidden p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700" 
+                    aria-label="Open sidebar menu">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                </button>
+                <div class="hidden sm:flex flex-col">
+                    <h1 class="text-base font-semibold text-slate-900 dark:text-white leading-tight">
+                        {% trans "Dashboard" %}
+                    </h1>
+                    <span class="text-xs text-slate-500 dark:text-slate-400">
+                        Bill Scanner & Ledger
+                    </span>
+                </div>
+            </div>
+
+            <!-- Right section: Controls, Language Switcher, Theme Toggle, User Profile -->
+            <div class="flex items-center gap-2 sm:gap-3">
+
+                <!-- Language Switcher Form -->
+                <form action="{% url 'set_language' %}" method="post" class="inline-flex items-center">
+                    {% csrf_token %}
+                    <input name="next" type="hidden" value="{{ request.get_full_path }}">
+                    {% if LANGUAGE_CODE == 'ur' %}
+                        <button 
+                            type="submit" 
+                            name="language" 
+                            value="en" 
+                            class="inline-flex items-center gap-1 px-2.5 py-1.5 min-h-[44px] text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-primary-500" 
+                            title="Switch to English" 
+                            aria-label="Switch to English language">
+                            <span>EN</span>
+                            <span class="text-slate-400">|</span>
+                            <span class="text-xs">English</span>
+                        </button>
+                    {% else %}
+                        <button 
+                            type="submit" 
+                            name="language" 
+                            value="ur" 
+                            class="inline-flex items-center gap-1 px-2.5 py-1.5 min-h-[44px] text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-primary-500" 
+                            title="اردو میں تبدیل کریں" 
+                            aria-label="Switch to Urdu language">
+                            <span>اردو</span>
+                            <span class="text-slate-400">|</span>
+                            <span class="text-xs">Urdu</span>
+                        </button>
+                    {% endif %}
+                </form>
+
+                <!-- Theme Toggle Button (Light / Dark Mode) -->
+                <button 
+                    @click="toggleTheme()" 
+                    type="button" 
+                    class="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500" 
+                    title="Toggle light and dark theme mode" 
+                    aria-label="Theme toggle switch between light and dark mode">
+                    <!-- Sun icon when dark mode -->
+                    <svg x-show="darkMode" x-cloak class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                    </svg>
+                    <!-- Moon icon when light mode -->
+                    <svg x-show="!darkMode" class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                    </svg>
+                </button>
+
+                <!-- Separator -->
+                <div class="h-6 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
+
+                <!-- User Profile & Role Badge in Top Bar -->
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-full bg-primary-600 text-white font-semibold flex items-center justify-center text-xs shadow-sm ring-2 ring-white dark:ring-slate-800">
+                        {{ request.user.username|make_list|first|upper }}
+                    </div>
+                    <div class="hidden sm:flex flex-col text-left">
+                        <span class="text-xs font-semibold text-slate-900 dark:text-slate-100 leading-tight">
+                            {{ request.user.first_name|default:request.user.username }}
+                        </span>
+                        <span class="text-[11px] text-slate-500 dark:text-slate-400">
+                            @{{ request.user.username }}
+                        </span>
+                    </div>
+
+                    <!-- Role Badge -->
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold {% if request.user.is_superadmin %}bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800{% else %}bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800{% endif %}">
+                        {{ request.user.get_role_display|default:"Staff" }}
+                    </span>
+
+                    <!-- Sign Out Form -->
+                    <form action="{% url 'accounts:logout' %}" method="post" class="inline">
+                        {% csrf_token %}
+                        <button 
+                            type="submit" 
+                            class="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500" 
+                            title="Sign out of account" 
+                            aria-label="Sign out">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                        </button>
+                    </form>
+                </div>
+
+            </div>
+        </header>
+
+
+        <!-- ===================================================================== -->
+        <!-- MAIN DASHBOARD CONTENT AREA -->
+        <!-- ===================================================================== -->
+        <main class="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
+
+            <!-- System Messages / Notification Alert Container -->
+            {% if messages %}
+                <div class="space-y-2" role="alert" aria-live="polite">
+                    {% for message in messages %}
+                        <div class="flex items-center justify-between p-4 rounded-xl border text-sm font-medium {% if message.tags == 'error' %}bg-red-50 text-red-800 border-red-200 dark:bg-red-950/50 dark:text-red-300 dark:border-red-900{% elif message.tags == 'warning' %}bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-900{% else %}bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-900{% endif %}">
+                            <div class="flex items-center gap-2">
+                                <span>{{ message }}</span>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- Dashboard Welcome Banner & Quick Action Buttons -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
+                <div>
+                    <h2 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                        {% if LANGUAGE_CODE == 'ur' %}
+                            خوش آمدید، {{ request.user.first_name|default:request.user.username }}!
+                        {% else %}
+                            Welcome back, {{ request.user.first_name|default:request.user.username }}!
+                        {% endif %}
+                    </h2>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                        {% if LANGUAGE_CODE == 'ur' %}
+                            یہ آپ کے بلوں اور کھاتوں کا خلاصہ ہے۔
+                        {% else %}
+                            Here is a financial snapshot of your scanned bills and khata ledgers.
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="flex items-center gap-2.5">
+                    <a href="#scan-bill" class="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-semibold shadow-sm shadow-primary-500/20 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                        <span>{% trans "Scan Bill" %}</span>
+                    </a>
+                    <a href="#add-bill" class="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/60 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        <span>{% trans "Add Bill" %}</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- ================================================================= -->
+            <!-- 4 SUMMARY STAT CARDS -->
+            <!-- ================================================================= -->
+            <section aria-label="Summary Statistics" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                
+                <!-- Card 1: Total Spend -->
+                <div class="bg-white dark:bg-slate-800/80 rounded-2xl p-6 border border-slate-200 dark:border-slate-700/80 shadow-sm relative overflow-hidden group hover:border-primary-300 dark:hover:border-primary-700 transition-colors">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                            {% trans "Total Spend" %}
+                        </span>
+                        <div class="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-baseline gap-2">
+                        <span class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+                            PKR {{ total_spend|default:"0" }}
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-2 flex items-center gap-1">
+                        <span class="text-emerald-600 dark:text-emerald-400 font-medium">0%</span>
+                        <span>{% trans "vs previous period" %}</span>
+                    </p>
+                </div>
+
+                <!-- Card 2: Total Bills -->
+                <div class="bg-white dark:bg-slate-800/80 rounded-2xl p-6 border border-slate-200 dark:border-slate-700/80 shadow-sm relative overflow-hidden group hover:border-primary-300 dark:hover:border-primary-700 transition-colors">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                            {% trans "Total Bills" %}
+                        </span>
+                        <div class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-baseline gap-2">
+                        <span class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+                            {{ total_bills|default:"0" }}
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-2 flex items-center gap-1">
+                        <span>{% trans "All processed documents" %}</span>
+                    </p>
+                </div>
+
+                <!-- Card 3: Outstanding Credit -->
+                <div class="bg-white dark:bg-slate-800/80 rounded-2xl p-6 border border-slate-200 dark:border-slate-700/80 shadow-sm relative overflow-hidden group hover:border-primary-300 dark:hover:border-primary-700 transition-colors">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                            {% trans "Outstanding Credit" %}
+                        </span>
+                        <div class="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-baseline gap-2">
+                        <span class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+                            PKR {{ outstanding_credit|default:"0" }}
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-2 flex items-center gap-1">
+                        <span>{% trans "Pending party balances" %}</span>
+                    </p>
+                </div>
+
+                <!-- Card 4: Average Bill -->
+                <div class="bg-white dark:bg-slate-800/80 rounded-2xl p-6 border border-slate-200 dark:border-slate-700/80 shadow-sm relative overflow-hidden group hover:border-primary-300 dark:hover:border-primary-700 transition-colors">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                            {% trans "Average Bill" %}
+                        </span>
+                        <div class="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-baseline gap-2">
+                        <span class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+                            PKR {{ average_bill|default:"0" }}
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-2 flex items-center gap-1">
+                        <span>{% trans "Per bill average" %}</span>
+                    </p>
+                </div>
+
+            </section>
+
+            <!-- ================================================================= -->
+            <!-- EMPTY STATE & SKELETON LOADER SECTION -->
+            <!-- ================================================================= -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                <!-- Empty State Card (2 columns wide on desktop) -->
+                <div class="lg:col-span-2 bg-white dark:bg-slate-800/80 rounded-2xl p-8 border border-slate-200 dark:border-slate-700/80 shadow-sm flex flex-col items-center justify-center text-center">
+                    <div class="w-16 h-16 rounded-2xl bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center text-3xl mb-4 shadow-inner">
+                        📄
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white">
+                        {% if LANGUAGE_CODE == 'ur' %}
+                            ابھی تک کوئی بل شامل نہیں کیا گیا
+                        {% else %}
+                            No bills recorded yet
+                        {% endif %}
+                    </h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 max-w-md mt-2 mb-6">
+                        {% if LANGUAGE_CODE == 'ur' %}
+                            پہلا بل اسکین کرنے کے لیے تصویر اپلوڈ کریں یا کیمرہ استعمال کریں، یا ہاتھ سے درج کریں۔
+                        {% else %}
+                            Upload a receipt photo, screenshot, or PDF to let AI extract all items automatically, or record a manual bill entry.
+                        {% endif %}
+                    </p>
+                    <div class="flex flex-wrap items-center justify-center gap-3">
+                        <a href="#scan-bill" class="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-semibold shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/></svg>
+                            <span>{% trans "Scan Bill" %}</span>
+                        </a>
+                        <a href="#add-bill" class="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 rounded-xl text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                            <span>{% trans "Add Bill" %}</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Skeleton Loader / Loading State (1 column wide) -->
+                <div class="bg-white dark:bg-slate-800/80 rounded-2xl p-6 border border-slate-200 dark:border-slate-700/80 shadow-sm flex flex-col justify-between" role="status" aria-label="Loading preview">
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <h4 class="text-sm font-bold text-slate-900 dark:text-white">
+                                {% trans "Recent Activity" %}
+                            </h4>
+                            <span class="text-xs text-slate-400 animate-pulse">{% trans "Loading live data..." %}</span>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="animate-pulse flex items-center gap-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/40">
+                                <div class="w-10 h-10 rounded-lg bg-slate-200 dark:bg-slate-700"></div>
+                                <div class="flex-1 space-y-2">
+                                    <div class="h-3 bg-slate-200 dark:bg-slate-700 rounded w-3/4"></div>
+                                    <div class="h-2 bg-slate-200 dark:bg-slate-700 rounded w-1/2"></div>
+                                </div>
+                            </div>
+                            <div class="animate-pulse flex items-center gap-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/40">
+                                <div class="w-10 h-10 rounded-lg bg-slate-200 dark:bg-slate-700"></div>
+                                <div class="flex-1 space-y-2">
+                                    <div class="h-3 bg-slate-200 dark:bg-slate-700 rounded w-2/3"></div>
+                                    <div class="h-2 bg-slate-200 dark:bg-slate-700 rounded w-1/3"></div>
+                                </div>
+                            </div>
+                            <div class="animate-pulse flex items-center gap-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/40">
+                                <div class="w-10 h-10 rounded-lg bg-slate-200 dark:bg-slate-700"></div>
+                                <div class="flex-1 space-y-2">
+                                    <div class="h-3 bg-slate-200 dark:bg-slate-700 rounded w-4/5"></div>
+                                    <div class="h-2 bg-slate-200 dark:bg-slate-700 rounded w-2/5"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="pt-4 border-t border-slate-100 dark:border-slate-700/60 text-center">
+                        <span class="text-xs text-slate-400">{% trans "Activity will sync automatically" %}</span>
+                    </div>
+                </div>
+
+            </div>
+
+        </main>
+
+    </div>
+
+
+    <!-- ========================================================================= -->
+    <!-- MOBILE BOTTOM NAVIGATION BAR -->
+    <!-- ========================================================================= -->
+    <nav 
+        class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 px-4 py-1.5 shadow-lg" 
+        aria-label="Mobile Bottom Navigation Bar">
+        <div class="flex items-center justify-around max-w-md mx-auto">
+            
+            <!-- 1. Dashboard -->
+            <a href="{% url 'dashboard' %}" 
+               class="flex flex-col items-center justify-center min-w-[48px] min-h-[48px] text-xs font-semibold text-primary-600 dark:text-primary-400 focus:outline-none" 
+               aria-label="{% trans "Dashboard" %}">
+                <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                <span class="text-[10px]">{% trans "Dashboard" %}</span>
+            </a>
+
+            <!-- 2. Bills -->
+            <a href="#bills" 
+               class="flex flex-col items-center justify-center min-w-[48px] min-h-[48px] text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 focus:outline-none" 
+               aria-label="{% trans "Bills" %}">
+                <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                <span class="text-[10px]">{% trans "Bills" %}</span>
+            </a>
+
+            <!-- 3. Scan Bill (Prominent Floating Button) -->
+            <a href="#scan-bill" 
+               class="flex flex-col items-center justify-center -mt-5 min-w-[56px] min-h-[56px] w-14 h-14 bg-primary-600 hover:bg-primary-700 text-white rounded-full shadow-lg shadow-primary-500/40 ring-4 ring-white dark:ring-slate-900 focus:outline-none focus:ring-primary-500 transition-transform active:scale-95" 
+               aria-label="{% trans "Scan Bill" %}">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                <span class="sr-only">{% trans "Scan Bill" %}</span>
+            </a>
+
+            <!-- 4. Add Bill -->
+            <a href="#add-bill" 
+               class="flex flex-col items-center justify-center min-w-[48px] min-h-[48px] text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 focus:outline-none" 
+               aria-label="{% trans "Add Bill" %}">
+                <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                <span class="text-[10px]">{% trans "Add Bill" %}</span>
+            </a>
+
+            <!-- 5. Menu -->
+            <button 
+                @click="sidebarOpen = true" 
+                type="button" 
+                class="flex flex-col items-center justify-center min-w-[48px] min-h-[48px] text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 focus:outline-none" 
+                aria-label="{% trans "Open sidebar menu" %}">
+                <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                <span class="text-[10px]">{% trans "Menu" %}</span>
+            </button>
+
+        </div>
+    </nav>
+
+</div>
+{% endblock %}
