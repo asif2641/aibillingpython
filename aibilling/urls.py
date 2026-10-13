@@ -24,12 +24,15 @@ from django.views.static import serve
 from aibilling.views import (
     dashboard_view,
     global_search_view,
+    healthcheck_view,
     manifest_view,
     offline_view,
     service_worker_view,
 )
 
 urlpatterns = [
+    # Healthcheck endpoint for cloud load balancers & monitoring (outside i18n)
+    path("healthz/", healthcheck_view, name="healthcheck"),
     # Static files serving route
     re_path(r"^static/(?P<path>.*)$", serve, {"document_root": settings.STATICFILES_DIRS[0]}),
     # PWA Service Worker & Web App Manifest (served at root, outside i18n)

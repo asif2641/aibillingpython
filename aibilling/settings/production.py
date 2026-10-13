@@ -1,33 +1,110 @@
 """
 aibilling/settings/production.py
 ==================================
-Production settings stub.
+Production settings for the aibilling project (Render, VPS with Nginx/Gunicorn).
 
-Import from base.py and override settings that must differ in production.
-This file will be completed in Phase 8 (Deployment).
-
-Usage:
-    Set this environment variable on your server:
-    DJANGO_SETTINGS_MODULE=aibilling.settings.production
+Imports shared settings from base.py and enforces strict production security:
+- DEBUG = False
+- Mandatory unique SECRET_KEY (unless BUILD_MODE=True during collectstatic)
+- Render hostname auto-detection for ALLOWED_HOSTS and CSRF_TRUSTED_ORIGINS
+- HTTPS, HSTS, and secure cookie hardening
 """
 
+import os
+from typing import Any
+
+from django.core.exceptions import ImproperlyConfigured
+
 from .base import *  # noqa: F401, F403
+from .base import parse_database_url
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Production security (uncomment and configure in Phase 8)
-# ──────────────────────────────────────────────────────────────────────────────
+DEFAULT_INSECURE_SECRET_KEY = "dev-only-insecure-key-change-in-production"
 
-# DEBUG must be False in production. Reads from .env on the server.
-# DEBUG is already set from base.py via environment variable.
 
-# Force HTTPS. Uncomment these in Phase 8 when HTTPS is configured.
-# SECURE_SSL_REDIRECT = True
-# SESSION_COOKIE_SECURE = True
-# CSRF_COOKIE_SECURE = True
-# SECURE_HSTS_SECONDS = 31536000  # 1 year
-# SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-# SECURE_HSTS_PRELOAD = True
+def configure_production_settings(env: dict[str, str] | None = None) -> dict[str, Any]:
+    """Compute and validate production settings from environment variables.
 
-# Sentry error tracking (optional — Phase 8)
-# import sentry_sdk
-# sentry_sdk.init(dsn=os.environ.get("SENTRY_DSN", ""), ...)
+    Args:
+        env: Optional mapping of environment variables (defaults to os.environ).
+
+    Returns:
+        Dictionary of production setting overrides.
+
+    Raises:
+        ImproperlyConfigured: If SECRET_KEY is missing or uses the insecure default
+            when BUILD_MODE is not 'True'.
+    """
+    environ = env if env is not None else os.environ
+
+    build_mode = environ.get("BUILD_MODE", "False") == "True"
+    secret_key = environ.get("SECRET_KEY", "").strip()
+
+    if not secret_key or secret_key == DEFAULT_INSECURE_SECRET_KEY:
+        if not build_mode:
+            raise ImproperlyConfigured(
+                "SECRET_KEY must be set to a unique secret value in production."
+            )
+        secret_key = DEFAULT_INSECURE_SECRET_KEY
+
+    allowed_hosts = [
+        h.strip()
+        for h in environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+        if h.strip()
+    ]
+    render_hostname = environ.get("RENDER_EXTERNAL_HOSTNAME", "").strip()
+    if render_hostname and render_hostname not in allowed_hosts:
+        allowed_hosts.append(render_hostname)
+
+    csrf_trusted_origins = [
+        o.strip() for o in environ.get("CSRF_TRUSTED_ORIGINS", "").split(",") if o.strip()
+    ]
+    if render_hostname:
+        render_origin = f"https://{render_hostname}"
+        if render_origin not in csrf_trusted_origins:
+            csrf_trusted_origins.append(render_origin)
+
+    config: dict[str, Any] = {
+        "DEBUG": False,
+        "SECRET_KEY": secret_key,
+        "ALLOWED_HOSTS": allowed_hosts,
+        "CSRF_TRUSTED_ORIGINS": csrf_trusted_origins,
+        "RENDER_EXTERNAL_HOSTNAME": render_hostname,
+        "SECURE_PROXY_SSL_HEADER": ("HTTP_X_FORWARDED_PROTO", "https"),
+        "SECURE_SSL_REDIRECT": environ.get("SECURE_SSL_REDIRECT", "True") == "True",
+        "SESSION_COOKIE_SECURE": True,
+        "CSRF_COOKIE_SECURE": True,
+        "SESSION_COOKIE_HTTPONLY": True,
+        "SECURE_HSTS_SECONDS": int(environ.get("SECURE_HSTS_SECONDS", "31536000")),
+        "SECURE_HSTS_INCLUDE_SUBDOMAINS": True,
+        "SECURE_HSTS_PRELOAD": True,
+        "SECURE_CONTENT_TYPE_NOSNIFF": True,
+        "X_FRAME_OPTIONS": "DENY",
+        "SECURE_REFERRER_POLICY": "same-origin",
+    }
+
+    db_url = environ.get("DATABASE_URL", "").strip()
+    if db_url.startswith(("postgres://", "postgresql://")):
+        config["DATABASES"] = {"default": parse_database_url(db_url)}
+
+    return config
+
+
+_prod_settings = configure_production_settings()
+DEBUG = _prod_settings["DEBUG"]
+SECRET_KEY = _prod_settings["SECRET_KEY"]
+ALLOWED_HOSTS = _prod_settings["ALLOWED_HOSTS"]
+CSRF_TRUSTED_ORIGINS = _prod_settings["CSRF_TRUSTED_ORIGINS"]
+RENDER_EXTERNAL_HOSTNAME = _prod_settings["RENDER_EXTERNAL_HOSTNAME"]
+SECURE_PROXY_SSL_HEADER = _prod_settings["SECURE_PROXY_SSL_HEADER"]
+SECURE_SSL_REDIRECT = _prod_settings["SECURE_SSL_REDIRECT"]
+SESSION_COOKIE_SECURE = _prod_settings["SESSION_COOKIE_SECURE"]
+CSRF_COOKIE_SECURE = _prod_settings["CSRF_COOKIE_SECURE"]
+SESSION_COOKIE_HTTPONLY = _prod_settings["SESSION_COOKIE_HTTPONLY"]
+SECURE_HSTS_SECONDS = _prod_settings["SECURE_HSTS_SECONDS"]
+SECURE_HSTS_INCLUDE_SUBDOMAINS = _prod_settings["SECURE_HSTS_INCLUDE_SUBDOMAINS"]
+SECURE_HSTS_PRELOAD = _prod_settings["SECURE_HSTS_PRELOAD"]
+SECURE_CONTENT_TYPE_NOSNIFF = _prod_settings["SECURE_CONTENT_TYPE_NOSNIFF"]
+X_FRAME_OPTIONS = _prod_settings["X_FRAME_OPTIONS"]
+SECURE_REFERRER_POLICY = _prod_settings["SECURE_REFERRER_POLICY"]
+if "DATABASES" in _prod_settings:
+    DATABASES = _prod_settings["DATABASES"]

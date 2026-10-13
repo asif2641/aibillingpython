@@ -35,7 +35,14 @@ DATABASES = {  # noqa: F811
 
 # Disable WhiteNoise's compressed/hashed static files in development
 # so that changes to static files are reflected immediately.
-STATICFILES_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"  # noqa: F811
+STORAGES = {  # noqa: F811
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
 
 # Django Debug Toolbar (optional — install separately if needed)
 # INSTALLED_APPS += ["debug_toolbar"]

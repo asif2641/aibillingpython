@@ -204,7 +204,8 @@ def create_database_backup(
     user=None,
 ) -> Path:
     """Write a timestamped JSON backup file and prune backups older than retention_days."""
-    target_dir = Path(output_dir) if output_dir else (Path(settings.BASE_DIR) / "backups")
+    default_dir = getattr(settings, "BACKUP_DIR", Path(settings.BASE_DIR) / "backups")
+    target_dir = Path(output_dir) if output_dir else Path(default_dir)
     target_dir.mkdir(parents=True, exist_ok=True)
 
     now = timezone.now()
@@ -239,7 +240,8 @@ def create_database_backup(
 
 def list_backup_files(output_dir: str | Path | None = None) -> list[dict[str, Any]]:
     """Return metadata for existing backup_*.json files sorted newest first."""
-    target_dir = Path(output_dir) if output_dir else (Path(settings.BASE_DIR) / "backups")
+    default_dir = getattr(settings, "BACKUP_DIR", Path(settings.BASE_DIR) / "backups")
+    target_dir = Path(output_dir) if output_dir else Path(default_dir)
     if not target_dir.exists():
         return []
 
