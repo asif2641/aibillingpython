@@ -198,7 +198,7 @@ class GeminiAIExtractor:
 
     def __init__(self, api_key: str, model_name: str | None = None):
         self.api_key = api_key
-        self.model_name = model_name or getattr(settings, "GEMINI_MODEL", "gemini-2.5-flash")
+        self.model_name = model_name or getattr(settings, "GEMINI_MODEL", "gemini-3.8-flash")
         self.last_token_count = 1250
 
     def extract(self, *files: Any) -> Dict[str, Any]:
@@ -229,28 +229,27 @@ class GeminiAIExtractor:
             response_mime_type="application/json",
         )
 
+        candidate_models = [self.model_name]
+        for fallback in ["gemini-3.8-flash", "gemini-flash-latest"]:
+            if fallback not in candidate_models:
+                candidate_models.append(fallback)
+
         response = None
-        try:
-            response = client.models.generate_content(
-                model=self.model_name,
-                contents=contents,
-                config=config,
-            )
-        except Exception as exc:
-            # Fallback to gemini-1.5-flash if 2.5-flash fails
-            if self.model_name != "gemini-1.5-flash":
-                try:
-                    response = client.models.generate_content(
-                        model="gemini-1.5-flash",
-                        contents=contents,
-                        config=config,
-                    )
-                except Exception as inner_exc:
-                    raise AIExtractionError(
-                        f"Gemini API request failed: {inner_exc}"
-                    ) from inner_exc
-            else:
-                raise AIExtractionError(f"Gemini API request failed: {exc}") from exc
+        last_error = None
+        for m_name in candidate_models:
+            try:
+                response = client.models.generate_content(
+                    model=m_name,
+                    contents=contents,
+                    config=config,
+                )
+                if response:
+                    break
+            except Exception as exc:
+                last_error = exc
+
+        if response is None:
+            raise AIExtractionError(f"Gemini API request failed: {last_error}") from last_error
 
         raw_text = getattr(response, "text", "") or ""
         usage = getattr(response, "usage_metadata", None)

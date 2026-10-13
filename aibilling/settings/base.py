@@ -247,6 +247,7 @@ BACKUP_DIR = Path(os.environ.get("BACKUP_DIR", BASE_DIR / "backups"))
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 CLAUDE_API_KEY = os.environ.get("CLAUDE_API_KEY", "")
 AI_PROVIDER = os.environ.get("AI_PROVIDER", "gemini")
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
 
 # Scan rate limits — protect against runaway API costs.
 DAILY_SCAN_LIMIT = int(os.environ.get("DAILY_SCAN_LIMIT", "50"))
