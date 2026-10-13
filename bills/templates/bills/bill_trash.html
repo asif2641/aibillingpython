@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Trash — Deleted Bills" %} — Bill Scanner & Ledger{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 py-8 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto space-y-6">
+
+        <!-- Top Header & Actions -->
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <a href="{% url 'bills:bill_list' %}" 
+                   class="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                   title="{% trans "Back to Bills" %}">
+                    <svg class="w-5 h-5 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                </a>
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+                        <span>🗑️</span>
+                        <span>{% trans "Trash — Deleted Bills" %}</span>
+                    </h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        {% trans "Soft-deleted bills can be restored here. Only authorized staff can view trash." %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table Card -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left rtl:text-right border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold">
+                            <th scope="col" class="py-3.5 px-4 sm:px-6">{% trans "Invoice #" %}</th>
+                            <th scope="col" class="py-3.5 px-4">{% trans "Party" %}</th>
+                            <th scope="col" class="py-3.5 px-4">{% trans "Total" %}</th>
+                            <th scope="col" class="py-3.5 px-4">{% trans "Deleted At" %}</th>
+                            <th scope="col" class="py-3.5 px-4 text-right rtl:text-left">{% trans "Actions" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200 dark:divide-slate-700 text-xs text-slate-700 dark:text-slate-200">
+                        {% for bill in bills %}
+                        <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors">
+                            <td class="py-3.5 px-4 sm:px-6 font-semibold text-slate-900 dark:text-white">
+                                {{ bill.invoice_no|default:"#No Invoice" }}
+                            </td>
+                            <td class="py-3.5 px-4 font-medium">
+                                {{ bill.party.name }}
+                            </td>
+                            <td class="py-3.5 px-4 font-mono font-bold">
+                                Rs. {{ bill.grand_total }}
+                            </td>
+                            <td class="py-3.5 px-4 text-slate-400">
+                                {{ bill.deleted_at|date:"Y-m-d H:i" }}
+                            </td>
+                            <td class="py-3.5 px-4 text-right rtl:text-left">
+                                <form method="post" action="{% url 'bills:bill_restore' bill.pk %}" class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit" 
+                                        class="px-3 py-1.5 min-h-[36px] rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 transition-colors">
+                                        {% trans "Restore" %}
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="py-12 text-center text-slate-500 dark:text-slate-400">
+                                <span class="text-3xl block mb-2">✨</span>
+                                {% trans "Trash is empty. No deleted bills." %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <div class="p-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs text-slate-500">
+                <div>
+                    {% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
+                </div>
+                <div class="flex items-center gap-2">
+                    {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 font-medium">{% trans "Previous" %}</a>
+                    {% endif %}
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 font-medium">{% trans "Next" %}</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

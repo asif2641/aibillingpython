@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Customers" %} — Bill Scanner & Ledger{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 py-8 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto space-y-6">
+
+        <!-- Top Header & Actions -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+                    <span>👥</span>
+                    <span>{% trans "Customers" %}</span>
+                </h1>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    {% trans "Manage retail clients, buyers, and account balances." %}
+                </p>
+            </div>
+            <div>
+                <a href="{% url 'parties:party_add' %}" 
+                   class="inline-flex items-center gap-2 px-4 py-2 min-h-[44px] rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs shadow-sm shadow-primary-500/25 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    <span>{% trans "Add Customer" %}</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Table Card -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left rtl:text-right border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold">
+                            <th scope="col" class="py-3.5 px-4 sm:px-6">{% trans "Customer Name" %}</th>
+                            <th scope="col" class="py-3.5 px-4">{% trans "Phone" %}</th>
+                            <th scope="col" class="py-3.5 px-4">{% trans "Address" %}</th>
+                            <th scope="col" class="py-3.5 px-4">{% trans "Type" %}</th>
+                            <th scope="col" class="py-3.5 px-4 text-right rtl:text-left">{% trans "Actions" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200 dark:divide-slate-700 text-xs text-slate-700 dark:text-slate-200">
+                        {% for party in parties %}
+                        <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors">
+                            <td class="py-3.5 px-4 sm:px-6">
+                                <p class="font-semibold text-slate-900 dark:text-white">{{ party.name }}</p>
+                                {% if party.urdu_name %}
+                                    <p class="text-[11px] text-slate-400 font-urdu">{{ party.urdu_name }}</p>
+                                {% endif %}
+                            </td>
+                            <td class="py-3.5 px-4 font-mono">
+                                {{ party.phone|default:"—" }}
+                            </td>
+                            <td class="py-3.5 px-4 text-slate-500 dark:text-slate-400">
+                                {{ party.address|truncatechars:40|default:"—" }}
+                            </td>
+                            <td class="py-3.5 px-4">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold {% if party.party_type == 'both' %}bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300{% else %}bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300{% endif %}">
+                                    {{ party.get_party_type_display }}
+                                </span>
+                            </td>
+                            <td class="py-3.5 px-4 text-right rtl:text-left">
+                                <a href="{% url 'parties:party_edit' party.pk %}" 
+                                   class="px-2.5 py-1 min-h-[36px] inline-flex items-center rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                                    {% trans "Edit" %}
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="py-12 text-center text-slate-500 dark:text-slate-400">
+                                <span class="text-3xl block mb-2">👥</span>
+                                {% trans "No customers recorded yet." %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <div class="p-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs text-slate-500">
+                <div>
+                    {% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
+                </div>
+                <div class="flex items-center gap-2">
+                    {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 font-medium">{% trans "Previous" %}</a>
+                    {% endif %}
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 font-medium">{% trans "Next" %}</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

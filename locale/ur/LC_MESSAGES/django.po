@@ -533,3 +533,129 @@ msgstr "اکاؤنٹ سیکیورٹی"
 
 msgid "Resetting password will also automatically unlock this account if locked."
 msgstr "پاس ورڈ ری سیٹ کرنے سے اگر اکاؤنٹ مقفل ہے تو وہ بھی ان لاک ہو جائے گا۔"
+
+msgid "Vendors & Suppliers"
+msgstr "دکاندار اور سپلائرز"
+
+msgid "Add Vendor"
+msgstr "وینڈر شامل کریں"
+
+msgid "Vendor Name"
+msgstr "دکاندار کا نام"
+
+msgid "Add Customer"
+msgstr "گاہک شامل کریں"
+
+msgid "Customer Name"
+msgstr "گاہک کا نام"
+
+msgid "Party / Business Name"
+msgstr "کاروبار یا فریق کا نام"
+
+msgid "Name in Urdu"
+msgstr "اردو نام"
+
+msgid "Phone Number"
+msgstr "فون نمبر"
+
+msgid "Party Type"
+msgstr "فریق کی قسم"
+
+msgid "Tax / NTN / STRN"
+msgstr "ٹیکس نمبر / این ٹی این"
+
+msgid "Street Address / City"
+msgstr "پتہ / شہر"
+
+msgid "Save Party"
+msgstr "فریق محفوظ کریں"
+
+msgid "Create Manual Bill"
+msgstr "نیا بل بنائیں"
+
+msgid "Invoice Details"
+msgstr "بل کی تفصیلات"
+
+msgid "Invoice #"
+msgstr "بل نمبر"
+
+msgid "Bill Date"
+msgstr "بل کی تاریخ"
+
+msgid "Bill Type"
+msgstr "بل کی قسم"
+
+msgid "Purchase"
+msgstr "خریداری"
+
+msgid "Sale"
+msgstr "فروخت"
+
+msgid "Line Items"
+msgstr "بل کی اشیاء"
+
+msgid "Item Name"
+msgstr "چیز کا نام"
+
+msgid "Quantity"
+msgstr "مقدار"
+
+msgid "Price"
+msgstr "قیمت"
+
+msgid "Total"
+msgstr "کل رقم"
+
+msgid "Subtotal"
+msgstr "ذیلی کل"
+
+msgid "Discount"
+msgstr "رعایت"
+
+msgid "Tax"
+msgstr "ٹیکس"
+
+msgid "Grand Total"
+msgstr "کل واجب الادا رقم"
+
+msgid "Save Bill"
+msgstr "بل محفوظ کریں"
+
+msgid "Record Payment"
+msgstr "ادائیگی درج کریں"
+
+msgid "Payment Amount"
+msgstr "ادائیگی کی رقم"
+
+msgid "Payment Method"
+msgstr "ادائیگی کا طریقہ"
+
+msgid "Cash"
+msgstr "نقد"
+
+msgid "Bank Transfer"
+msgstr "بینک ٹرانسفر"
+
+msgid "Cheque"
+msgstr "چیک"
+
+msgid "Online"
+msgstr "آن لائن"
+
+msgid "Trash"
+msgstr "ردی کی ٹوکری"
+
+msgid "Move to Trash"
+msgstr "ردی کی ٹوکری میں بھیجیں"
+
+msgid "Restore Bill"
+msgstr "بل بحال کریں"
+
+msgid "Paid"
+msgstr "ادا شدہ"
+
+msgid "Unpaid"
+msgstr "غیر ادا شدہ"
+
+msgid "Partially Paid"
+msgstr "جزوی ادا شدہ"

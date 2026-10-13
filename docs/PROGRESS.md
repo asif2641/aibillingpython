@@ -39,7 +39,17 @@
 
 ## Phase 3 — Manual Bills (Entry Form, Bill List, Edit, Trash, Parties, Payments)
 
-**Status:** ⏳ Next up
+**Branch:** `phase-3/manual-bills`  
+**Status:** ✅ Complete (Passed Quality Gate with 251/251 tests, 95% coverage)
+
+| # | Task | Owner | Status | Notes |
+|---|------|-------|--------|-------|
+| 1 | Parties model & service (Vendors & Customers) | Backend Agent | ✅ Done | Fuzzy matching, type filtering, Urdu support |
+| 2 | Bill & BillItem models, recalculation & trash | Backend Agent | ✅ Done | Zero float money math, soft delete trash pattern |
+| 3 | Payment model & recording service | Backend Agent | ✅ Done | Payment recording, status transitions, balance tracking |
+| 4 | QA test-first suites for Phase 3 | QA Agent | ✅ Done | 95 new comprehensive automated tests |
+| 5 | Manual bill entry, roster & party UI templates | Frontend Agent | ✅ Done | Responsive forms, line items formset, RTL, dark theme |
+| 6 | QC review & Gate Report | QC + Browser QA | ✅ Done | APPROVED with 0 Critical/High issues |
 
 ---
 
