@@ -46,8 +46,8 @@ urlpatterns += i18n_patterns(
     path("scanning/", include("scanning.urls", namespace="scanning")),
     # Ledger app (payments and balances)
     path("ledger/", include("ledger.urls", namespace="ledger")),
-    # Add more app URLs here as they are built:
-    # path("reports/", include("reports.urls", namespace="reports")),
+    # Reports app (spending analytics, price history, CSV exports)
+    path("reports/", include("reports.urls", namespace="reports")),
     # Prefix URLs with the language code (default: True).
     prefix_default_language=True,
 )

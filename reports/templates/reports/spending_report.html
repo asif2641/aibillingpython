@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% block title %}{% trans "Spending Reports" %} — Bill Scanner & Ledger{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+
+    <!-- Header and Controls -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                {% trans "Spending Reports" %}
+            </h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {% trans "Track purchase expenses across categories, dates, and vendors." %}
+            </p>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <a href="{% url 'reports:spending_csv' %}?range={{ range_key }}&start_date={{ start_date }}&end_date={{ end_date }}" class="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
+                <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                <span>{% trans "Export CSV" %}</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Date Range Filter Tabs & Form -->
+    <div class="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm">
+        <form method="get" class="flex flex-wrap items-center gap-3">
+            <div class="flex flex-wrap gap-2">
+                <a href="?range=all" class="px-3 py-1.5 rounded-lg text-xs font-semibold {% if range_key == 'all' %}bg-primary-600 text-white{% else %}bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200{% endif %}">
+                    {% trans "All Time" %}
+                </a>
+                <a href="?range=today" class="px-3 py-1.5 rounded-lg text-xs font-semibold {% if range_key == 'today' %}bg-primary-600 text-white{% else %}bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200{% endif %}">
+                    {% trans "Today" %}
+                </a>
+                <a href="?range=yesterday" class="px-3 py-1.5 rounded-lg text-xs font-semibold {% if range_key == 'yesterday' %}bg-primary-600 text-white{% else %}bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200{% endif %}">
+                    {% trans "Yesterday" %}
+                </a>
+                <a href="?range=this_week" class="px-3 py-1.5 rounded-lg text-xs font-semibold {% if range_key == 'this_week' %}bg-primary-600 text-white{% else %}bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200{% endif %}">
+                    {% trans "This Week" %}
+                </a>
+                <a href="?range=this_month" class="px-3 py-1.5 rounded-lg text-xs font-semibold {% if range_key == 'this_month' %}bg-primary-600 text-white{% else %}bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200{% endif %}">
+                    {% trans "This Month" %}
+                </a>
+                <a href="?range=this_year" class="px-3 py-1.5 rounded-lg text-xs font-semibold {% if range_key == 'this_year' %}bg-primary-600 text-white{% else %}bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200{% endif %}">
+                    {% trans "This Year" %}
+                </a>
+            </div>
+
+            <input type="hidden" name="range" value="custom">
+            <div class="flex items-center gap-2 ml-auto">
+                <input type="date" name="start_date" value="{{ start_date }}" class="px-3 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white" aria-label="Start Date">
+                <span class="text-xs text-slate-400">{% trans "to" %}</span>
+                <input type="date" name="end_date" value="{{ end_date }}" class="px-3 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white" aria-label="End Date">
+                <button type="submit" class="px-3 py-1.5 bg-slate-900 dark:bg-slate-700 text-white text-xs font-semibold rounded-lg hover:bg-slate-800">
+                    {% trans "Apply" %}
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 4 High-Level KPI Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">{% trans "Total Spend" %}</span>
+            <div class="mt-3 text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
+                PKR {{ summary.total_spend|stringformat:".2f" }}
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">{% trans "Purchases in selected period" %}</p>
+        </div>
+
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">{% trans "Purchase Bills" %}</span>
+            <div class="mt-3 text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
+                {{ summary.purchase_bills_count }}
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">{% trans "Total bills recorded" %}</p>
+        </div>
+
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">{% trans "Average Bill" %}</span>
+            <div class="mt-3 text-2xl sm:text-3xl font-bold text-purple-600 dark:text-purple-400">
+                PKR {{ summary.average_bill|stringformat:".2f" }}
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">{% trans "Average per purchase" %}</p>
+        </div>
+
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">{% trans "Outstanding Credit" %}</span>
+            <div class="mt-3 text-2xl sm:text-3xl font-bold text-amber-600 dark:text-amber-400">
+                PKR {{ summary.outstanding_credit|stringformat:".2f" }}
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                {% if summary.top_vendor %}{% trans "Top vendor" %}: {{ summary.top_vendor }}{% else %}{% trans "Unsettled purchase dues" %}{% endif %}
+            </p>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Line Chart: Spending Over Time -->
+        <div class="lg:col-span-2 bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
+            <h2 class="text-base font-bold text-slate-900 dark:text-white mb-4">
+                {% trans "Spending Over Time" %}
+            </h2>
+            <div class="relative h-64 w-full">
+                <canvas id="reportSpendingChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Donut Chart: Category Breakdown -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between">
+            <h2 class="text-base font-bold text-slate-900 dark:text-white mb-4">
+                {% trans "Category Share" %}
+            </h2>
+            <div class="relative h-64 w-full flex items-center justify-center">
+                <canvas id="reportCategoryChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Spending Breakdown & Chart Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Category Breakdown Table -->
+        <div class="lg:col-span-2 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+            <div class="p-4 sm:p-6 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                <h2 class="text-lg font-bold text-slate-900 dark:text-white">
+                    {% trans "Spending by Category" %}
+                </h2>
+                <span class="text-xs text-slate-500 dark:text-slate-400">{{ category_breakdown|length }} {% trans "categories" %}</span>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-slate-700 dark:text-slate-200">
+                    <thead class="bg-slate-50 dark:bg-slate-900/50 text-xs uppercase font-semibold text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
+                        <tr>
+                            <th class="px-6 py-3">{% trans "Category" %}</th>
+                            <th class="px-6 py-3 text-right">{% trans "Amount" %}</th>
+                            <th class="px-6 py-3 text-right">{% trans "Share" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+                        {% for cat in category_breakdown %}
+                            <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-750 transition-colors">
+                                <td class="px-6 py-4 flex items-center gap-3">
+                                    <span class="w-3.5 h-3.5 rounded-full flex-shrink-0" style="background-color: {{ cat.color }};"></span>
+                                    <div>
+                                        <div class="font-medium text-slate-900 dark:text-white">{{ cat.name }}</div>
+                                        {% if cat.urdu_name and cat.urdu_name != cat.name %}
+                                            <div class="text-xs text-slate-400">{{ cat.urdu_name }}</div>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right font-semibold text-slate-900 dark:text-white">
+                                    PKR {{ cat.total_amount }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-xs text-slate-500 dark:text-slate-400 font-medium">
+                                    {{ cat.percentage }}%
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="3" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
+                                    {% trans "No purchase expenses found." %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Top Vendors Card -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 sm:p-6">
+            <h2 class="text-lg font-bold text-slate-900 dark:text-white mb-4">
+                {% trans "Top Vendors" %}
+            </h2>
+            <div class="space-y-3">
+                {% for vendor in top_vendors %}
+                    <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-900/40">
+                        <div>
+                            <a href="{% url 'ledger:party_ledger' vendor.party_id %}" class="font-medium text-sm text-slate-900 dark:text-white hover:text-primary-600 underline">
+                                {{ vendor.name }}
+                            </a>
+                            <div class="text-xs text-slate-400">{{ vendor.bill_count }} {% trans "bills" %}</div>
+                        </div>
+                        <div class="text-right">
+                            <span class="font-bold text-sm text-slate-900 dark:text-white">PKR {{ vendor.total_spent }}</span>
+                        </div>
+                    </div>
+                {% empty %}
+                    <p class="text-xs text-slate-500 dark:text-slate-400 text-center py-6">
+                        {% trans "No vendor purchases recorded." %}
+                    </p>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const timeCtx = document.getElementById("reportSpendingChart");
+    if (timeCtx && typeof Chart !== "undefined") {
+        new Chart(timeCtx, {
+            type: "line",
+            data: {
+                labels: {{ chart_data.labels|safe|default:"[]" }},
+                datasets: [{
+                    label: "{% trans "Spending (PKR)" %}",
+                    data: {{ chart_data.data|safe|default:"[]" }},
+                    borderColor: "#6366f1",
+                    backgroundColor: "rgba(99, 102, 241, 0.1)",
+                    fill: true,
+                    tension: 0.3,
+                    borderWidth: 2,
+                    pointRadius: 4,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(val) { return "PKR " + val.toLocaleString(); }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    const catCtx = document.getElementById("reportCategoryChart");
+    if (catCtx && typeof Chart !== "undefined") {
+        const catLabels = [{% for c in category_breakdown %}"{{ c.name }}",{% endfor %}];
+        const catData = [{% for c in category_breakdown %}{{ c.total_amount }},{% endfor %}];
+        const catColors = [{% for c in category_breakdown %}"{{ c.color|default:'#6366f1' }}",{% endfor %}];
+
+        new Chart(catCtx, {
+            type: "doughnut",
+            data: {
+                labels: catLabels,
+                datasets: [{
+                    data: catData,
+                    backgroundColor: catColors,
+                    borderWidth: 2,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: "bottom",
+                        labels: { boxWidth: 12 }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

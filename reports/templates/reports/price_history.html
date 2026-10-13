@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% block title %}{% trans "Price History" %} — Bill Scanner & Ledger{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                {% trans "Price History & Repeat Purchases" %}
+            </h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {% trans "Track unit price fluctuations and inflation over time across vendor purchases." %}
+            </p>
+        </div>
+    </div>
+
+    <!-- Selected Item Detail Card (if an item is selected) -->
+    {% if item_report and item_report.history %}
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-700">
+                <div>
+                    <span class="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">{% trans "Selected Item Analysis" %}</span>
+                    <h2 class="text-xl font-bold text-slate-900 dark:text-white">{{ item_report.item_name }}</h2>
+                </div>
+                <div class="flex items-center gap-2">
+                    {% if item_report.trend == 'increased' %}
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300">
+                            &uarr; +{{ item_report.percent_change }}% {% trans "Price Increased" %}
+                        </span>
+                    {% elif item_report.trend == 'decreased' %}
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                            &darr; {{ item_report.percent_change }}% {% trans "Price Decreased" %}
+                        </span>
+                    {% else %}
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300">
+                            {% trans "Stable Price" %}
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Mini stat badges -->
+            <div class="grid grid-cols-3 gap-4">
+                <div class="p-3 bg-slate-50 dark:bg-slate-900/40 rounded-xl">
+                    <span class="text-xs text-slate-500 dark:text-slate-400">{% trans "Lowest Price" %}</span>
+                    <div class="text-lg font-bold text-slate-900 dark:text-white">PKR {{ item_report.min_price }}</div>
+                </div>
+                <div class="p-3 bg-slate-50 dark:bg-slate-900/40 rounded-xl">
+                    <span class="text-xs text-slate-500 dark:text-slate-400">{% trans "Highest Price" %}</span>
+                    <div class="text-lg font-bold text-slate-900 dark:text-white">PKR {{ item_report.max_price }}</div>
+                </div>
+                <div class="p-3 bg-slate-50 dark:bg-slate-900/40 rounded-xl">
+                    <span class="text-xs text-slate-500 dark:text-slate-400">{% trans "Latest Price" %}</span>
+                    <div class="text-lg font-bold text-primary-600 dark:text-primary-400">PKR {{ item_report.latest_price }}</div>
+                </div>
+            </div>
+
+            <!-- Price History Table -->
+            <div class="overflow-x-auto pt-2">
+                <table class="w-full text-left text-sm text-slate-700 dark:text-slate-200">
+                    <thead class="bg-slate-50 dark:bg-slate-900/50 text-xs uppercase font-semibold text-slate-500 dark:text-slate-400">
+                        <tr>
+                            <th class="px-4 py-2">{% trans "Date" %}</th>
+                            <th class="px-4 py-2">{% trans "Invoice" %}</th>
+                            <th class="px-4 py-2">{% trans "Vendor" %}</th>
+                            <th class="px-4 py-2 text-right">{% trans "Quantity" %}</th>
+                            <th class="px-4 py-2 text-right">{% trans "Unit Price" %}</th>
+                            <th class="px-4 py-2 text-right">{% trans "Line Total" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+                        {% for row in item_report.history %}
+                            <tr>
+                                <td class="px-4 py-3 text-xs">{{ row.bill_date|date:"Y-m-d" }}</td>
+                                <td class="px-4 py-3 font-medium">
+                                    <a href="{% url 'bills:bill_detail' row.bill_id %}" class="hover:text-primary-600 underline">
+                                        {{ row.invoice_no }}
+                                    </a>
+                                </td>
+                                <td class="px-4 py-3 text-xs">{{ row.party_name|default:"-" }}</td>
+                                <td class="px-4 py-3 text-right text-xs">{{ row.quantity }} {{ row.unit }}</td>
+                                <td class="px-4 py-3 text-right font-semibold text-slate-900 dark:text-white">PKR {{ row.unit_price }}</td>
+                                <td class="px-4 py-3 text-right font-medium">PKR {{ row.line_total }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- All Items Summary Table -->
+    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+        <div class="p-4 sm:p-6 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+            <h2 class="text-lg font-bold text-slate-900 dark:text-white">
+                {% trans "Tracked Purchase Items" %}
+            </h2>
+            <span class="text-xs text-slate-500 dark:text-slate-400">
+                {{ items_summary|length }} {% trans "items" %}
+            </span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-700 dark:text-slate-200">
+                <thead class="bg-slate-50 dark:bg-slate-900/50 text-xs uppercase font-semibold text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
+                    <tr>
+                        <th class="px-6 py-3">{% trans "Item Name" %}</th>
+                        <th class="px-6 py-3 text-center">{% trans "Purchases" %}</th>
+                        <th class="px-6 py-3 text-right">{% trans "Min Price" %}</th>
+                        <th class="px-6 py-3 text-right">{% trans "Max Price" %}</th>
+                        <th class="px-6 py-3 text-right">{% trans "Latest Price" %}</th>
+                        <th class="px-6 py-3 text-center">{% trans "Trend" %}</th>
+                        <th class="px-6 py-3 text-center">{% trans "Action" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+                    {% for item in items_summary %}
+                        <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-750 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap font-medium text-slate-900 dark:text-white">
+                                {{ item.name }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center text-xs text-slate-500 dark:text-slate-400">
+                                {{ item.purchase_count }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right font-medium text-slate-600 dark:text-slate-300">
+                                PKR {{ item.min_price }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right font-medium text-slate-600 dark:text-slate-300">
+                                PKR {{ item.max_price }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right font-bold text-slate-900 dark:text-white">
+                                PKR {{ item.latest_price }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center">
+                                {% if item.trend == 'increased' %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300">
+                                        +{{ item.percent_change }}%
+                                    </span>
+                                {% elif item.trend == 'decreased' %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                                        {{ item.percent_change }}%
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300">
+                                        0%
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center">
+                                <a href="?item={{ item.name }}" class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-lg bg-primary-50 dark:bg-primary-950/50 text-primary-700 dark:text-primary-300 hover:bg-primary-100 transition-colors">
+                                    {% trans "View History" %}
+                                </a>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
+                                {% trans "No purchase item history recorded." %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

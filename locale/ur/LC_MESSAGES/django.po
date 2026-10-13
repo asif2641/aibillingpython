@@ -659,3 +659,105 @@ msgstr "غیر ادا شدہ"
 
 msgid "Partially Paid"
 msgstr "جزوی ادا شدہ"
+
+msgid "Party Ledger (Khata)"
+msgstr "کھاتہ تفصیل"
+
+msgid "Running Khata balance and transaction timeline"
+msgstr "کھاتے کا بقایا اور لین دین کی تفصیل"
+
+msgid "Export CSV"
+msgstr "سی ایس وی ڈاؤنلوڈ کریں"
+
+msgid "Total Billed"
+msgstr "کل بلز رقم"
+
+msgid "Total Paid"
+msgstr "کل ادا شدہ رقم"
+
+msgid "Transaction History"
+msgstr "لین دین کی تاریخ"
+
+msgid "Running Balance"
+msgstr "بقایا کھاتہ"
+
+msgid "Spending Reports"
+msgstr "اخراجات کی رپورٹس"
+
+msgid "Track purchase expenses across categories, dates, and vendors."
+msgstr "اقسام، تاریخ اور دکانداروں کے لحاظ سے اخراجات کا جائزہ لیں۔"
+
+msgid "All Time"
+msgstr "تمام مدت"
+
+msgid "This Week"
+msgstr "موجودہ ہفتہ"
+
+msgid "This Month"
+msgstr "موجودہ مہینہ"
+
+msgid "This Year"
+msgstr "موجودہ سال"
+
+msgid "Spending by Category"
+msgstr "اقسام کے لحاظ سے خرچ"
+
+msgid "Top Vendors"
+msgstr "نمایاں دکاندار"
+
+msgid "Price History & Repeat Purchases"
+msgstr "قیمتوں کی تاریخ اور بار بار کی خریداری"
+
+msgid "Track unit price fluctuations and inflation over time across vendor purchases."
+msgstr "خریداری کے دوران قیمتوں کے اتار چڑھاؤ کا ریکارڈ رکھیں۔"
+
+msgid "Selected Item Analysis"
+msgstr "منتخب چیز کا تجزیہ"
+
+msgid "Price Increased"
+msgstr "قیمت میں اضافہ"
+
+msgid "Price Decreased"
+msgstr "قیمت میں کمی"
+
+msgid "Stable Price"
+msgstr "مستحکم قیمت"
+
+msgid "Lowest Price"
+msgstr "کم ترین قیمت"
+
+msgid "Highest Price"
+msgstr "زیادہ سے زیادہ قیمت"
+
+msgid "Latest Price"
+msgstr "حالیہ قیمت"
+
+msgid "Tracked Purchase Items"
+msgstr "محفوظ شدہ اشیاء کی فہرست"
+
+msgid "Purchases in selected period"
+msgstr "منتخب مدت کی خریداری"
+
+msgid "Average per purchase"
+msgstr "فی بل اوسط خرچ"
+
+msgid "Unsettled purchase dues"
+msgstr "غیر ادا شدہ بقایا جات"
+
+msgid "No vendor purchases recorded."
+msgstr "کوئی خریداری ریکارڈ نہیں ہوئی۔"
+
+msgid "You owe Rs. %(amount)s"
+msgstr "آپ نے %(amount)s روپے واجب الادا دینے ہیں"
+
+msgid "You will receive Rs. %(amount)s"
+msgstr "آپ کو %(amount)s روپے وصول ہونے ہیں"
+
+msgid "Advance paid Rs. %(amount)s"
+msgstr "پیشگی ادا شدہ رقم %(amount)s روپے"
+
+msgid "Advance received Rs. %(amount)s"
+msgstr "پیشگی وصول شدہ رقم %(amount)s روپے"
+
+msgid "Account Settled"
+msgstr "کھاتہ بے باق ہو گیا"

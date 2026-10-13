@@ -1,12 +1,16 @@
 """ledger/services.py
 ==================
-Business logic for payment recording and ledger operations.
+Business logic for payment recording, party running ledger (Khata), and CSV statement exports.
 """
 
+import csv
+import io
 from decimal import Decimal
+from typing import Any, Dict, List
 
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 from billing.utils import money_round
 from bills.models import Bill
@@ -65,3 +69,120 @@ def record_payment(
         bill.save(update_fields=["amount_paid", "payment_status"])
 
     return payment
+
+
+def get_party_ledger_statement(party: Party) -> Dict[str, Any]:
+    """Calculate running ledger balance and chronological transaction timeline (Khata)."""
+    bills = (
+        Bill.objects.filter(party=party, is_deleted=False)
+        .prefetch_related("items")
+        .order_by("bill_date", "id")
+    )
+    payments = Payment.objects.filter(party=party, is_deleted=False).order_by("payment_date", "id")
+
+    timeline: List[Dict[str, Any]] = []
+
+    for bill in bills:
+        desc = ", ".join([it.item_name for it in bill.items.all()[:3]]) or _("Invoice")
+        timeline.append(
+            {
+                "date": bill.bill_date,
+                "sort_order": (bill.bill_date, 0, bill.id),
+                "type": "bill",
+                "reference": bill.invoice_no or f"BILL-{bill.pk}",
+                "description": desc,
+                "billed_amount": bill.grand_total,
+                "paid_amount": Decimal("0.00"),
+                "bill_id": bill.pk,
+                "payment_id": None,
+            }
+        )
+
+    for pay in payments:
+        timeline.append(
+            {
+                "date": pay.payment_date,
+                "sort_order": (pay.payment_date, 1, pay.id),
+                "type": "payment",
+                "reference": pay.reference or f"TXN-{pay.pk}",
+                "description": f"{pay.get_payment_method_display()} - {pay.notes}"
+                if pay.notes
+                else pay.get_payment_method_display(),
+                "billed_amount": Decimal("0.00"),
+                "paid_amount": pay.amount,
+                "bill_id": pay.bill_id,
+                "payment_id": pay.pk,
+            }
+        )
+
+    # Sort strictly by date then sequence
+    timeline.sort(key=lambda x: x["sort_order"])
+
+    running_balance = Decimal("0.00")
+    total_billed = Decimal("0.00")
+    total_paid = Decimal("0.00")
+
+    for entry in timeline:
+        total_billed += entry["billed_amount"]
+        total_paid += entry["paid_amount"]
+        running_balance += entry["billed_amount"] - entry["paid_amount"]
+        entry["running_balance"] = money_round(running_balance)
+
+    net_balance = money_round(total_billed - total_paid)
+
+    # Balance categorization
+    if party.party_type == Party.PartyType.CUSTOMER:
+        if net_balance > Decimal("0.00"):
+            balance_type = "receivable"
+            balance_label = _("You will receive Rs. %(amount)s") % {"amount": net_balance}
+        elif net_balance < Decimal("0.00"):
+            balance_type = "advance"
+            balance_label = _("Advance received Rs. %(amount)s") % {"amount": abs(net_balance)}
+        else:
+            balance_type = "settled"
+            balance_label = _("Account Settled")
+    else:  # Vendor or Both
+        if net_balance > Decimal("0.00"):
+            balance_type = "payable"
+            balance_label = _("You owe Rs. %(amount)s") % {"amount": net_balance}
+        elif net_balance < Decimal("0.00"):
+            balance_type = "advance"
+            balance_label = _("Advance paid Rs. %(amount)s") % {"amount": abs(net_balance)}
+        else:
+            balance_type = "settled"
+            balance_label = _("Account Settled")
+
+    return {
+        "party": party,
+        "total_billed": money_round(total_billed),
+        "total_paid": money_round(total_paid),
+        "net_balance": net_balance,
+        "balance_type": balance_type,
+        "balance_label": balance_label,
+        "entries": timeline,
+    }
+
+
+def generate_ledger_csv(party: Party) -> str:
+    """Export party Khata ledger entries to CSV string format."""
+    statement = get_party_ledger_statement(party)
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    writer.writerow(
+        ["Date", "Type", "Reference", "Description", "Billed", "Paid", "Running Balance"]
+    )
+    for entry in statement["entries"]:
+        writer.writerow(
+            [
+                entry["date"].strftime("%Y-%m-%d"),
+                entry["type"].capitalize(),
+                entry["reference"],
+                entry["description"],
+                str(entry["billed_amount"]),
+                str(entry["paid_amount"]),
+                str(entry["running_balance"]),
+            ]
+        )
+
+    return output.getvalue()

@@ -1,0 +1,84 @@
+"""reports/views.py
+================
+Views for spending analytics, category breakdowns, price history, and CSV exports.
+"""
+
+from django.contrib.auth.decorators import login_required
+from django.http import HttpRequest, HttpResponse
+from django.shortcuts import render
+from django.utils import timezone
+
+from reports.services import (
+    generate_spending_csv,
+    get_all_items_price_summary,
+    get_date_range,
+    get_item_price_history,
+    get_spending_by_category,
+    get_spending_over_time,
+    get_spending_summary,
+    get_top_vendors,
+)
+
+
+@login_required
+def spending_report_view(request: HttpRequest) -> HttpResponse:
+    """Render spending analytics, charts, category breakdown, and top vendors."""
+    range_key = request.GET.get("range", "all")
+    start_date = request.GET.get("start_date")
+    end_date = request.GET.get("end_date")
+
+    start, end = get_date_range(range_key, start_date, end_date)
+
+    summary = get_spending_summary(
+        date_range_key=range_key, custom_start=start_date, custom_end=end_date
+    )
+    category_breakdown = get_spending_by_category(start_date=start, end_date=end)
+    top_vendors = get_top_vendors(limit=10, start_date=start, end_date=end)
+    chart_data = get_spending_over_time(interval="day", start_date=start, end_date=end)
+
+    context = {
+        "title": "Spending Reports",
+        "range_key": range_key,
+        "start_date": start_date or "",
+        "end_date": end_date or "",
+        "summary": summary,
+        "category_breakdown": category_breakdown,
+        "top_vendors": top_vendors,
+        "chart_data": chart_data,
+    }
+    return render(request, "reports/spending_report.html", context)
+
+
+@login_required
+def export_spending_csv_view(request: HttpRequest) -> HttpResponse:
+    """Export filtered purchase spending data as an RFC-compliant CSV."""
+    range_key = request.GET.get("range", "all")
+    start_date = request.GET.get("start_date")
+    end_date = request.GET.get("end_date")
+
+    start, end = get_date_range(range_key, start_date, end_date)
+    csv_content = generate_spending_csv(start_date=start, end_date=end)
+
+    today_str = timezone.now().date().strftime("%Y-%m-%d")
+    response = HttpResponse(csv_content, content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="spending-report-{today_str}.csv"'
+    return response
+
+
+@login_required
+def price_history_view(request: HttpRequest) -> HttpResponse:
+    """Render repeat purchase item index and price fluctuation trends."""
+    item_query = request.GET.get("item", "").strip()
+    items_summary = get_all_items_price_summary()
+
+    item_report = None
+    if item_query:
+        item_report = get_item_price_history(item_query)
+
+    context = {
+        "title": "Price History",
+        "items_summary": items_summary,
+        "item_report": item_report,
+        "selected_item": item_query,
+    }
+    return render(request, "reports/price_history.html", context)
