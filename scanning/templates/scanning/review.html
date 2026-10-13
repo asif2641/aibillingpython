@@ -278,20 +278,16 @@
                                 </button>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                <!-- Action Buttons -->
-                <div class="pt-4 border-t border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-end gap-3">
-                    <button type="submit" name="action" value="save_draft" 
-                            class="px-5 py-2.5 min-h-[44px] inline-flex items-center rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 font-semibold text-xs transition-colors">
-                        {% trans "Save as Draft" %}
-                    </button>
-                    <button type="submit" name="action" value="verify" 
-                            class="px-6 py-2.5 min-h-[44px] inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm shadow-emerald-500/25 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                        <span>{% trans "Verify & Approve Bill" %}</span>
-                    </button>
+                        <!-- Standard Verify & Approve when Total has No Discrepancy -->
+                        <div id="standard-approve-panel" class="pt-3 border-t border-slate-200 dark:border-slate-700 flex items-center justify-end {% if is_total_invalid %}hidden{% endif %}">
+                            <button type="submit" name="action" value="verify"
+                                    class="px-6 py-2.5 min-h-[44px] inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm shadow-emerald-500/25 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                <span>{% trans "Verify & Approve Bill" %}</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
@@ -352,6 +348,7 @@
                 const isInvalid = anyMissingPrice || hasMismatch;
 
                 const optionsPanel = document.getElementById('discrepancy-options-panel');
+                const standardPanel = document.getElementById('standard-approve-panel');
                 const computedTotalLabel = document.querySelector('.computed-total-label');
                 const slipTotalLabel = document.querySelector('.slip-total-label');
 
@@ -381,6 +378,9 @@
                     if (optionsPanel) {
                         optionsPanel.classList.remove('hidden');
                     }
+                    if (standardPanel) {
+                        standardPanel.classList.add('hidden');
+                    }
                 } else {
                     if (grandTotalDisplay) {
                         grandTotalDisplay.classList.remove('text-red-600', 'dark:text-red-400', 'font-extrabold');
@@ -397,6 +397,9 @@
                     }
                     if (optionsPanel) {
                         optionsPanel.classList.add('hidden');
+                    }
+                    if (standardPanel) {
+                        standardPanel.classList.remove('hidden');
                     }
                 }
             }
