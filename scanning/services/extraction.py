@@ -17,7 +17,7 @@ from billing.utils import money_round
 from bills.models import Bill, BillItem
 from parties.models import Party
 from scanning.exceptions import AIExtractionError, ScanQuotaExceededError
-from scanning.models import BillError, ScanJob
+from scanning.models import BillError, BillFile, ScanJob
 from scanning.services.matching import resolve_scan_party, suggest_bill_category
 from scanning.services.validation import detect_bill_errors
 from settings_app.models import ShopProfile
@@ -466,12 +466,39 @@ def process_scan_job(job: ScanJob) -> Bill:
     job.save(update_fields=["status"])
 
     start_time = time.time()
-    extractor = get_ai_extractor(job.provider)
 
     try:
         files = list(job.files.all())
-        raw_result = extractor.extract(*files)
-        validated_data = validate_extraction_schema(raw_result)
+        first_file = files[0] if files else None
+
+        # FAST-TRACK DUPLICATE DOCUMENT CACHE:
+        # If an identical document (same file_hash) was already scanned and has a bill,
+        # reuse its extracted data instantly in 0.05s instead of waiting 10-15s for Gemini AI!
+        cached_existing_job = None
+        if first_file and first_file.file_hash:
+            existing_bf = (
+                BillFile.objects.filter(file_hash=first_file.file_hash, bill__isnull=False)
+                .exclude(scan_job=job)
+                .select_related("scan_job__bill", "bill")
+                .order_by("-id")
+                .first()
+            )
+            if existing_bf and existing_bf.scan_job and existing_bf.scan_job.extracted_data:
+                cached_existing_job = existing_bf.scan_job
+
+        if cached_existing_job:
+            validated_data = validate_extraction_schema(dict(cached_existing_job.extracted_data))
+            job.raw_response = cached_existing_job.raw_response
+            is_fast_duplicate = True
+            prev_bill = cached_existing_job.bill
+            token_count_val = 0
+        else:
+            extractor = get_ai_extractor(job.provider)
+            raw_result = extractor.extract(*files)
+            validated_data = validate_extraction_schema(raw_result)
+            is_fast_duplicate = False
+            prev_bill = None
+            token_count_val = getattr(extractor, "last_token_count", 1250) or 1250
 
         # 1. Resolve Party (Vendor or Customer)
         vendor_data = validated_data.get("vendor") or {}
@@ -532,6 +559,15 @@ def process_scan_job(job: ScanJob) -> Bill:
 
         # 5. Detect and attach errors
         discrepancies = detect_bill_errors(validated_data)
+        if is_fast_duplicate and prev_bill:
+            discrepancies.append(
+                {
+                    "error_type": BillError.ErrorType.DUPLICATE_SUSPECT,
+                    "field_name": "document_file",
+                    "severity": "warning",
+                    "message": f"Duplicate Bill: This exact document was previously scanned as Bill #{prev_bill.pk} on {prev_bill.bill_date}.",
+                }
+            )
         for disc in discrepancies:
             BillError.objects.create(
                 bill=bill,
@@ -549,7 +585,7 @@ def process_scan_job(job: ScanJob) -> Bill:
         job.bill = bill
         job.status = ScanJob.Status.COMPLETED
         job.extracted_data = validated_data
-        job.token_count = getattr(extractor, "last_token_count", 1250) or 1250
+        job.token_count = token_count_val
         job.latency_ms = int((time.time() - start_time) * 1000)
         job.completed_at = timezone.now()
         job.save()

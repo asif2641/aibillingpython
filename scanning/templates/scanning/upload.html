@@ -90,22 +90,42 @@
                 </h3>
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <template x-for="(file, idx) in selectedFiles" :key="idx">
-                        <div class="relative p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 flex flex-col items-center text-center">
+                        <div class="relative p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 flex flex-col items-center text-center"
+                             :class="isDuplicate ? 'border-amber-400 dark:border-amber-500 bg-amber-50/40 dark:bg-amber-950/20' : ''">
                             <span class="text-2xl mb-1">📄</span>
                             <p class="text-[11px] font-semibold text-slate-800 dark:text-slate-200 truncate w-full" x-text="file.name"></p>
                             <span class="text-[10px] text-slate-400 mt-0.5" x-text="formatSize(file.size)"></span>
-                            <span class="inline-block mt-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-primary-100 text-primary-700 dark:bg-primary-950 dark:text-primary-300" x-text="'Page ' + (idx + 1)"></span>
+                            <div class="flex items-center gap-1 mt-1">
+                                <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-primary-100 text-primary-700 dark:bg-primary-950 dark:text-primary-300" x-text="'Page ' + (idx + 1)"></span>
+                                <span x-show="isDuplicate" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-200 text-amber-900 dark:bg-amber-900 dark:text-amber-200">{% trans "Duplicate" %}</span>
+                            </div>
                         </div>
                     </template>
                 </div>
             </div>
 
             <!-- Upload / Process Action Button -->
-            <div class="flex items-center justify-between pt-2">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
                 <div class="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                     <span>⚡</span>
                     <span>{% trans "AI extracts printed & handwritten Urdu/English bills" %}</span>
                 </div>
+
+                <!-- Highlighted Duplicate Bill Area -->
+                <div x-show="isDuplicate" x-transition 
+                     class="flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-amber-100 dark:bg-amber-950/80 border-2 border-amber-400 dark:border-amber-500 text-amber-950 dark:text-amber-200 text-xs font-semibold shadow-sm">
+                    <span class="text-base">⚠️</span>
+                    <span class="font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">{% trans "Duplicate Bill" %}</span>
+                    <span class="text-[11px] text-slate-700 dark:text-slate-300 font-normal">
+                        (<span x-text="duplicateInfo?.party_name || ''"></span> - Rs. <span x-text="duplicateInfo?.grand_total || ''"></span>)
+                    </span>
+                    <a :href="duplicateInfo?.review_url || duplicateInfo?.detail_url" 
+                       class="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-bold shadow-sm transition-colors ml-1 whitespace-nowrap">
+                        <span>{% trans "Open Existing Bill" %}</span>
+                        <svg class="w-3 h-3 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    </a>
+                </div>
+
                 <button type="submit" 
                         class="px-8 py-3 min-h-[44px] inline-flex items-center gap-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs shadow-md shadow-primary-500/25 transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
                         :disabled="isUploading">
@@ -131,10 +151,36 @@ function uploadManager() {
     return {
         isDragging: false,
         isUploading: false,
+        isDuplicate: false,
+        duplicateInfo: null,
         selectedFiles: [],
+        async checkDuplicateFile(files) {
+            this.isDuplicate = false;
+            this.duplicateInfo = null;
+            if (!files || files.length === 0) return;
+            const file = files[0];
+            try {
+                const buffer = await file.arrayBuffer();
+                const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+                const resp = await fetch(`/en/scanning/check-duplicate/?hash=${hashHex}`);
+                if (resp.ok) {
+                    const data = await resp.json();
+                    if (data.is_duplicate) {
+                        this.isDuplicate = true;
+                        this.duplicateInfo = data;
+                    }
+                }
+            } catch (err) {
+                console.warn('Duplicate check could not complete:', err);
+            }
+        },
         handleFileSelect(event) {
             const files = Array.from(event.target.files);
             this.selectedFiles = files;
+            this.checkDuplicateFile(files);
         },
         handleDrop(event) {
             this.isDragging = false;
@@ -145,6 +191,7 @@ function uploadManager() {
             if (input) {
                 input.files = dt.files;
             }
+            this.checkDuplicateFile(files);
         },
         formatSize(bytes) {
             if (!bytes) return '0 B';

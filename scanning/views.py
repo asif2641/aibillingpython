@@ -10,7 +10,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -98,6 +98,40 @@ def upload_view(request: HttpRequest) -> HttpResponse:
             )
 
     return render(request, "scanning/upload.html", context)
+
+
+@login_required
+def check_duplicate_view(request: HttpRequest) -> JsonResponse:
+    """Instant check if an uploaded file hash matches an existing scanned bill."""
+    file_hash = request.GET.get("hash", "").strip().lower()
+    if not file_hash or len(file_hash) < 16:
+        return JsonResponse({"is_duplicate": False})
+
+    existing_file = (
+        BillFile.objects.filter(file_hash=file_hash, bill__isnull=False)
+        .select_related("bill__party", "scan_job")
+        .order_by("-id")
+        .first()
+    )
+
+    if existing_file and existing_file.bill:
+        bill = existing_file.bill
+        job = existing_file.scan_job
+        return JsonResponse(
+            {
+                "is_duplicate": True,
+                "bill_id": bill.pk,
+                "job_id": job.pk if job else None,
+                "invoice_no": bill.invoice_no or f"#{bill.pk}",
+                "party_name": bill.party.name if bill.party else "Unknown",
+                "grand_total": str(bill.grand_total),
+                "bill_date": str(bill.bill_date),
+                "review_url": f"/en/scanning/review/{job.pk}/" if job else f"/en/bills/{bill.pk}/",
+                "detail_url": f"/en/bills/{bill.pk}/",
+            }
+        )
+
+    return JsonResponse({"is_duplicate": False})
 
 
 @login_required

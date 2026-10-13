@@ -893,3 +893,102 @@ class TestAIExtractorProviderResolution:
         assert item.item_name == "Live Chicken"
         assert item.urdu_item_name == ""
         assert item.unit == "pcs"
+
+    def test_check_duplicate_view_returns_duplicate_data(
+        self, client, superadmin_user, sample_image
+    ):
+        """check_duplicate endpoint returns duplicate info when matching file hash exists."""
+        client.force_login(superadmin_user)
+        from bills.models import Bill
+        from parties.models import Party
+        from scanning.models import BillFile, ScanJob
+
+        party = Party.objects.create(name="Vendor A", party_type="vendor")
+        sample_bill = Bill.objects.create(
+            party=party,
+            invoice_no="INV-DUP-TEST",
+            bill_date="2026-10-13",
+            grand_total=Decimal("500.00"),
+        )
+
+        job = ScanJob.objects.create(
+            provider="mock", bill=sample_bill, status=ScanJob.Status.COMPLETED
+        )
+        bf = BillFile.objects.create(
+            scan_job=job,
+            bill=sample_bill,
+            file=sample_image,
+            page_number=1,
+            file_hash="test_hash_abcdef1234567890",
+        )
+
+        # Non-matching hash
+        resp = client.get("/en/scanning/check-duplicate/?hash=different_hash_123456789")
+        assert resp.status_code == 200
+        assert resp.json()["is_duplicate"] is False
+
+        # Matching hash
+        resp = client.get(f"/en/scanning/check-duplicate/?hash={bf.file_hash}")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["is_duplicate"] is True
+        assert data["bill_id"] == sample_bill.pk
+        assert data["party_name"] == sample_bill.party.name
+
+    def test_process_scan_job_fast_tracks_duplicate_document(
+        self, superadmin_user, sample_image, monkeypatch
+    ):
+        """When an identical document hash exists with completed bill, process_scan_job fast-tracks without calling AI extractor."""
+        from bills.models import Bill
+        from parties.models import Party
+        from scanning.models import BillError, BillFile, ScanJob
+        from scanning.services.extraction import process_scan_job
+
+        party = Party.objects.create(name="Vendor Fast Track", party_type="vendor")
+        sample_bill = Bill.objects.create(
+            party=party,
+            invoice_no="INV-FAST",
+            bill_date="2026-10-13",
+            grand_total=Decimal("500.00"),
+        )
+
+        prev_job = ScanJob.objects.create(
+            provider="mock",
+            bill=sample_bill,
+            status=ScanJob.Status.COMPLETED,
+            extracted_data={
+                "document_type": "printed",
+                "vendor": {"name": sample_bill.party.name},
+                "items": [
+                    {"name": "Cached Item", "quantity": 1, "unit_price": 500, "line_total": 500}
+                ],
+                "grand_total": 500.0,
+            },
+        )
+        test_hash = "unique_cached_file_hash_987654321"
+        BillFile.objects.create(
+            scan_job=prev_job,
+            bill=sample_bill,
+            file=sample_image,
+            page_number=1,
+            file_hash=test_hash,
+        )
+
+        new_job = ScanJob.objects.create(provider="gemini", created_by=superadmin_user)
+        BillFile.objects.create(
+            scan_job=new_job,
+            file=sample_image,
+            page_number=1,
+            file_hash=test_hash,
+        )
+
+        # If it calls AI extractor, raise an error to prove it was skipped!
+        def fail_if_called(*args, **kwargs):
+            raise AssertionError("AI Extractor should NOT be called for duplicate documents!")
+
+        monkeypatch.setattr("scanning.services.extraction.get_ai_extractor", fail_if_called)
+
+        new_bill = process_scan_job(new_job)
+        assert new_bill is not None
+        assert new_bill.items.filter(item_name="Cached Item").exists()
+        assert new_bill.errors.filter(error_type=BillError.ErrorType.DUPLICATE_SUSPECT).exists()
