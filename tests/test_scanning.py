@@ -333,6 +333,35 @@ class TestErrorDetectionService:
         assert len(math_errors) >= 1
         assert "quantity * unit price" in math_errors[0]["message"].lower()
 
+    def test_round_half_up_unit_price_does_not_trigger_math_mismatch(self):
+        """When unit_price is 2-decimal rounded half-up (e.g. 130/6=21.666..->21.67), no math error is raised."""
+        from scanning.services.validation import detect_bill_errors
+
+        # 6 eggs @ 21.67 = 130.02 (diff 0.02 from line_total 130)
+        extracted_data = {
+            "invoice_no": "INV-100B",
+            "date": "2026-10-10",
+            "subtotal": 130.0,
+            "discount": 0.0,
+            "tax": 0.0,
+            "grand_total": 130.0,
+            "items": [
+                {
+                    "serial_no": 1,
+                    "name": "Eggs",
+                    "quantity": 6.0,
+                    "unit_price": 21.67,  # 130 / 6 = 21.6666... rounded half-up to 21.67
+                    "line_total": 130.0,
+                    "confidence": 95,
+                }
+            ],
+            "field_confidence": {},
+        }
+
+        errors = detect_bill_errors(extracted_data)
+        math_errors = [e for e in errors if e["error_type"] == "math_mismatch"]
+        assert len(math_errors) == 0
+
     def test_grand_total_mismatch_detection(self):
         """Subtotal - discount + tax != grand_total is flagged."""
         from scanning.services.validation import detect_bill_errors

@@ -41,19 +41,26 @@ def detect_bill_errors(extracted_data: Dict[str, Any]) -> List[Dict[str, Any]]:
 
             if qty > Decimal("0.00") and price > Decimal("0.00"):
                 expected_line_total = money_round(qty * price)
-                if abs(expected_line_total - line_total) > Decimal("0.01"):
-                    errors.append(
-                        {
-                            "error_type": "math_mismatch",
-                            "field_name": "line_total",
-                            "severity": "error",
-                            "message": (
-                                f"Item '{item.get('name', 'Item')}' quantity * unit price "
-                                f"({qty} * {price} = {expected_line_total}) does not match line total ({line_total})."
-                            ),
-                            "suggested_fix": {"line_total": str(expected_line_total)},
-                        }
-                    )
+                diff = abs(expected_line_total - line_total)
+                if diff > Decimal("0.01"):
+                    # Account for 2-decimal unit price round-half-up effects
+                    # (e.g. 130 / 6 = 21.666... -> 21.67; 6 * 21.67 = 130.02, diff 0.02)
+                    is_rounding_effect = money_round(line_total / qty) == money_round(
+                        price
+                    ) and diff <= Decimal("0.05")
+                    if not is_rounding_effect:
+                        errors.append(
+                            {
+                                "error_type": "math_mismatch",
+                                "field_name": "line_total",
+                                "severity": "error",
+                                "message": (
+                                    f"Item '{item.get('name', 'Item')}' quantity * unit price "
+                                    f"({qty} * {price} = {expected_line_total}) does not match line total ({line_total})."
+                                ),
+                                "suggested_fix": {"line_total": str(expected_line_total)},
+                            }
+                        )
 
     # 2. Subtotal Check
     subtotal_raw = extracted_data.get("subtotal")

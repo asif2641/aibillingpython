@@ -177,10 +177,10 @@
                                         {{ it.quantity }} <span class="text-[10px] text-slate-400">{{ it.unit }}</span>
                                     </td>
                                     <td class="py-2.5 px-3 text-right rtl:text-left font-mono">
-                                        {{ it.unit_price }}
+                                        {{ it.unit_price|floatformat:2 }}
                                     </td>
                                     <td class="py-2.5 px-3 text-right rtl:text-left font-mono font-bold">
-                                        {{ it.line_total }}
+                                        {{ it.line_total|floatformat:2 }}
                                     </td>
                                 </tr>
                                 {% endfor %}

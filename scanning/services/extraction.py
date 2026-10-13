@@ -100,6 +100,13 @@ Follow these critical rules:
 8. For multi-page bills, merge all pages into a single consolidated document.
 9. Set currency (e.g. "PKR", "USD") and payment method ("cash", "card", "online", "credit") if identifiable.
 10. If there are uncertainties, illegible text, or calculation discrepancies, list them in the "warnings" array.
+11. DECIMAL ROUNDING RULE (ROUND HALF-UP):
+    Whenever calculating or extracting prices, unit rates, or totals with decimals:
+    - Always round to 2 decimal places using standard half-up rounding: look at the 3rd decimal digit after the dot; if the 3rd digit is 5 or greater, round UP by adding 1 to the second decimal digit (e.g. .666 becomes .67).
+    - NEVER truncate digits!
+    - Example: 130 total for 6 eggs -> 130 / 6 = 21.666... -> MUST be rounded to 21.67 (NOT 21.66).
+    - Example: 100 / 3 = 33.333... -> 33.33.
+    - Example: 35 / 3 = 11.666... -> 11.67.
 
 Schema to return:
 {
@@ -540,8 +547,29 @@ def process_scan_job(job: ScanJob) -> Bill:
         # 4. Create Line Items
         for idx, it in enumerate(validated_data.get("items", []), start=1):
             qty = Decimal(str(it.get("quantity") or 1))
-            price = money_round(Decimal(str(it.get("unit_price") or 0)))
-            lt = money_round(Decimal(str(it.get("line_total") or (qty * price))))
+            lt = money_round(Decimal(str(it.get("line_total") or 0)))
+            raw_price = Decimal(str(it.get("unit_price") or 0))
+
+            if qty > Decimal("0.00") and lt > Decimal("0.00"):
+                computed_price = money_round(lt / qty)
+                if raw_price == Decimal("0.00"):
+                    price = computed_price
+                else:
+                    price = money_round(raw_price)
+                    # If raw_price was truncated (e.g. 21.66 instead of 21.67):
+                    # when lt / qty rounds half-up to computed_price, use the rounded price
+                    if abs(price - computed_price) <= Decimal("0.01"):
+                        price = computed_price
+            else:
+                price = money_round(raw_price)
+
+            if lt == Decimal("0.00"):
+                lt = money_round(qty * price)
+
+            # Keep validated_data in sync for detect_bill_errors
+            it["unit_price"] = float(price)
+            it["line_total"] = float(lt)
+
             item_name = str(it.get("name") or it.get("item_name") or f"Item {idx}").strip()
             urdu_item_name = str(it.get("urdu_name") or it.get("urdu_item_name") or "").strip()
             unit_val = str(it.get("unit") or "pcs").strip()
