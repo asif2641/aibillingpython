@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Scan Bill — AI Extraction" %} — Bill Scanner & Ledger{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 py-8 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-3xl mx-auto space-y-6" x-data="uploadManager()">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <a href="{% url 'bills:bill_list' %}" 
+                   class="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                   title="{% trans "Back" %}">
+                    <svg class="w-5 h-5 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                </a>
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+                        <span>📸</span>
+                        <span>{% trans "Scan Bill with AI" %}</span>
+                    </h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        {% trans "Upload single or multi-page receipts, invoices, or thermal slips for automated extraction." %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        {% if error %}
+        <div class="p-4 rounded-2xl bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 text-red-800 dark:text-red-300 text-xs font-medium" role="alert">
+            <p class="font-semibold mb-0.5">⚠️ {% trans "Upload Error" %}</p>
+            <p>{{ error }}</p>
+        </div>
+        {% endif %}
+
+        <!-- Upload Form -->
+        <form method="post" enctype="multipart/form-data" class="space-y-6" @submit="isUploading = true">
+            {% csrf_token %}
+
+            <!-- Dropzone Card -->
+            <div class="bg-white dark:bg-slate-800 rounded-3xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-primary-500 dark:hover:border-primary-500 p-8 sm:p-12 text-center transition-colors cursor-pointer group"
+                 @dragover.prevent="isDragging = true"
+                 @dragleave.prevent="isDragging = false"
+                 @drop.prevent="handleDrop($event)"
+                 :class="{ 'border-primary-500 bg-primary-50/20 dark:bg-primary-950/20': isDragging }">
+
+                <div class="max-w-md mx-auto space-y-4">
+                    <div class="w-16 h-16 mx-auto rounded-2xl bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center text-3xl group-hover:scale-105 transition-transform shadow-inner">
+                        📄
+                    </div>
+
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900 dark:text-white">
+                            {% trans "Drag and drop your bill files here" %}
+                        </h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                            {% trans "Supports JPG, PNG, WEBP, and PDF documents up to 15 MB." %}
+                        </p>
+                    </div>
+
+                    <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
+                        <!-- Standard File Picker -->
+                        <label class="px-5 py-2.5 min-h-[44px] rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs shadow-sm shadow-primary-500/25 cursor-pointer inline-flex items-center gap-2 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                            <span>{% trans "Browse Files" %}</span>
+                            <input type="file" name="files" multiple accept="image/*,.pdf" class="hidden" @change="handleFileSelect($event)" id="file-input">
+                        </label>
+
+                        <!-- Mobile Camera Trigger -->
+                        <label class="px-4 py-2.5 min-h-[44px] rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold text-xs cursor-pointer inline-flex items-center gap-2 transition-colors sm:hidden">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                            <span>{% trans "Take Photo" %}</span>
+                            <input type="file" name="files" capture="environment" accept="image/*" class="hidden" @change="handleFileSelect($event)">
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Multi-Page Selected Files Preview -->
+            <div x-show="selectedFiles.length > 0" class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-5 space-y-3" style="display: none;">
+                <h3 class="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                    {% trans "Selected Documents" %} (<span x-text="selectedFiles.length"></span>)
+                </h3>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <template x-for="(file, idx) in selectedFiles" :key="idx">
+                        <div class="relative p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 flex flex-col items-center text-center">
+                            <span class="text-2xl mb-1">📄</span>
+                            <p class="text-[11px] font-semibold text-slate-800 dark:text-slate-200 truncate w-full" x-text="file.name"></p>
+                            <span class="text-[10px] text-slate-400 mt-0.5" x-text="formatSize(file.size)"></span>
+                            <span class="inline-block mt-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-primary-100 text-primary-700 dark:bg-primary-950 dark:text-primary-300" x-text="'Page ' + (idx + 1)"></span>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Upload / Process Action Button -->
+            <div class="flex items-center justify-between pt-2">
+                <div class="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                    <span>⚡</span>
+                    <span>{% trans "AI extracts printed & handwritten Urdu/English bills" %}</span>
+                </div>
+                <button type="submit" 
+                        class="px-8 py-3 min-h-[44px] inline-flex items-center gap-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs shadow-md shadow-primary-500/25 transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
+                        :disabled="isUploading">
+                    <template x-if="!isUploading">
+                        <span class="flex items-center gap-2">
+                            <span>{% trans "Extract Bill Data" %}</span>
+                            <svg class="w-4 h-4 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                        </span>
+                    </template>
+                    <template x-if="isUploading">
+                        <span class="flex items-center gap-2">
+                            <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+                            <span>{% trans "Analyzing document with AI..." %}</span>
+                        </span>
+                    </template>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function uploadManager() {
+    return {
+        isDragging: false,
+        isUploading: false,
+        selectedFiles: [],
+        handleFileSelect(event) {
+            const files = Array.from(event.target.files);
+            this.selectedFiles = files;
+        },
+        handleDrop(event) {
+            this.isDragging = false;
+            const dt = event.dataTransfer;
+            const files = Array.from(dt.files);
+            this.selectedFiles = files;
+            const input = document.getElementById('file-input');
+            if (input) {
+                input.files = dt.files;
+            }
+        },
+        formatSize(bytes) {
+            if (!bytes) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+    };
+}
+</script>
+{% endblock %}
