@@ -1082,3 +1082,151 @@ class TestAIExtractorProviderResolution:
         new_bill = process_scan_job(new_job)
         assert new_bill is not None
         assert not new_bill.errors.filter(error_type=BillError.ErrorType.DUPLICATE_SUSPECT).exists()
+
+    def test_missing_item_price_detected_as_error(self):
+        """Line item with missing or 0.00 unit price and line total is flagged as error."""
+        from scanning.services.validation import detect_bill_errors
+
+        extracted_data = {
+            "invoice_no": "INV-MISSING-PRICE",
+            "date": "2026-10-13",
+            "subtotal": 100.0,
+            "grand_total": 100.0,
+            "items": [
+                {
+                    "name": "Missing Price Item",
+                    "quantity": 1,
+                    "unit_price": 0.0,
+                    "line_total": 0.0,
+                }
+            ],
+        }
+        errors = detect_bill_errors(extracted_data)
+        missing_price_errs = [e for e in errors if e.get("field_name") == "unit_price"]
+        assert len(missing_price_errs) >= 1
+        assert "missing price" in missing_price_errs[0]["message"].lower()
+
+    def test_bill_is_total_invalid_properties(self, db):
+        """Bill model correctly reports has_calculation_error, has_missing_price, and is_total_invalid."""
+        from bills.models import Bill, BillItem
+        from parties.models import Party
+
+        party = Party.objects.create(name="Test Supplier", party_type=Party.PartyType.VENDOR)
+
+        # Valid bill
+        bill = Bill.objects.create(
+            party=party,
+            invoice_no="INV-VALID-TOTAL",
+            bill_date=timezone.now().date(),
+            subtotal=Decimal("200.00"),
+            grand_total=Decimal("200.00"),
+        )
+        BillItem.objects.create(
+            bill=bill,
+            item_name="Item A",
+            quantity=Decimal("2"),
+            unit_price=Decimal("100.00"),
+            line_total=Decimal("200.00"),
+        )
+        assert not bill.is_total_invalid
+        assert not bill.has_calculation_error
+        assert not bill.has_missing_price
+
+        # Mismatch in grand total
+        bill.grand_total = Decimal("250.00")
+        assert bill.has_calculation_error
+        assert bill.is_total_invalid
+
+        # Missing price on item
+        bill.grand_total = Decimal("200.00")
+        BillItem.objects.create(
+            bill=bill,
+            item_name="Item Without Price",
+            quantity=Decimal("1"),
+            unit_price=Decimal("0.00"),
+            line_total=Decimal("0.00"),
+        )
+        assert bill.has_missing_price
+        assert bill.is_total_invalid
+
+    def test_review_page_displays_red_total_when_mismatched(self, client, superadmin_user):
+        """Review page applies red styling to Grand Total when items mismatch slip total."""
+        from bills.models import Bill, BillItem
+        from parties.models import Party
+        from scanning.models import ScanJob
+
+        party = Party.objects.create(name="Test Vendor 2", party_type=Party.PartyType.VENDOR)
+
+        bill = Bill.objects.create(
+            party=party,
+            invoice_no="INV-MISMATCH-REVIEW",
+            bill_date=timezone.now().date(),
+            subtotal=Decimal("2676.00"),
+            grand_total=Decimal("2670.00"),  # Mismatch (slip has 2670, items sum 2676)
+        )
+        BillItem.objects.create(
+            bill=bill,
+            item_name="Test Product",
+            quantity=Decimal("1"),
+            unit_price=Decimal("2676.00"),
+            line_total=Decimal("2676.00"),
+        )
+        job = ScanJob.objects.create(
+            bill=bill,
+            provider="mock",
+            status=ScanJob.Status.COMPLETED,
+            extracted_data={"grand_total": 2670.00},
+        )
+
+        client.force_login(superadmin_user)
+        response = client.get(f"/en/scanning/review/{job.pk}/")
+        assert response.status_code == 200
+        content = response.content.decode("utf-8")
+        assert "text-red-600" in content
+        assert response.context["is_total_invalid"] is True
+
+    def test_review_page_post_updates_item_price_and_recalculates(self, client, superadmin_user):
+        """Posting edited item prices from the review page updates line items and recalculates totals."""
+        from bills.models import Bill, BillItem
+        from parties.models import Party
+        from scanning.models import ScanJob
+
+        party = Party.objects.create(name="Test Vendor 3", party_type=Party.PartyType.VENDOR)
+
+        bill = Bill.objects.create(
+            party=party,
+            invoice_no="INV-EDIT-ITEMS",
+            bill_date=timezone.now().date(),
+            subtotal=Decimal("0.00"),
+            grand_total=Decimal("0.00"),
+        )
+        item = BillItem.objects.create(
+            bill=bill,
+            item_name="Chicken",
+            quantity=Decimal("1.00"),
+            unit_price=Decimal("0.00"),  # Missing price
+            line_total=Decimal("0.00"),
+        )
+        job = ScanJob.objects.create(bill=bill, provider="mock", status=ScanJob.Status.COMPLETED)
+
+        client.force_login(superadmin_user)
+        post_data = {
+            "action": "save_draft",
+            "invoice_no": "INV-EDIT-ITEMS",
+            "party": str(party.pk),
+            "bill_date": str(timezone.now().date()),
+            "discount": "0.00",
+            "tax": "0.00",
+            "item_id": [str(item.pk)],
+            f"item_name_{item.pk}": "Chicken 1kg",
+            f"item_qty_{item.pk}": "1",
+            f"item_price_{item.pk}": "450.00",
+        }
+        response = client.post(f"/en/scanning/review/{job.pk}/", post_data)
+        assert response.status_code == 302
+
+        item.refresh_from_db()
+        bill.refresh_from_db()
+        assert item.unit_price == Decimal("450.00")
+        assert item.line_total == Decimal("450.00")
+        assert bill.grand_total == Decimal("450.00")

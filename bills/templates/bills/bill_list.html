@@ -190,8 +190,11 @@
                                     {% endif %}
                                 </a>
                             </td>
-                            <td class="py-3.5 px-4 font-mono font-bold text-slate-900 dark:text-white">
+                            <td class="py-3.5 px-4 font-mono font-bold {% if bill.is_total_invalid %}text-red-600 dark:text-red-400{% else %}text-slate-900 dark:text-white{% endif %}">
                                 Rs. {{ bill.grand_total|floatformat:2 }}
+                                {% if bill.is_total_invalid %}
+                                    <span title="{% trans 'Total mismatch or missing item price' %}" class="inline-block ml-1 text-xs text-red-500">⚠️</span>
+                                {% endif %}
                             </td>
                             <td class="py-3.5 px-4">
                                 {% if bill.payment_status == 'Paid' %}

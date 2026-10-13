@@ -153,34 +153,47 @@
 
                 <!-- Line Items Section -->
                 <div class="space-y-4">
-                    <h2 class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 border-b border-slate-100 dark:border-slate-700/60 pb-2">
-                        {% trans "Line Items" %} ({{ items.count }})
-                    </h2>
+                    <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/60 pb-2">
+                        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                            {% trans "Line Items" %} ({{ items|length }})
+                        </h2>
+                        <span class="text-[11px] text-slate-400">
+                            {% trans "You can adjust missing prices or quantities directly." %}
+                        </span>
+                    </div>
 
                     <div class="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
                         <table class="w-full text-left rtl:text-right border-collapse text-xs">
                             <thead class="bg-slate-50 dark:bg-slate-900/60 text-[11px] uppercase font-semibold text-slate-500 dark:text-slate-400">
                                 <tr>
                                     <th class="py-2.5 px-3">{% trans "Item Name" %}</th>
-                                    <th class="py-2.5 px-3 text-center">{% trans "Qty" %}</th>
-                                    <th class="py-2.5 px-3 text-right rtl:text-left">{% trans "Price" %}</th>
-                                    <th class="py-2.5 px-3 text-right rtl:text-left">{% trans "Total" %}</th>
+                                    <th class="py-2.5 px-2 text-center w-24">{% trans "Qty" %}</th>
+                                    <th class="py-2.5 px-2 text-right rtl:text-left w-28">{% trans "Price" %}</th>
+                                    <th class="py-2.5 px-3 text-right rtl:text-left w-28">{% trans "Total" %}</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
                                 {% for it in items %}
-                                <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-700/30">
-                                    <td class="py-2.5 px-3 font-medium text-slate-900 dark:text-white">
-                                        {{ it.item_name }}
+                                <tr class="item-row hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors">
+                                    <td class="py-2 px-3 font-medium text-slate-900 dark:text-white">
+                                        <input type="hidden" name="item_id" value="{{ it.pk }}">
+                                        <input type="text" name="item_name_{{ it.pk }}" value="{{ it.item_name }}"
+                                               class="w-full px-2 py-1 text-xs rounded-lg border border-transparent hover:border-slate-300 dark:hover:border-slate-600 focus:border-primary-500 bg-transparent focus:bg-white dark:focus:bg-slate-900 text-slate-900 dark:text-white font-medium focus:ring-1 focus:ring-primary-500 transition-colors">
                                     </td>
-                                    <td class="py-2.5 px-3 text-center font-mono">
-                                        {{ it.quantity }} <span class="text-[10px] text-slate-400">{{ it.unit }}</span>
+                                    <td class="py-2 px-2 text-center">
+                                        <div class="flex items-center justify-center gap-1">
+                                            <input type="number" step="any" name="item_qty_{{ it.pk }}" value="{{ it.quantity }}"
+                                                   class="item-qty w-16 text-center px-1.5 py-1 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-mono focus:ring-1 focus:ring-primary-500 transition-colors">
+                                            <span class="text-[10px] text-slate-400">{{ it.unit }}</span>
+                                        </div>
                                     </td>
-                                    <td class="py-2.5 px-3 text-right rtl:text-left font-mono">
-                                        {{ it.unit_price|floatformat:2 }}
+                                    <td class="py-2 px-2 text-right rtl:text-left">
+                                        <input type="number" step="0.01" name="item_price_{{ it.pk }}" value="{{ it.unit_price }}"
+                                               class="item-price w-24 text-right rtl:text-left px-2 py-1 text-xs rounded-lg border {% if not it.unit_price or it.unit_price <= 0 %}border-red-400 bg-red-50 text-red-700 dark:bg-red-950/60 dark:text-red-300 dark:border-red-700 font-bold{% else %}border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white{% endif %} font-mono focus:ring-1 focus:ring-primary-500 transition-colors"
+                                               placeholder="0.00">
                                     </td>
-                                    <td class="py-2.5 px-3 text-right rtl:text-left font-mono font-bold">
-                                        {{ it.line_total|floatformat:2 }}
+                                    <td class="py-2 px-3 text-right rtl:text-left font-mono font-bold text-slate-900 dark:text-white">
+                                        <span class="item-line-total">{{ it.line_total|floatformat:2 }}</span>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -197,20 +210,41 @@
                                 {% trans "Discount (PKR)" %}
                             </label>
                             <input type="number" step="0.01" name="discount" id="id_discount" value="{{ bill.discount }}" 
-                                   class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm font-mono">
+                                   class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm font-mono focus:ring-2 focus:ring-primary-500">
                         </div>
                         <div>
                             <label for="id_tax" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                                 {% trans "Tax / GST (PKR)" %}
                             </label>
                             <input type="number" step="0.01" name="tax" id="id_tax" value="{{ bill.tax }}" 
-                                   class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm font-mono">
+                                   class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm font-mono focus:ring-2 focus:ring-primary-500">
                         </div>
                     </div>
 
-                    <div class="pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center text-sm">
-                        <span class="font-bold text-slate-800 dark:text-slate-200">{% trans "Grand Total" %}:</span>
-                        <span class="text-xl font-bold font-mono text-primary-600 dark:text-primary-400">PKR {{ bill.grand_total }}</span>
+                    <!-- Grand Total Card -->
+                    <div id="grand-total-container" class="pt-3 border-t border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 text-sm transition-all duration-200 {% if is_total_invalid %}p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-800{% endif %}">
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold {% if is_total_invalid %}text-red-900 dark:text-red-200{% else %}text-slate-800 dark:text-slate-200{% endif %}">
+                                {% trans "Grand Total" %}:
+                            </span>
+                            {% if is_total_invalid %}
+                                <span id="total-badge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-red-100 text-red-800 dark:bg-red-900/60 dark:text-red-200">
+                                    ⚠️ {% trans "Check Total" %}
+                                </span>
+                            {% endif %}
+                        </div>
+                        <div class="text-right">
+                            <span id="grand-total-display" class="text-xl font-bold font-mono transition-colors {% if is_total_invalid %}text-red-600 dark:text-red-400 font-extrabold{% else %}text-primary-600 dark:text-primary-400{% endif %}">
+                                PKR <span id="grand-total-amount" data-bill-total="{{ bill.grand_total }}">{{ bill.grand_total|floatformat:2 }}</span>
+                            </span>
+                            <p id="total-error-hint" class="text-[11px] text-red-600 dark:text-red-400 font-medium mt-1 {% if not is_total_invalid %}hidden{% endif %}">
+                                {% if has_missing_price %}
+                                    ⚠️ {% trans "Item price is missing or 0.00. Grand total may be incomplete." %}
+                                {% elif has_total_mismatch %}
+                                    ⚠️ {% trans "Total mismatch: Items sum (PKR" %} {{ items_sum|floatformat:2 }}) {% trans "differs from slip total (PKR" %} {{ bill.grand_total|floatformat:2 }}).
+                                {% endif %}
+                            </p>
+                        </div>
                     </div>
                 </div>
 
@@ -229,4 +263,100 @@
             </form>
         </div>
     </div>
+
+    <!-- Real-time calculation and validation script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const qtyInputs = document.querySelectorAll('.item-qty');
+            const priceInputs = document.querySelectorAll('.item-price');
+            const discountInput = document.getElementById('id_discount');
+            const taxInput = document.getElementById('id_tax');
+
+            const grandTotalDisplay = document.getElementById('grand-total-display');
+            const grandTotalContainer = document.getElementById('grand-total-container');
+            const grandTotalAmount = document.getElementById('grand-total-amount');
+            const totalHint = document.getElementById('total-error-hint');
+            const totalBadge = document.getElementById('total-badge');
+
+            function recalculate() {
+                let itemsSum = 0;
+                let anyMissingPrice = false;
+
+                document.querySelectorAll('.item-row').forEach(function(row) {
+                    const qtyEl = row.querySelector('.item-qty');
+                    const priceEl = row.querySelector('.item-price');
+                    const lineTotalEl = row.querySelector('.item-line-total');
+
+                    const qty = parseFloat(qtyEl ? qtyEl.value : 1) || 0;
+                    const price = parseFloat(priceEl ? priceEl.value : 0) || 0;
+
+                    if (price <= 0) {
+                        anyMissingPrice = true;
+                        if (priceEl) {
+                            priceEl.classList.add('border-red-400', 'bg-red-50', 'text-red-700', 'dark:bg-red-950/60', 'dark:text-red-300', 'dark:border-red-700', 'font-bold');
+                        }
+                    } else {
+                        if (priceEl) {
+                            priceEl.classList.remove('border-red-400', 'bg-red-50', 'text-red-700', 'dark:bg-red-950/60', 'dark:text-red-300', 'dark:border-red-700', 'font-bold');
+                            priceEl.classList.add('border-slate-200', 'dark:border-slate-700');
+                        }
+                    }
+
+                    const lineTotal = Math.round(qty * price * 100) / 100;
+                    if (lineTotalEl) {
+                        lineTotalEl.textContent = lineTotal.toFixed(2);
+                    }
+                    itemsSum += lineTotal;
+                });
+
+                const discount = parseFloat(discountInput ? discountInput.value : 0) || 0;
+                const tax = parseFloat(taxInput ? taxInput.value : 0) || 0;
+                const computedGrandTotal = Math.max(0, Math.round((itemsSum - discount + tax) * 100) / 100);
+
+                // Initial slip total stored in dataset
+                const slipTotal = parseFloat(grandTotalAmount ? grandTotalAmount.dataset.billTotal : computedGrandTotal) || computedGrandTotal;
+                const hasMismatch = Math.abs(computedGrandTotal - slipTotal) > 0.05;
+                const isInvalid = anyMissingPrice || hasMismatch;
+
+                if (isInvalid) {
+                    if (grandTotalDisplay) {
+                        grandTotalDisplay.classList.remove('text-primary-600', 'dark:text-primary-400', 'text-emerald-600', 'dark:text-emerald-400');
+                        grandTotalDisplay.classList.add('text-red-600', 'dark:text-red-400', 'font-extrabold');
+                    }
+                    if (grandTotalContainer) {
+                        grandTotalContainer.classList.add('p-3', 'rounded-xl', 'bg-red-50', 'dark:bg-red-950/40', 'border', 'border-red-300', 'dark:border-red-800');
+                    }
+                    if (totalHint) {
+                        totalHint.classList.remove('hidden');
+                        if (anyMissingPrice) {
+                            totalHint.textContent = "⚠️ {% trans 'Item price is missing or 0.00. Grand total may be incomplete.' %}";
+                        } else if (hasMismatch) {
+                            totalHint.textContent = `⚠️ {% trans 'Total mismatch: Items sum (PKR' %} ${computedGrandTotal.toFixed(2)}) {% trans 'differs from slip total (PKR' %} ${slipTotal.toFixed(2)}).`;
+                        }
+                    }
+                } else {
+                    if (grandTotalDisplay) {
+                        grandTotalDisplay.classList.remove('text-red-600', 'dark:text-red-400', 'font-extrabold');
+                        grandTotalDisplay.classList.add('text-emerald-600', 'dark:text-emerald-400');
+                    }
+                    if (grandTotalContainer) {
+                        grandTotalContainer.classList.remove('p-3', 'rounded-xl', 'bg-red-50', 'dark:bg-red-950/40', 'border', 'border-red-300', 'dark:border-red-800');
+                    }
+                    if (totalHint) {
+                        totalHint.classList.add('hidden');
+                    }
+                    if (totalBadge) {
+                        totalBadge.classList.add('hidden');
+                    }
+                }
+            }
+
+            // Bind listeners
+            document.querySelectorAll('.item-qty, .item-price').forEach(function(input) {
+                input.addEventListener('input', recalculate);
+            });
+            if (discountInput) discountInput.addEventListener('input', recalculate);
+            if (taxInput) taxInput.addEventListener('input', recalculate);
+        });
+    </script>
 {% endblock %}

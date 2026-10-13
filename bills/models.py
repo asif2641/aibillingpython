@@ -11,6 +11,8 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from billing.utils import money_round
+
 # SQLite Decimal converter patch to preserve fractional unit prices without truncating
 try:
     from django.db.backends.sqlite3 import operations
@@ -223,6 +225,46 @@ class Bill(models.Model):
             raise ValidationError({"discount": _("Discount cannot be negative.")})
         if self.tax < Decimal("0.00"):
             raise ValidationError({"tax": _("Tax cannot be negative.")})
+
+    @property
+    def has_calculation_error(self) -> bool:
+        """Check if bill has mathematical calculation discrepancy."""
+        if (
+            hasattr(self, "errors")
+            and self.errors.filter(
+                is_resolved=False,
+                error_type__in=["math_mismatch", "subtotal_mismatch", "grand_total_mismatch"],
+            ).exists()
+        ):
+            return True
+        items = list(self.items.all())
+        if items:
+            computed_subtotal = money_round(sum(it.line_total for it in items))
+            expected_grand = money_round(
+                computed_subtotal
+                - (self.discount or Decimal("0.00"))
+                + (self.tax or Decimal("0.00"))
+            )
+            if abs(expected_grand - (self.grand_total or Decimal("0.00"))) > Decimal("0.05"):
+                return True
+            if abs(computed_subtotal - (self.subtotal or Decimal("0.00"))) > Decimal("0.05"):
+                return True
+        return False
+
+    @property
+    def has_missing_price(self) -> bool:
+        """Check if any line item is missing a unit price or line total."""
+        for it in self.items.all():
+            if (it.unit_price is None or it.unit_price <= Decimal("0.00")) and (
+                it.line_total is None or it.line_total <= Decimal("0.00")
+            ):
+                return True
+        return False
+
+    @property
+    def is_total_invalid(self) -> bool:
+        """Return True if total has a mismatch or any item price is missing."""
+        return self.has_calculation_error or self.has_missing_price
 
 
 class BillItem(models.Model):

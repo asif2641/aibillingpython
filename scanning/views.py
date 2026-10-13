@@ -15,6 +15,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
+from billing.utils import money_round
 from bills.models import Bill
 from bills.services import recalculate_bill_totals
 from parties.models import Party
@@ -176,6 +177,25 @@ def review_view(request: HttpRequest, job_id: int) -> HttpResponse:
             bill.discount = Decimal(discount_str or "0.00")
             bill.tax = Decimal(tax_str or "0.00")
 
+        # Update line items if submitted from review table
+        item_ids = request.POST.getlist("item_id")
+        for item_id in item_ids:
+            with contextlib.suppress(Exception):
+                item = bill.items.filter(pk=item_id).first()
+                if item:
+                    item_name_val = request.POST.get(f"item_name_{item_id}", "").strip()
+                    item_qty_val = request.POST.get(f"item_qty_{item_id}", "").strip()
+                    item_price_val = request.POST.get(f"item_price_{item_id}", "").strip()
+
+                    if item_name_val:
+                        item.item_name = item_name_val
+                    if item_qty_val:
+                        item.quantity = Decimal(item_qty_val)
+                    if item_price_val:
+                        item.unit_price = money_round(Decimal(item_price_val))
+                    item.line_total = money_round(item.quantity * item.unit_price)
+                    item.save()
+
         recalculate_bill_totals(bill)
 
         # Audit history log
@@ -201,6 +221,36 @@ def review_view(request: HttpRequest, job_id: int) -> HttpResponse:
 
     errors = bill.errors.filter(is_resolved=False)
     files = job.files.all()
+    items = list(bill.items.all())
+
+    items_sum = money_round(sum(it.line_total for it in items))
+    expected_grand_total = money_round(items_sum - bill.discount + bill.tax)
+
+    extracted_grand_total = None
+    if job.extracted_data:
+        with contextlib.suppress(Exception):
+            extracted_grand_total = money_round(
+                Decimal(str(job.extracted_data.get("grand_total") or 0))
+            )
+
+    has_missing_price = any(
+        (it.unit_price is None or it.unit_price <= Decimal("0.00"))
+        and (it.line_total is None or it.line_total <= Decimal("0.00"))
+        for it in items
+    )
+
+    has_total_mismatch = (
+        abs(expected_grand_total - bill.grand_total) > Decimal("0.05")
+        or (
+            extracted_grand_total is not None
+            and abs(extracted_grand_total - expected_grand_total) > Decimal("0.05")
+        )
+        or errors.filter(
+            error_type__in=["grand_total_mismatch", "subtotal_mismatch", "math_mismatch"]
+        ).exists()
+    )
+
+    is_total_invalid = has_total_mismatch or has_missing_price
 
     return render(
         request,
@@ -208,7 +258,13 @@ def review_view(request: HttpRequest, job_id: int) -> HttpResponse:
         {
             "job": job,
             "bill": bill,
-            "items": bill.items.all(),
+            "items": items,
+            "items_sum": items_sum,
+            "expected_grand_total": expected_grand_total,
+            "extracted_grand_total": extracted_grand_total,
+            "has_missing_price": has_missing_price,
+            "has_total_mismatch": has_total_mismatch,
+            "is_total_invalid": is_total_invalid,
             "errors": errors,
             "files": files,
             "parties": Party.objects.filter(is_active=True).order_by("name"),

@@ -39,7 +39,18 @@ def detect_bill_errors(extracted_data: Dict[str, Any]) -> List[Dict[str, Any]]:
             line_total = Decimal(str(item.get("line_total") or 0))
             item_totals_sum += line_total
 
-            if qty > Decimal("0.00") and price > Decimal("0.00"):
+            item_name = item.get("name") or item.get("item_name") or "Item"
+            if price <= Decimal("0.00") and line_total <= Decimal("0.00"):
+                errors.append(
+                    {
+                        "error_type": "missing_field",
+                        "field_name": "unit_price",
+                        "severity": "error",
+                        "message": f"Item '{item_name}' is missing price/amount.",
+                        "suggested_fix": None,
+                    }
+                )
+            elif qty > Decimal("0.00") and price > Decimal("0.00"):
                 expected_line_total = money_round(qty * price)
                 diff = abs(expected_line_total - line_total)
                 if diff > Decimal("0.01"):
@@ -55,7 +66,7 @@ def detect_bill_errors(extracted_data: Dict[str, Any]) -> List[Dict[str, Any]]:
                                 "field_name": "line_total",
                                 "severity": "error",
                                 "message": (
-                                    f"Item '{item.get('name', 'Item')}' quantity * unit price "
+                                    f"Item '{item_name}' quantity * unit price "
                                     f"({qty} * {price} = {expected_line_total}) does not match line total ({line_total})."
                                 ),
                                 "suggested_fix": {"line_total": str(expected_line_total)},
