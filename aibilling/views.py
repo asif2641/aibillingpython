@@ -3,7 +3,9 @@
 Project-level views for the aibilling application.
 """
 
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
+from django.http import Http404, HttpResponse
 from django.shortcuts import render
 
 from reports.services import (
@@ -35,3 +37,29 @@ def dashboard_view(request):
         "category_breakdown": category_breakdown,
     }
     return render(request, "dashboard/index.html", context)
+
+
+def service_worker_view(request):
+    """Serve the root service worker script with Service-Worker-Allowed header."""
+    sw_path = settings.BASE_DIR / "static" / "sw.js"
+    if not sw_path.exists():
+        raise Http404("Service Worker not found")
+    content = sw_path.read_text(encoding="utf-8")
+    response = HttpResponse(content, content_type="application/javascript")
+    response["Service-Worker-Allowed"] = "/"
+    response["Cache-Control"] = "no-cache"
+    return response
+
+
+def manifest_view(request):
+    """Serve the web app manifest."""
+    manifest_path = settings.BASE_DIR / "static" / "manifest.json"
+    if not manifest_path.exists():
+        raise Http404("Manifest not found")
+    content = manifest_path.read_text(encoding="utf-8")
+    return HttpResponse(content, content_type="application/manifest+json")
+
+
+def offline_view(request):
+    """Render the offline fallback shell."""
+    return render(request, "offline.html", {"title": "Offline Mode"})
