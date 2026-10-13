@@ -899,3 +899,88 @@ class TestBillViewsAndWorkflow:
 
         sample_bill.refresh_from_db()
         assert sample_bill.invoice_no == "INV-2026-EDITED"
+
+    def test_unverified_needs_review_bills_excluded_from_default_list(
+        self, staff_client, sample_party
+    ):
+        """Unverified scanned bills (NeedsReview) are excluded from default bills roster."""
+        verified_bill = Bill.objects.create(
+            bill_type="purchase",
+            party=sample_party,
+            invoice_no="INV-VERIFIED-99",
+            bill_date=timezone.now().date(),
+            grand_total=Decimal("500.00"),
+            status=Bill.Status.VERIFIED,
+        )
+        unreviewed_bill = Bill.objects.create(
+            bill_type="purchase",
+            party=sample_party,
+            invoice_no="INV-UNREVIEWED-SCAN-99",
+            bill_date=timezone.now().date(),
+            grand_total=Decimal("800.00"),
+            status=Bill.Status.NEEDS_REVIEW,
+        )
+
+        resp = staff_client.get(self._bills_url())
+        assert resp.status_code == 200
+        content = resp.content.decode("utf-8")
+
+        # Verified bill must be visible
+        assert verified_bill.invoice_no in content
+        # Unreviewed scan bill must NOT be in the table
+        assert unreviewed_bill.invoice_no not in content
+        # Context checks
+        assert resp.context["needs_review_count"] >= 1
+        assert resp.context["total_amount"] == Decimal("500.00")
+
+    def test_filter_bills_by_needs_review_status(self, staff_client, sample_party):
+        """Explicitly filtering ?status=NeedsReview displays pending review bills."""
+        verified_bill = Bill.objects.create(
+            bill_type="purchase",
+            party=sample_party,
+            invoice_no="INV-VERIFIED-100",
+            bill_date=timezone.now().date(),
+            grand_total=Decimal("500.00"),
+            status=Bill.Status.VERIFIED,
+        )
+        unreviewed_bill = Bill.objects.create(
+            bill_type="purchase",
+            party=sample_party,
+            invoice_no="INV-PENDING-SCAN-100",
+            bill_date=timezone.now().date(),
+            grand_total=Decimal("800.00"),
+            status=Bill.Status.NEEDS_REVIEW,
+        )
+
+        resp = staff_client.get(f"{self._bills_url()}?status=NeedsReview")
+        assert resp.status_code == 200
+        content = resp.content.decode("utf-8")
+
+        assert unreviewed_bill.invoice_no in content
+        assert verified_bill.invoice_no not in content
+
+    def test_filter_bills_by_all_status(self, staff_client, sample_party):
+        """Filtering ?status=all includes both verified and unreviewed bills."""
+        verified_bill = Bill.objects.create(
+            bill_type="purchase",
+            party=sample_party,
+            invoice_no="INV-ALL-VERIFIED",
+            bill_date=timezone.now().date(),
+            grand_total=Decimal("500.00"),
+            status=Bill.Status.VERIFIED,
+        )
+        unreviewed_bill = Bill.objects.create(
+            bill_type="purchase",
+            party=sample_party,
+            invoice_no="INV-ALL-UNREVIEWED",
+            bill_date=timezone.now().date(),
+            grand_total=Decimal("800.00"),
+            status=Bill.Status.NEEDS_REVIEW,
+        )
+
+        resp = staff_client.get(f"{self._bills_url()}?status=all")
+        assert resp.status_code == 200
+        content = resp.content.decode("utf-8")
+
+        assert verified_bill.invoice_no in content
+        assert unreviewed_bill.invoice_no in content

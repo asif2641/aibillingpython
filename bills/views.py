@@ -34,7 +34,21 @@ def check_can_delete_permission(user) -> None:
 @login_required
 def bill_list_view(request: HttpRequest) -> HttpResponse:
     """Display paginated list of active bills with search and filters."""
-    qs = Bill.objects.select_related("party", "category").order_by("-bill_date", "-id")
+    qs = (
+        Bill.objects.select_related("party", "category")
+        .prefetch_related("scan_jobs")
+        .order_by("-bill_date", "-id")
+    )
+
+    # Status filter: by default, show verified and approved bills (exclude unreviewed scans)
+    status_filter = request.GET.get("status", "").strip()
+    if status_filter == "all":
+        pass
+    elif status_filter:
+        qs = qs.filter(status=status_filter)
+    else:
+        # Default view: only show verified/approved bills, exclude scans pending review
+        qs = qs.exclude(status=Bill.Status.NEEDS_REVIEW)
 
     # Filters
     query = request.GET.get("q")
@@ -66,6 +80,8 @@ def bill_list_view(request: HttpRequest) -> HttpResponse:
     selected_party = Party.objects.filter(pk=party_id).first() if party_id else None
     parties = Party.objects.filter(is_active=True).order_by("name")
 
+    needs_review_count = Bill.objects.filter(status=Bill.Status.NEEDS_REVIEW).count()
+
     paginator = Paginator(qs, 25)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
@@ -81,6 +97,8 @@ def bill_list_view(request: HttpRequest) -> HttpResponse:
             "selected_party_id": party_id,
             "total_count": total_count,
             "total_amount": total_amount,
+            "status_filter": status_filter,
+            "needs_review_count": needs_review_count,
         },
     )
 
