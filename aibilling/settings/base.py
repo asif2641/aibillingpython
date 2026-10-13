@@ -118,24 +118,33 @@ WSGI_APPLICATION = "aibilling.wsgi.application"
 # Database
 # ──────────────────────────────────────────────────────────────────────────────
 
+
+def parse_database_url(url: str) -> dict:
+    """Parse a PostgreSQL DATABASE_URL string into a Django DATABASES dictionary."""
+    import urllib.parse
+
+    parsed = urllib.parse.urlparse(url)
+    query_params = dict(urllib.parse.parse_qsl(parsed.query))
+    db_config = {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": urllib.parse.unquote(parsed.path.lstrip("/")),
+        "USER": urllib.parse.unquote(parsed.username or ""),
+        "PASSWORD": urllib.parse.unquote(parsed.password or ""),
+        "HOST": parsed.hostname or "localhost",
+        "PORT": parsed.port or 5432,
+        "CONN_MAX_AGE": int(os.environ.get("CONN_MAX_AGE", "60")),
+    }
+    if query_params:
+        db_config["OPTIONS"] = query_params
+    return db_config
+
+
 # Reads the DATABASE_URL environment variable.
 # If not set, falls back to SQLite (a local file — perfect for development).
 _database_url = os.environ.get("DATABASE_URL", "")
 
-if _database_url.startswith("postgres"):
-    import urllib.parse
-
-    _parsed = urllib.parse.urlparse(_database_url)
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": _parsed.path.lstrip("/"),
-            "USER": _parsed.username,
-            "PASSWORD": _parsed.password,
-            "HOST": _parsed.hostname,
-            "PORT": _parsed.port or 5432,
-        }
-    }
+if _database_url.startswith(("postgres://", "postgresql://")):
+    DATABASES = {"default": parse_database_url(_database_url)}
 else:
     DATABASES = {
         "default": {
@@ -204,7 +213,7 @@ TIME_ZONE = "UTC"
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Static and media files
+# Static, media, and backup files
 # ──────────────────────────────────────────────────────────────────────────────
 
 STATIC_URL = "/static/"
@@ -213,12 +222,22 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 # Where `collectstatic` places all files (used in production).
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-# WhiteNoise: serve compressed static files with forever-cacheable URLs.
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+# Django 4.2+ STORAGES setting: WhiteNoise serves compressed static files with forever-cacheable URLs.
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 MEDIA_URL = "/media/"
 # Uploaded files (bill images, shop logos, etc.) are stored here.
 MEDIA_ROOT = BASE_DIR / "media"
+
+# Directory where automated and manual database backups are stored.
+BACKUP_DIR = Path(os.environ.get("BACKUP_DIR", BASE_DIR / "backups"))
 
 
 # ──────────────────────────────────────────────────────────────────────────────

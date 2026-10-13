@@ -6,9 +6,11 @@ Project-level views for the aibilling application: dashboard, global search, and
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
+from django.db import connection
 from django.db.models import Q
-from django.http import Http404, HttpResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import render
+from django.views.decorators.http import require_GET
 
 from bills.models import Bill, BillItem
 from parties.models import Party
@@ -18,6 +20,17 @@ from reports.services import (
     get_spending_summary,
 )
 from settings_app.signals import DASHBOARD_CACHE_KEY
+
+
+@require_GET
+def healthcheck_view(request):
+    """Verify application and database health for uptime monitors and cloud platforms."""
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        return JsonResponse({"status": "ok", "database": "connected"}, status=200)
+    except Exception:
+        return JsonResponse({"status": "error", "database": "disconnected"}, status=503)
 
 
 @login_required

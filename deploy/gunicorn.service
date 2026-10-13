@@ -1,0 +1,23 @@
+[Unit]
+Description=Gunicorn daemon for AI Billing (Bill Scanner & Ledger)
+After=network.target postgresql.service
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/aibilling
+RuntimeDirectory=gunicorn
+Environment="DJANGO_SETTINGS_MODULE=aibilling.settings.production"
+EnvironmentFile=/var/www/aibilling/.env
+ExecStart=/var/www/aibilling/.venv/bin/gunicorn \
+          --access-logfile - \
+          --error-logfile - \
+          --workers 3 \
+          --timeout 120 \
+          --bind unix:/run/gunicorn/aibilling.sock \
+          aibilling.wsgi:application
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

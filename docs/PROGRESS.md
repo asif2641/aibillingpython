@@ -123,6 +123,23 @@
 
 ---
 
+## Phase 8 — Deployment (Production Settings, Free Cloud Render + Neon/Supabase, Live VPS & Guide)
+
+**Branch:** `phase-8/deployment`  
+**Status:** ✅ Complete (Passed Quality Gate with 393/393 tests, all 9 criteria met)
+
+| # | Task | Owner | Status | Notes |
+|---|------|-------|--------|-------|
+| 1 | Production settings (`production.py`) & `DATABASE_URL` SSL parsing | Backend & DevOps Agent | ✅ Done | Enforces `DEBUG=False`, `SECRET_KEY` check, HSTS, secure cookies, `?sslmode=require` |
+| 2 | Healthcheck endpoint (`/healthz/`) & Django 4.2+ `STORAGES` | Backend & DevOps Agent | ✅ Done | DB `SELECT 1` health probe; WhiteNoise `STORAGES` without deprecation warnings |
+| 3 | Free Cloud Server configs (`render.yaml`, `build.sh`, `Procfile`) | Backend & DevOps Agent | ✅ Done | One-click Render Blueprint + Neon/Supabase PostgreSQL readiness |
+| 4 | Live Ubuntu VPS configs (`deploy/gunicorn.service`, `nginx.conf`, `backup_cron.sh`) | Backend & DevOps Agent | ✅ Done | Systemd socket, Nginx TLS + 20MB upload limit, daily automated backup cron |
+| 5 | Beginner-friendly 3-Stage Deployment Guide (`docs/DEPLOYMENT.md`) | Backend & DevOps Agent | ✅ Done | Step-by-step copy-paste guide for Local, Free Cloud, and Live VPS |
+| 6 | QA test-first suite (`tests/test_deployment.py`) | QA Agent | ✅ Done | 20 automated tests covering healthz, DB URL parsing, production settings, artifacts |
+| 7 | QC review & Gate Report | QC Agent | ✅ Done | APPROVED — all 9 QC criteria passed, 0 Critical/High issues |
+
+---
+
 ## Risk Log
 
 | Risk | Mitigation |

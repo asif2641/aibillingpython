@@ -114,3 +114,15 @@ python manage.py makemigrations --check --dry-run
 - `sync/` — Offline sync queue for PWA.
 - `templates/` & `static/` — Tailwind CSS + HTMX + Alpine.js frontend.
 - `tests/` — Automated test suite adhering to strict quality gates.
+
+---
+
+## 🌐 Deployment (Local, Free Cloud & Live Server)
+
+See the complete, beginner-friendly step-by-step guide in **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**:
+
+1. **Stage 1 — Local Computer:** SQLite + `python manage.py runserver`
+2. **Stage 2 — Free Cloud Server:** Render (`render.yaml`, `build.sh`, `Procfile`) + Neon/Supabase Free PostgreSQL
+3. **Stage 3 — Live Production VPS:** Ubuntu + Gunicorn (`deploy/gunicorn.service`) + Nginx HTTPS (`deploy/nginx.conf`) + Automated Daily Backups (`deploy/backup_cron.sh`)
+- **Healthcheck Endpoint:** `GET /healthz/` returns `{"status": "ok", "database": "connected"}`
+
