@@ -70,6 +70,23 @@
 
 ---
 
+## Phase 5 — Ledger & Reports (Khata, Spending Analytics, Price History & Charts)
+
+**Branch:** `phase-5/ledger-reports`  
+**Status:** ✅ Complete (Passed Quality Gate with 299/299 tests, 93% coverage)
+
+| # | Task | Owner | Status | Notes |
+|---|------|-------|--------|-------|
+| 1 | Party Ledger (Khata) service & statement generator | Backend Agent | ✅ Done | Chronological timeline, running balance, CSV export |
+| 2 | Spending reports & price history tracking services | Backend Agent | ✅ Done | KPIs, category share, vendor rank, price fluctuation |
+| 3 | QA test-first suites for Phase 5 | QA Agent | ✅ Done | 23 comprehensive automated tests in test_ledger_reports.py |
+| 4 | Interactive Dashboard with Chart.js | Frontend Agent | ✅ Done | Real-time KPIs, spending timeline line chart & donut |
+| 5 | Party Ledger statement & printable views | Frontend Agent | ✅ Done | Running balance table, bilingual RTL, dark theme, CSV |
+| 6 | Spending reports & price trend UI | Frontend Agent | ✅ Done | Date presets, category share, top vendors, inflation index |
+| 7 | QC review & Gate Report | QC + Browser QA | ✅ Done | APPROVED with 0 Critical/High issues |
+
+---
+
 ## Risk Log
 
 | Risk | Mitigation |

@@ -6,10 +6,12 @@ Views for recording payments and managing ledger transactions.
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.http import HttpRequest, HttpResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 
 from ledger.forms import PaymentForm
-from ledger.services import record_payment
+from ledger.services import generate_ledger_csv, get_party_ledger_statement, record_payment
+from parties.models import Party
 
 
 @login_required
@@ -39,3 +41,26 @@ def payment_add_view(request: HttpRequest) -> HttpResponse:
 
     form = PaymentForm()
     return render(request, "ledger/payment_form.html", {"form": form})
+
+
+@login_required
+def party_ledger_view(request: HttpRequest, party_id: int) -> HttpResponse:
+    """Render the running ledger statement (Khata) for a specific party."""
+    party = get_object_or_404(Party, pk=party_id)
+    statement = get_party_ledger_statement(party)
+    context = {
+        "party": party,
+        "statement": statement,
+    }
+    return render(request, "ledger/party_ledger.html", context)
+
+
+@login_required
+def party_ledger_csv_view(request: HttpRequest, party_id: int) -> HttpResponse:
+    """Export the party running ledger statement as a downloadable CSV."""
+    party = get_object_or_404(Party, pk=party_id)
+    csv_content = generate_ledger_csv(party)
+    today_str = timezone.now().date().strftime("%Y-%m-%d")
+    response = HttpResponse(csv_content, content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="ledger-{party.pk}-{today_str}.csv"'
+    return response
