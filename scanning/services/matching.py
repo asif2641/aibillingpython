@@ -144,9 +144,21 @@ def resolve_scan_party(
         address=address,
         tax_number=tax_number,
     )
+    update_fields = []
     if urdu_name and not party.urdu_name:
         party.urdu_name = urdu_name
-        party.save(update_fields=["urdu_name"])
+        update_fields.append("urdu_name")
+    if phone and not party.phone:
+        party.phone = str(phone).strip()
+        update_fields.append("phone")
+    if address and not party.address:
+        party.address = str(address).strip()
+        update_fields.append("address")
+    if tax_number and not party.tax_number:
+        party.tax_number = str(tax_number).strip()
+        update_fields.append("tax_number")
+    if update_fields:
+        party.save(update_fields=update_fields)
 
     is_new = existing_before is None
     return party, is_new

@@ -718,6 +718,28 @@ class TestBillViewsAndWorkflow:
         assert sample_bill.invoice_no in content
         assert other_bill.invoice_no not in content
 
+    def test_bill_list_search_by_party_phone(self, staff_client, sample_bill, sample_party):
+        """Bill list can be filtered/searched by party's phone number."""
+        sample_party.phone = "03234663429"
+        sample_party.save(update_fields=["phone"])
+
+        other_party = Party.objects.create(
+            name="Other Vendor", phone="03001112233", party_type="vendor"
+        )
+        other_bill = Bill.objects.create(
+            bill_type="purchase",
+            party=other_party,
+            invoice_no="INV-OTHER-PHONE",
+            bill_date=timezone.now().date(),
+            grand_total=Decimal("100.00"),
+        )
+        url = f"{self._bills_url()}?q=03234663429"
+        response = staff_client.get(url)
+        assert response.status_code == 200
+        content = response.content.decode("utf-8")
+        assert sample_bill.invoice_no in content
+        assert other_bill.invoice_no not in content
+
     def test_bill_list_filter_by_party(self, staff_client, sample_bill):
         """Bill list filters bills by party."""
         assert Party is not None, "Party model is missing."

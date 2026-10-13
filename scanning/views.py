@@ -116,6 +116,7 @@ def review_view(request: HttpRequest, job_id: int) -> HttpResponse:
         # Update core invoice details
         invoice_no = request.POST.get("invoice_no", "").strip()
         party_id = request.POST.get("party")
+        party_phone = request.POST.get("party_phone", "").strip()
         bill_date_str = request.POST.get("bill_date")
         discount_str = request.POST.get("discount", "0.00")
         tax_str = request.POST.get("tax", "0.00")
@@ -126,6 +127,13 @@ def review_view(request: HttpRequest, job_id: int) -> HttpResponse:
             party = Party.objects.filter(pk=party_id).first()
             if party:
                 bill.party = party
+                if party_phone and party.phone != party_phone:
+                    party.phone = party_phone
+                    party.save(update_fields=["phone"])
+        elif party_phone and bill.party:
+            if bill.party.phone != party_phone:
+                bill.party.phone = party_phone
+                bill.party.save(update_fields=["phone"])
         if bill_date_str:
             with contextlib.suppress(ValueError, TypeError):
                 bill.bill_date = timezone.datetime.strptime(bill_date_str[:10], "%Y-%m-%d").date()

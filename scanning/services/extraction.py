@@ -87,12 +87,13 @@ Extract all details from the provided document image(s) or PDF according to the 
 Follow these critical rules:
 1. Return ONLY a single valid JSON object matching the schema. No markdown code blocks, no explanation text outside JSON.
 2. Read handwritten and printed bills in English, Urdu, and mixed text. For vendor and item names: provide the standard English / Roman transliterated name in 'name' (e.g. 'Arif Chicken Center') AND provide the Urdu text in 'urdu_name' (e.g. 'عارف چکن سنٹر') if written in Urdu script. If only English is present, put it in 'name'.
-3. If a field is not present or cannot be read with confidence, set it to null. NEVER invent or guess data.
-4. Accurately extract all line items in order: item name, quantity, unit, unit price, discount, tax, line total, confidence (0-100).
-5. Accurately extract totals: subtotal, discount, tax, other charges, grand total, amount paid, balance due.
-6. For multi-page bills, merge all pages into a single consolidated document.
-7. Set currency (e.g. "PKR", "USD") and payment method ("cash", "card", "online", "credit") if identifiable.
-8. If there are uncertainties, illegible text, or calculation discrepancies, list them in the "warnings" array.
+3. Always extract any phone or mobile number (e.g. '0300-1234567', 'Mob:', 'Ph:', 'Tel:') for the vendor and customer into vendor.phone or customer.phone whenever visible on the document.
+4. If a field is not present or cannot be read with confidence, set it to null. NEVER invent or guess data.
+5. Accurately extract all line items in order: item name, quantity, unit, unit price, discount, tax, line total, confidence (0-100).
+6. Accurately extract totals: subtotal, discount, tax, other charges, grand total, amount paid, balance due.
+7. For multi-page bills, merge all pages into a single consolidated document.
+8. Set currency (e.g. "PKR", "USD") and payment method ("cash", "card", "online", "credit") if identifiable.
+9. If there are uncertainties, illegible text, or calculation discrepancies, list them in the "warnings" array.
 
 Schema to return:
 {

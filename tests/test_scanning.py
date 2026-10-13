@@ -464,6 +464,24 @@ class TestAutoProfilesAndCategorySuggestion:
         assert party.name == "Brand New Pharmacy"
         assert party.party_type == Party.PartyType.VENDOR
 
+    def test_auto_match_existing_vendor_updates_missing_phone(self):
+        """When existing vendor lacks a phone number, scan with phone number updates the party record."""
+        from scanning.services.matching import resolve_scan_party
+
+        existing = Party.objects.create(name="Arif Chicken Center", phone="", party_type="vendor")
+        party, is_new = resolve_scan_party(
+            {
+                "name": "Arif Chicken Center",
+                "phone": "0323-4663429",
+                "address": "Lahore Market",
+            }
+        )
+        assert party.pk == existing.pk
+        assert not is_new
+        existing.refresh_from_db()
+        assert existing.phone == "0323-4663429"
+        assert existing.address == "Lahore Market"
+
     def test_category_suggestion_from_bill_content(self):
         """Items like Panadol / Augmentin suggest 'Medical' category."""
         from categories.services import seed_default_categories
@@ -561,6 +579,7 @@ class TestUploadAndReviewViews:
                 "action": "verify",
                 "invoice_no": "VERIFIED-99",
                 "party": job.bill.party.pk,
+                "party_phone": "0300-8887766",
                 "bill_date": str(job.bill.bill_date),
                 "discount": "0.00",
                 "tax": "0.00",
@@ -570,6 +589,7 @@ class TestUploadAndReviewViews:
         assert response.status_code == 200
         job.bill.refresh_from_db()
         assert job.bill.status == Bill.Status.VERIFIED
+        assert job.bill.party.phone == "0300-8887766"
 
 
 # ---------------------------------------------------------------------------

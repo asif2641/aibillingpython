@@ -153,6 +153,9 @@
                                     {% if bill.party.urdu_name and bill.party.urdu_name != bill.party.name %}
                                         <span class="text-[11px] text-slate-400 dark:text-slate-500 font-normal block font-urdu">{{ bill.party.urdu_name }}</span>
                                     {% endif %}
+                                    {% if bill.party.phone %}
+                                        <span class="text-[11px] text-slate-400 block font-mono">📞 {{ bill.party.phone }}</span>
+                                    {% endif %}
                                 </a>
                             </td>
                             <td class="py-3.5 px-4 font-mono font-bold text-slate-900 dark:text-white">

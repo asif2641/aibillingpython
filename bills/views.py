@@ -43,6 +43,7 @@ def bill_list_view(request: HttpRequest) -> HttpResponse:
             Q(invoice_no__icontains=q_clean)
             | Q(party__name__icontains=q_clean)
             | Q(party__urdu_name__icontains=q_clean)
+            | Q(party__phone__icontains=q_clean)
         )
 
     party_id = request.GET.get("party")

@@ -81,6 +81,18 @@ def match_or_create_party(
             best_match = party
 
     if best_match is not None and best_score >= 0.90:
+        fields_to_update = []
+        if phone and not best_match.phone:
+            best_match.phone = str(phone).strip()
+            fields_to_update.append("phone")
+        if address and not best_match.address:
+            best_match.address = str(address).strip()
+            fields_to_update.append("address")
+        if tax_number and not best_match.tax_number:
+            best_match.tax_number = str(tax_number).strip()
+            fields_to_update.append("tax_number")
+        if fields_to_update:
+            best_match.save(update_fields=fields_to_update)
         return best_match
 
     # 3. Create new party
