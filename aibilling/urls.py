@@ -38,10 +38,13 @@ urlpatterns += i18n_patterns(
     path("settings/", include("settings_app.urls")),
     # Categories & units app
     path("categories/", include("categories.urls", namespace="categories")),
+    # Parties app (vendors and customers)
+    path("parties/", include("parties.urls", namespace="parties")),
+    # Bills app (invoices, line items, trash)
+    path("bills/", include("bills.urls", namespace="bills")),
+    # Ledger app (payments and balances)
+    path("ledger/", include("ledger.urls", namespace="ledger")),
     # Add more app URLs here as they are built:
-    # path("", include("bills.urls", namespace="bills")),
-    # path("parties/", include("parties.urls", namespace="parties")),
-    # path("ledger/", include("ledger.urls", namespace="ledger")),
     # path("reports/", include("reports.urls", namespace="reports")),
     # Prefix URLs with the language code (default: True).
     prefix_default_language=True,

@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% if bill %}{% trans "Edit Bill" %}{% else %}{% trans "New Bill" %}{% endif %} — Bill Scanner & Ledger{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 py-8 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-4xl mx-auto space-y-6">
+
+        <!-- Top Header & Back Link -->
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <a href="{% url 'bills:bill_list' %}" 
+                   class="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                   title="{% trans "Back to Bills" %}">
+                    <svg class="w-5 h-5 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                </a>
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+                        <span>🧾</span>
+                        <span>{% if bill %}{% trans "Edit Bill" %}{% else %}{% trans "Create Manual Bill" %}{% endif %}</span>
+                    </h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        {% trans "Enter invoice details, line items, and discounts." %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+
+            {% if form.errors %}
+            <div class="p-4 rounded-2xl bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 text-red-800 dark:text-red-300 text-sm font-medium" role="alert">
+                <p class="font-semibold mb-1">{% trans "Please correct the errors below:" %}</p>
+                <ul class="list-disc list-inside space-y-0.5 text-xs">
+                    {% for field, errors in form.errors.items %}
+                        {% for error in errors %}
+                            <li>{{ field }}: {{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Invoice Header Card -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm p-6 space-y-4">
+                <h2 class="text-base font-bold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-700 pb-3">
+                    {% trans "Invoice Details" %}
+                </h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Party Selection -->
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                            {% trans "Vendor / Customer" %} <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.party }}
+                    </div>
+
+                    <!-- Bill Type -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                            {% trans "Type" %}
+                        </label>
+                        {{ form.bill_type }}
+                    </div>
+
+                    <!-- Invoice No -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                            {% trans "Invoice #" %}
+                        </label>
+                        {{ form.invoice_no }}
+                    </div>
+
+                    <!-- Bill Date -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                            {% trans "Date" %}
+                        </label>
+                        {{ form.bill_date }}
+                    </div>
+
+                    <!-- Category -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                            {% trans "Category" %}
+                        </label>
+                        {{ form.category }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Line Items Card -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm p-6 space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-3">
+                    <h2 class="text-base font-bold text-slate-900 dark:text-white">
+                        {% trans "Bill Items" %}
+                    </h2>
+                </div>
+
+                {{ formset.management_form }}
+
+                <div class="space-y-3">
+                    {% for item_form in formset %}
+                    <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-slate-50/50 dark:bg-slate-900/40 space-y-3">
+                        {{ item_form.id }}
+                        <div class="grid grid-cols-1 sm:grid-cols-6 gap-3">
+                            <div class="sm:col-span-2">
+                                <label class="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                                    {% trans "Item Name" %} *
+                                </label>
+                                {{ item_form.item_name }}
+                            </div>
+                            <div class="sm:col-span-1">
+                                <label class="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                                    {% trans "Quantity" %}
+                                </label>
+                                {{ item_form.quantity }}
+                            </div>
+                            <div class="sm:col-span-1">
+                                <label class="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                                    {% trans "Unit" %}
+                                </label>
+                                {{ item_form.unit }}
+                            </div>
+                            <div class="sm:col-span-1">
+                                <label class="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                                    {% trans "Unit Price" %}
+                                </label>
+                                {{ item_form.unit_price }}
+                            </div>
+                            <div class="sm:col-span-1 flex items-end pb-2">
+                                {% if item_form.DELETE %}
+                                    <label class="inline-flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400 cursor-pointer">
+                                        {{ item_form.DELETE }}
+                                        <span>{% trans "Remove" %}</span>
+                                    </label>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Summary & Totals Adjustment Card -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm p-6 space-y-4">
+                <h2 class="text-base font-bold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-700 pb-3">
+                    {% trans "Discounts & Taxes" %}
+                </h2>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                            {% trans "Discount Amount" %}
+                        </label>
+                        {{ form.discount }}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                            {% trans "Tax Amount" %}
+                        </label>
+                        {{ form.tax }}
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                            {% trans "Notes" %}
+                        </label>
+                        {{ form.notes }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center justify-between pt-2">
+                <a href="{% url 'bills:bill_list' %}" class="px-4 py-2 min-h-[44px] inline-flex items-center text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                    {% trans "Cancel" %}
+                </a>
+                <button type="submit" class="px-6 py-2.5 min-h-[44px] rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold text-sm shadow-sm shadow-primary-500/25 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    {% if bill %}{% trans "Update Bill" %}{% else %}{% trans "Save Bill" %}{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
