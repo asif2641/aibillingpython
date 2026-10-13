@@ -23,6 +23,22 @@
 
 ## Phase 2 — Settings (Shop Profile, Staff Permissions, Categories, Units)
 
+**Branch:** `phase-2/settings`  
+**Status:** ✅ Complete (Passed Quality Gate with 145/145 tests, 93% coverage)
+
+| # | Task | Owner | Status | Notes |
+|---|------|-------|--------|-------|
+| 1 | Shop Profile model & service | Backend Agent | ✅ Done | Singleton ShopProfile with limits, tax ID |
+| 2 | Staff Management & permissions | Backend Agent | ✅ Done | Staff creation, permission flags, reset pass |
+| 3 | Categories & Units models & seeding | Backend Agent | ✅ Done | 10 default categories & 9 units seeded |
+| 4 | QA test-first suites for Phase 2 | QA Agent | ✅ Done | 67 comprehensive test cases written |
+| 5 | Settings & Staff UI templates | Frontend Agent | ✅ Done | Unified settings subnav, RTL, dark theme |
+| 6 | QC review & Gate Report | QC + Browser QA | ✅ Done | APPROVED with 0 Critical/High issues |
+
+---
+
+## Phase 3 — Manual Bills (Entry Form, Bill List, Edit, Trash, Parties, Payments)
+
 **Status:** ⏳ Next up
 
 ---

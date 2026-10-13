@@ -215,3 +215,321 @@ msgstr "منتخب اکاؤنٹس کو 15 منٹ کے لیے لاک کریں"
 
 msgid "Successfully locked %(count)d account(s)."
 msgstr "کامیابی کے ساتھ %(count)d اکاؤنٹ لاک کر دیے گئے۔"
+
+msgid "Settings & Administration"
+msgstr "ترتیبات اور انتظام"
+
+msgid "Shop Profile"
+msgstr "دکان کی پروفائل"
+
+msgid "Shop Profile & Settings"
+msgstr "دکان کی پروفائل اور ترتیبات"
+
+msgid "Shop Profile & Configuration"
+msgstr "دکان کی پروفائل اور تشکیل"
+
+msgid "Manage your business branding, receipts, and system scan limits."
+msgstr "اپنے کاروبار کی برانڈنگ، رسیدیں اور سسٹم اسکین کی حدود کا انتظام کریں۔"
+
+msgid "Shop Name"
+msgstr "دکان کا نام"
+
+msgid "Logo"
+msgstr "لوگو"
+
+msgid "Upload Shop Logo"
+msgstr "دکان کا لوگو اپلوڈ کریں"
+
+msgid "Current Logo"
+msgstr "موجودہ لوگو"
+
+msgid "PNG, JPG or WebP up to 5MB"
+msgstr "پی این جی، جے پی جی یا ویب پی 5 ایم بی تک"
+
+msgid "Address"
+msgstr "پتہ"
+
+msgid "Phone"
+msgstr "فون"
+
+msgid "Email"
+msgstr "ای میل"
+
+msgid "Tax / NTN Number"
+msgstr "ٹیکس / این ٹی این نمبر"
+
+msgid "National Tax Number or Sales Tax ID"
+msgstr "قومی ٹیکس نمبر یا سیلز ٹیکس آئی ڈی"
+
+msgid "Currency"
+msgstr "کرنسی"
+
+msgid "Timezone"
+msgstr "ٹائم زون"
+
+msgid "Date Format"
+msgstr "تاریخ کا فارمیٹ"
+
+msgid "Default Language"
+msgstr "پہلے سے طے شدہ زبان"
+
+msgid "Invoice Footer Text"
+msgstr "رسید کے نیچے تحریر"
+
+msgid "Custom text printed at the bottom of customer receipts"
+msgstr "گاہک کی رسیدوں کے نیچے پرنٹ ہونے والی تحریر"
+
+msgid "Daily Scan Limit"
+msgstr "روزانہ اسکین کی حد"
+
+msgid "Monthly Scan Limit"
+msgstr "ماہانہ اسکین کی حد"
+
+msgid "Maximum AI bill scans allowed per 24 hours"
+msgstr "24 گھنٹوں میں زیادہ سے زیادہ اے آئی بل اسکین کی حد"
+
+msgid "Maximum AI bill scans allowed per calendar month"
+msgstr "ماہانہ بنیاد پر زیادہ سے زیادہ اے آئی بل اسکین کی حد"
+
+msgid "Save Shop Profile"
+msgstr "دکان کی پروفائل محفوظ کریں"
+
+msgid "Shop profile updated successfully."
+msgstr "دکان کی پروفائل کامیابی سے اپ ڈیٹ ہو گئی۔"
+
+msgid "Saving..."
+msgstr "محفوظ ہو رہا ہے..."
+
+msgid "Staff Management"
+msgstr "عملے کا انتظام"
+
+msgid "Manage employee accounts, assign granular permissions, and control access."
+msgstr "ملازمین کے اکاؤنٹس، اختیارات اور رسائی کا انتظام کریں۔"
+
+msgid "Add Staff Member"
+msgstr "نیا عملہ شامل کریں"
+
+msgid "Add New Staff Member"
+msgstr "نیا عملہ شامل کریں"
+
+msgid "User"
+msgstr "صارف"
+
+msgid "Name"
+msgstr "نام"
+
+msgid "Status"
+msgstr "حیثیت"
+
+msgid "Permissions"
+msgstr "اختیارات"
+
+msgid "Actions"
+msgstr "کارروائیاں"
+
+msgid "Active"
+msgstr "فعال"
+
+msgid "Disabled"
+msgstr "غیر فعال"
+
+msgid "Deactivate"
+msgstr "غیر فعال کریں"
+
+msgid "Activate"
+msgstr "فعال کریں"
+
+msgid "Reset Password"
+msgstr "پاس ورڈ ری سیٹ کریں"
+
+msgid "Reset Staff Password"
+msgstr "عملے کا پاس ورڈ ری سیٹ کریں"
+
+msgid "Update Staff Permissions"
+msgstr "عملے کے اختیارات اپ ڈیٹ کریں"
+
+msgid "Delete Records"
+msgstr "ریکارڈز حذف کریں"
+
+msgid "Manage Shop"
+msgstr "دکان کا انتظام"
+
+msgid "Manage Categories"
+msgstr "اقسام کا انتظام"
+
+msgid "Standard Staff"
+msgstr "عام عملہ"
+
+msgid "Can delete records"
+msgstr "ریکارڈز حذف کرنے کا اختیار"
+
+msgid "Can manage shop"
+msgstr "دکان کا انتظام کرنے کا اختیار"
+
+msgid "Can manage categories"
+msgstr "اقسام کا انتظام کرنے کا اختیار"
+
+msgid "Allows deleting bills, items, and transactions"
+msgstr "بلز، اشیاء اور لین دین کو حذف کرنے کی اجازت دیتا ہے"
+
+msgid "Allows modifying shop profile, scan limits, and configuration"
+msgstr "دکان کی پروفائل اور ترتیبات تبدیل کرنے کی اجازت دیتا ہے"
+
+msgid "Allows creating, editing, and archiving product categories and units"
+msgstr "مصنوعات کی اقسام اور پیمائش کی اکائیاں بنانے اور تبدیل کرنے کی اجازت دیتا ہے"
+
+msgid "Save Permissions"
+msgstr "اختیارات محفوظ کریں"
+
+msgid "New Password"
+msgstr "نیا پاس ورڈ"
+
+msgid "Confirm New Password"
+msgstr "نئے پاس ورڈ کی تصدیق"
+
+msgid "Update Password"
+msgstr "پاس ورڈ تبدیل کریں"
+
+msgid "First Name"
+msgstr "پہلا نام"
+
+msgid "Last Name"
+msgstr "آخری نام"
+
+msgid "Confirm Password"
+msgstr "پاس ورڈ کی تصدیق"
+
+msgid "Save Staff Member"
+msgstr "عملہ محفوظ کریں"
+
+msgid "Cancel"
+msgstr "منسوخ کریں"
+
+msgid "No staff members found."
+msgstr "کوئی عملہ نہیں ملا۔"
+
+msgid "No categories found."
+msgstr "کوئی اقسام نہیں ملیں۔"
+
+msgid "No units found."
+msgstr "کوئی اکائیاں نہیں ملیں۔"
+
+msgid "Product Categories"
+msgstr "مصنوعات کی اقسام"
+
+msgid "Organize inventory, bills, and expense classifications."
+msgstr "بلوں اور اخراجات کی مناسب درجہ بندی کریں۔"
+
+msgid "Add Category"
+msgstr "نئی قسم شامل کریں"
+
+msgid "Edit Category"
+msgstr "قسم میں ترمیم کریں"
+
+msgid "Category Name"
+msgstr "قسم کا نام"
+
+msgid "Urdu Name"
+msgstr "اردو نام"
+
+msgid "Color Code"
+msgstr "رنگ کا کوڈ"
+
+msgid "Color"
+msgstr "رنگ"
+
+msgid "Save Category"
+msgstr "قسم محفوظ کریں"
+
+msgid "Archive"
+msgstr "آرکائیو کریں"
+
+msgid "Restore"
+msgstr "بحال کریں"
+
+msgid "Archived"
+msgstr "آرکائیو شدہ"
+
+msgid "Manage Units"
+msgstr "پیمائش کی اکائیاں"
+
+msgid "Units of Measurement"
+msgstr "پیمائش کی اکائیاں"
+
+msgid "Units"
+msgstr "اکائیاں"
+
+msgid "Standard and custom units used in bills and line items."
+msgstr "بلز اور اشیاء میں استعمال ہونے والی پیمائش کی اکائیاں۔"
+
+msgid "Add Unit"
+msgstr "نئی اکائی شامل کریں"
+
+msgid "Add Unit of Measurement"
+msgstr "پیمائش کی نئی اکائی شامل کریں"
+
+msgid "Unit Name"
+msgstr "اکائی کا نام"
+
+msgid "Unit Code"
+msgstr "اکائی کا کوڈ"
+
+msgid "Save Unit"
+msgstr "اکائی محفوظ کریں"
+
+msgid "Back to Categories"
+msgstr "اقسام پر واپس جائیں"
+
+msgid "Back to Staff List"
+msgstr "عملے کی فہرست پر واپس جائیں"
+
+msgid "Back to Settings"
+msgstr "ترتیبات پر واپس جائیں"
+
+msgid "System"
+msgstr "سسٹم"
+
+msgid "Custom"
+msgstr "اپنی مرضی کے مطابق"
+
+msgid "Type"
+msgstr "قسم"
+
+msgid "Code"
+msgstr "کوڈ"
+
+msgid "Previous"
+msgstr "پچھلا"
+
+msgid "Next"
+msgstr "اگلا"
+
+msgid "Page"
+msgstr "صفحہ"
+
+msgid "of"
+msgstr "از"
+
+msgid "Edit"
+msgstr "ترمیم"
+
+msgid "Select Color"
+msgstr "رنگ منتخب کریں"
+
+msgid "Preview"
+msgstr "پیش نظارہ"
+
+msgid "General Information"
+msgstr "عام معلومات"
+
+msgid "Regional Settings"
+msgstr "علاقائی ترتیبات"
+
+msgid "AI Scan Quotas"
+msgstr "اے آئی اسکین کی حد"
+
+msgid "Account Security"
+msgstr "اکاؤنٹ سیکیورٹی"
+
+msgid "Resetting password will also automatically unlock this account if locked."
+msgstr "پاس ورڈ ری سیٹ کرنے سے اگر اکاؤنٹ مقفل ہے تو وہ بھی ان لاک ہو جائے گا۔"

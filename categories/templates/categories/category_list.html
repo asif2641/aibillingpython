@@ -1,0 +1,116 @@
+{% extends "settings_app/settings_base.html" %}
+{% load i18n %}
+
+{% block settings_title %}{% trans "Categories" %}{% endblock %}
+
+{% block settings_header_actions %}
+<a href="{% url 'categories:category_add' %}" 
+   class="inline-flex items-center gap-2 px-4 py-2 min-h-[44px] rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs shadow-sm shadow-primary-500/25 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+    <span>{% trans "Add Category" %}</span>
+</a>
+{% endblock %}
+
+{% block settings_content %}
+<div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm overflow-hidden">
+    <!-- Header -->
+    <div class="p-6 border-b border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <span>🏷️</span>
+                <span>{% trans "Bill Categories" %}</span>
+            </h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                {% trans "Manage product and expense categories. AI auto-categorizes scans based on these names." %}
+            </p>
+        </div>
+        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+            {{ categories|length }} {% trans "Categories" %}
+        </span>
+    </div>
+
+    <!-- Categories Grid / Table -->
+    <div class="overflow-x-auto">
+        <table class="w-full text-left rtl:text-right border-collapse">
+            <thead>
+                <tr class="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold">
+                    <th scope="col" class="py-3.5 px-4 sm:px-6">{% trans "Category" %}</th>
+                    <th scope="col" class="py-3.5 px-4">{% trans "Urdu Name" %}</th>
+                    <th scope="col" class="py-3.5 px-4">{% trans "Color Tag" %}</th>
+                    <th scope="col" class="py-3.5 px-4">{% trans "Status" %}</th>
+                    <th scope="col" class="py-3.5 px-4 text-right rtl:text-left">{% trans "Actions" %}</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 dark:divide-slate-700 text-xs text-slate-700 dark:text-slate-200">
+                {% for cat in categories %}
+                <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors">
+                    <td class="py-3.5 px-4 sm:px-6 font-semibold text-slate-900 dark:text-white flex items-center gap-2.5">
+                        <span class="w-3.5 h-3.5 rounded-full flex-shrink-0" style="background-color: {{ cat.color }};"></span>
+                        <span>{{ cat.name }}</span>
+                    </td>
+                    <td class="py-3.5 px-4 font-urdu text-sm">
+                        {{ cat.urdu_name|default:"—" }}
+                    </td>
+                    <td class="py-3.5 px-4 font-mono text-xs">
+                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-[11px]">
+                            <span class="w-2 h-2 rounded-full" style="background-color: {{ cat.color }};"></span>
+                            {{ cat.color }}
+                        </span>
+                    </td>
+                    <td class="py-3.5 px-4">
+                        {% if cat.is_archived %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                                {% trans "Archived" %}
+                            </span>
+                        {% else %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                                {% trans "Active" %}
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td class="py-3.5 px-4 text-right rtl:text-left">
+                        <div class="inline-flex items-center gap-1.5">
+                            <a href="{% url 'categories:category_edit' cat.pk %}" 
+                               class="px-2.5 py-1 min-h-[36px] inline-flex items-center rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                                {% trans "Edit" %}
+                            </a>
+                            <form method="post" action="{% url 'categories:category_archive' cat.pk %}" class="inline">
+                                {% csrf_token %}
+                                <button type="submit" 
+                                    class="px-2.5 py-1 min-h-[36px] rounded-lg text-xs font-semibold border {% if cat.is_archived %}border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950/50{% else %}border-amber-200 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-300 dark:hover:bg-amber-950/50{% endif %} transition-colors">
+                                    {% if cat.is_archived %}{% trans "Unarchive" %}{% else %}{% trans "Archive" %}{% endif %}
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="py-12 text-center text-slate-500 dark:text-slate-400">
+                        <span class="text-3xl block mb-2">🏷️</span>
+                        {% trans "No categories found." %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="p-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs text-slate-500">
+        <div>
+            {% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
+        </div>
+        <div class="flex items-center gap-2">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 font-medium">{% trans "Previous" %}</a>
+            {% endif %}
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 font-medium">{% trans "Next" %}</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,85 @@
+{% extends "settings_app/settings_base.html" %}
+{% load i18n %}
+
+{% block settings_title %}{% trans "Add Custom Unit" %}{% endblock %}
+
+{% block settings_content %}
+<div class="max-w-xl mx-auto bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm overflow-hidden">
+    <div class="p-6 border-b border-slate-200 dark:border-slate-700">
+        <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <span>⚖️</span>
+            <span>{% trans "Add Custom Measurement Unit" %}</span>
+        </h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            {% trans "Define custom packaging or quantity units for your billing items." %}
+        </p>
+    </div>
+
+    <form method="post" class="p-6 space-y-4">
+        {% csrf_token %}
+
+        {% if form.errors %}
+        <div class="p-4 rounded-xl bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 text-red-800 dark:text-red-300 text-sm font-medium" role="alert">
+            <ul class="list-disc list-inside space-y-0.5 text-xs">
+                {% for field, errors in form.errors.items %}
+                    {% for error in errors %}
+                        <li>{{ field }}: {{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <div>
+            <label for="id_name" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                {% trans "Unit Name" %} <span class="text-red-500">*</span>
+            </label>
+            <input 
+                type="text" 
+                id="id_name"
+                name="name" 
+                required 
+                value="{{ form.name.value|default:'' }}"
+                class="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                placeholder="{% trans "e.g. Carton, Bundle, Sack..." %}">
+        </div>
+
+        <div>
+            <label for="id_code" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                {% trans "Unit Code / Abbreviation" %} <span class="text-red-500">*</span>
+            </label>
+            <input 
+                type="text" 
+                id="id_code"
+                name="code" 
+                required 
+                value="{{ form.code.value|default:'' }}"
+                class="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm font-mono focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                placeholder="ctn, bdl, sck...">
+        </div>
+
+        <div>
+            <label for="id_urdu_name" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                {% trans "Urdu Name" %}
+            </label>
+            <input 
+                type="text" 
+                id="id_urdu_name"
+                name="urdu_name" 
+                value="{{ form.urdu_name.value|default:'' }}"
+                dir="rtl"
+                class="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm font-urdu focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                placeholder="مثلاً: کارٹن، بنڈل...">
+        </div>
+
+        <div class="pt-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
+            <a href="{% url 'categories:unit_list' %}" class="px-4 py-2 min-h-[44px] inline-flex items-center text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                {% trans "Cancel" %}
+            </a>
+            <button type="submit" class="px-5 py-2.5 min-h-[44px] rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold text-sm shadow-sm shadow-primary-500/25 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
+                {% trans "Save Unit" %}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
