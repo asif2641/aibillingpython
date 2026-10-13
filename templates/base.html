@@ -95,11 +95,26 @@
         html[dir="rtl"] {
             font-family: 'Jameel Noori Nastaleeq', 'Noto Sans Arabic', 'Tahoma', system-ui, sans-serif;
             letter-spacing: 0;
+            font-size: 16px;
         }
 
-        .font-urdu, [lang="ur"] {
+        /* Ensure Urdu text is always at least 1em across all places */
+        .font-urdu, [lang="ur"]:not(html) {
             font-family: 'Jameel Noori Nastaleeq', 'Noto Sans Arabic', 'Tahoma', system-ui, sans-serif !important;
             letter-spacing: 0 !important;
+            font-size: 1em !important;
+            line-height: 1.7;
+        }
+
+        /* In Urdu RTL layout, raise micro-text (10px, 11px, xs, sm) to 1em for Nastaliq clarity */
+        html[dir="rtl"] .text-xs,
+        html[dir="rtl"] .text-sm,
+        html[dir="rtl"] .text-\[10px\],
+        html[dir="rtl"] .text-\[11px\],
+        html[dir="rtl"] .text-\[12px\],
+        html[dir="rtl"] small {
+            font-size: 1em !important;
+            line-height: 1.6;
         }
         
         html[dir="ltr"] {
