@@ -85,6 +85,23 @@
 | 6 | Spending reports & price trend UI | Frontend Agent | ✅ Done | Date presets, category share, top vendors, inflation index |
 | 7 | QC review & Gate Report | QC + Browser QA | ✅ Done | APPROVED with 0 Critical/High issues |
 
+
+---
+
+## Phase 6 — Offline PWA & Sync Queue (Installable App, Offline Manual Entry, Conflict Resolution)
+
+**Branch:** `phase-6/offline-pwa`  
+**Status:** ⏳ In Progress (Planning stage)
+
+| # | Task | Owner | Status | Notes |
+|---|------|-------|--------|-------|
+| 1 | SyncQueue data model & processing services | Backend Agent | [ ] Not started | Idempotent bill creation, Decimal recalculations, conflict handling |
+| 2 | Sync API endpoints (/sync/push/, /sync/pull/, /sync/status/) | Backend Agent | [ ] Not started | Authenticated sync push & pull JSON endpoints |
+| 3 | QA test-first suites for Offline Sync & PWA | QA Agent | [ ] Not started | Automated tests for sync, idempotency, edge cases, PWA assets |
+| 4 | PWA Web Manifest, Service Worker & Offline Shell | Frontend Agent | [ ] Not started | manifest.json, sw.js caching app shell, offline fallback template |
+| 5 | IndexedDB client storage & auto-sync engine | Frontend Agent | [ ] Not started | Offline form interception, IndexedDB queue, online sync triggers, RTL |
+| 6 | QC review & Gate Report | QC + Browser QA | [ ] Not started | Final quality audit & verification gate before merge |
+
 ---
 
 ## Risk Log

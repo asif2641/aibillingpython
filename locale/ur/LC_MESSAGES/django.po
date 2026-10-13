@@ -761,3 +761,28 @@ msgstr "پیشگی وصول شدہ رقم %(amount)s روپے"
 
 msgid "Account Settled"
 msgstr "کھاتہ بے باق ہو گیا"
+
+msgid "Offline Mode"
+msgstr "آف لائن موڈ"
+
+msgid "You're Offline"
+msgstr "آپ آف لائن ہیں"
+
+msgid "Offline Mode — Bills saved locally will sync when online"
+msgstr "آف لائن موڈ — بلز محفوظ ہیں، آن لائن ہونے پر سنک ہوں گے"
+
+msgid "Syncing..."
+msgstr "سنک ہو رہا ہے..."
+
+msgid "Synced"
+msgstr "سنک ہو گیا"
+
+msgid "Bill saved offline! It will automatically sync as soon as you reconnect to the internet."
+msgstr "بل کامیابی سے محفوظ ہو گیا! انٹرنیٹ بحال ہوتے ہی یہ خودکار طور پر سرور پر منتقل ہو جائے گا۔"
+
+msgid "Create Bill Offline"
+msgstr "نیا آف لائن بل بنائیں"
+
+msgid "Retry Connection"
+msgstr "دوبارہ کوشش کریں"
+

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="emblemGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#4338ca"/>
+    </linearGradient>
+    <filter id="laserGlow" x="-20%" y="-100%" width="140%" height="300%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- Background Slate -->
+  <rect width="512" height="512" fill="#0f172a" rx="0"/>
+  <!-- Rounded Emblem -->
+  <rect x="60" y="60" width="392" height="392" rx="90" fill="url(#emblemGrad)"/>
+  <rect x="66" y="66" width="380" height="380" rx="84" fill="none" stroke="#818cf8" stroke-width="4" stroke-opacity="0.5"/>
+  <!-- Receipt Document Paper -->
+  <rect x="148" y="110" width="216" height="272" rx="20" fill="#ffffff"/>
+  <!-- Receipt Header -->
+  <path d="M148,130 Q148,110 168,110 L344,110 Q364,110 364,130 L364,165 L148,165 Z" fill="#312e81"/>
+  <!-- Bill Lines -->
+  <rect x="187" y="196" width="80" height="14" rx="7" fill="#94a3b8"/>
+  <rect x="187" y="235" width="138" height="14" rx="7" fill="#cbd5e1"/>
+  <rect x="187" y="268" width="128" height="14" rx="7" fill="#cbd5e1"/>
+  <rect x="187" y="310" width="138" height="20" rx="10" fill="#10b981"/>
+  <!-- Scanner Beam -->
+  <line x1="116" y1="250" x2="396" y2="250" stroke="#38bdf8" stroke-width="8" filter="url(#laserGlow)"/>
+  <line x1="130" y1="250" x2="382" y2="250" stroke="#e0f2fe" stroke-width="3"/>
+</svg>

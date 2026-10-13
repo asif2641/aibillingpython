@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% block title %}{% trans "Offline Mode" %} — AI Billing & Ledger{% endblock %}
+
+{% block content %}
+<div 
+    x-data="offlineShell()"
+    x-init="init()"
+    class="min-h-screen flex flex-col justify-between bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-200">
+
+    <!-- TOP HEADER -->
+    <header class="w-full border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <!-- Brand -->
+            <a href="{% url 'dashboard' %}" class="flex items-center gap-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-lg p-1">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-primary-600 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                </div>
+                <div class="flex flex-col">
+                    <span class="font-bold text-base tracking-tight text-slate-900 dark:text-white leading-tight">aibilling</span>
+                    <span class="text-xs text-slate-500 dark:text-slate-400 font-arabic">سمارٹ کھاتہ</span>
+                </div>
+            </a>
+
+            <!-- Status Pill & Theme Toggle -->
+            <div class="flex items-center gap-3">
+                <!-- Status Pill -->
+                <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300/60 dark:border-amber-800/60 shadow-sm"
+                     role="status" aria-live="polite">
+                    <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                    </span>
+                    <span>{% trans "Offline Mode" %}</span>
+                    <span class="hidden sm:inline font-arabic text-amber-700 dark:text-amber-400">آف لائن موڈ</span>
+                </div>
+
+                <!-- Theme Toggle Button -->
+                <button 
+                    @click="toggleTheme()" 
+                    type="button" 
+                    class="p-2.5 min-w-[44px] min-h-[44px] rounded-xl text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    aria-label="Toggle Light/Dark Theme">
+                    <svg x-show="!darkMode" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                    </svg>
+                    <svg x-show="darkMode" x-cloak class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ONLINE RESTORED TOAST BANNER (Shows dynamically when internet reconnects) -->
+    <div 
+        x-show="isOnline" 
+        x-cloak
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="-translate-y-4 opacity-0"
+        x-transition:enter-end="translate-y-0 opacity-100"
+        class="bg-emerald-600 text-white px-4 py-3 shadow-lg">
+        <div class="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                <span class="font-medium text-sm">
+                    Internet connection restored! / انٹرنیٹ بحال ہو گیا ہے!
+                </span>
+            </div>
+            <button 
+                @click="window.location.reload()" 
+                type="button" 
+                class="px-4 py-1.5 min-h-[44px] bg-white text-emerald-700 font-semibold text-xs rounded-lg shadow hover:bg-emerald-50 transition-colors focus:outline-none focus:ring-2 focus:ring-white">
+                Reload Now / اب ری لوڈ کریں
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN BODY CONTENT -->
+    <main class="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8">
+        <div class="max-w-2xl w-full">
+            <!-- Glassmorphic Main Card -->
+            <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-10 shadow-xl border border-slate-200 dark:border-slate-700 text-center relative overflow-hidden">
+                
+                <!-- Background decorative ambient circles -->
+                <div class="absolute -top-24 -left-24 w-48 h-48 bg-primary-500/10 rounded-full blur-2xl pointer-events-none"></div>
+                <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+                <!-- Animated Offline Graphic -->
+                <div class="relative mx-auto mb-6 w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center">
+                    <div class="absolute inset-0 rounded-full bg-amber-500/10 dark:bg-amber-400/10 animate-ping"></div>
+                    <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 flex items-center justify-center shadow-inner">
+                        <!-- Cloud Offline Icon -->
+                        <svg class="w-10 h-10 sm:w-12 sm:h-12 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 00-9.78 2.096A4.001 4.001 0 003 15z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4l16 16" />
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Bilingual Headings -->
+                <div class="space-y-2 mb-4">
+                    <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                        You're Offline
+                    </h1>
+                    <h2 class="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 font-arabic" dir="rtl">
+                        آپ آف لائن ہیں
+                    </h2>
+                </div>
+
+                <!-- Bilingual Subtitles -->
+                <div class="max-w-xl mx-auto space-y-3 mb-8">
+                    <p class="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed">
+                        No internet connection detected. But don't worry! You can still record manual bills and manage local records. Everything will sync automatically once you're back online.
+                    </p>
+                    <p class="text-sm sm:text-base text-slate-500 dark:text-slate-400 leading-relaxed font-arabic" dir="rtl">
+                        انٹرنیٹ کنکشن دستیاب نہیں ہے۔ لیکن پریشان نہ ہوں! آپ آف لائن بھی دستی بلز درج کر سکتے ہیں۔ انٹرنیٹ بحال ہوتے ہی تمام ڈیٹا خودکار طور پر سنک ہو جائے گا۔
+                    </p>
+                </div>
+
+                <!-- Feature Highlights Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8 text-left">
+                    <!-- Feature 1: Manual Bills -->
+                    <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-700/50 border border-slate-100 dark:border-slate-700">
+                        <div class="flex items-center gap-2 mb-1.5">
+                            <span class="p-1.5 rounded-lg bg-primary-100 dark:bg-primary-950/80 text-primary-600 dark:text-primary-400 text-sm">✍️</span>
+                            <span class="font-semibold text-xs text-slate-900 dark:text-slate-100">Manual Entry</span>
+                        </div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 leading-snug">
+                            Add bills & items locally on your device.
+                        </p>
+                        <p class="text-[11px] text-slate-400 dark:text-slate-500 font-arabic mt-1" dir="rtl">
+                            دستی بلز کا اندراج جاری رکھیں۔
+                        </p>
+                    </div>
+
+                    <!-- Feature 2: Local Ledger -->
+                    <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-700/50 border border-slate-100 dark:border-slate-700">
+                        <div class="flex items-center gap-2 mb-1.5">
+                            <span class="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 text-sm">📋</span>
+                            <span class="font-semibold text-xs text-slate-900 dark:text-slate-100">Cached Data</span>
+                        </div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 leading-snug">
+                            Browse recently cached records and balances.
+                        </p>
+                        <p class="text-[11px] text-slate-400 dark:text-slate-500 font-arabic mt-1" dir="rtl">
+                            محفوظ شدہ کھاتہ جات دیکھیں۔
+                        </p>
+                    </div>
+
+                    <!-- Feature 3: Auto-Sync -->
+                    <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-700/50 border border-slate-100 dark:border-slate-700">
+                        <div class="flex items-center gap-2 mb-1.5">
+                            <span class="p-1.5 rounded-lg bg-indigo-100 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 text-sm">🔄</span>
+                            <span class="font-semibold text-xs text-slate-900 dark:text-slate-100">Auto-Sync</span>
+                        </div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 leading-snug">
+                            Pending entries sync automatically when online.
+                        </p>
+                        <p class="text-[11px] text-slate-400 dark:text-slate-500 font-arabic mt-1" dir="rtl">
+                            کنکشن ملتے ہی خودکار سنک۔
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Primary & Secondary CTA Action Buttons -->
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+                    <!-- Primary Button: Create Bill Offline -->
+                    <a 
+                        href="{% url 'bills:bill_add' %}" 
+                        class="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3.5 min-h-[44px] rounded-xl font-semibold text-sm text-white bg-primary-600 hover:bg-primary-500 active:bg-primary-700 shadow-lg shadow-primary-600/30 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-slate-800">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        <span>Create Bill Offline</span>
+                        <span class="font-arabic text-primary-100">/ نیا بل بنائیں</span>
+                    </a>
+
+                    <!-- Secondary Button: Retry Connection -->
+                    <button 
+                        @click="retryConnection()" 
+                        :disabled="retrying"
+                        type="button" 
+                        class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 min-h-[44px] rounded-xl font-semibold text-sm text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 border border-slate-300 dark:border-slate-600 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-400 disabled:opacity-60">
+                        <svg 
+                            :class="{'animate-spin': retrying}" 
+                            class="w-4 h-4 text-slate-500 dark:text-slate-300" 
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        <span x-text="retrying ? 'Checking connection...' : 'Retry Connection'">Retry Connection</span>
+                        <span x-show="!retrying" class="font-arabic text-slate-500 dark:text-slate-400">/ دوبارہ کوشش</span>
+                    </button>
+                </div>
+
+                <!-- Subtle Offline Tips / Indicator -->
+                <div class="mt-8 pt-6 border-t border-slate-100 dark:border-slate-700/80 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        <span>PWA Storage Active</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 dark:text-slate-500">Local Cache:</span>
+                        <code class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-900 font-mono text-[11px] text-slate-600 dark:text-slate-400">aibilling-v1</code>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="w-full py-4 text-center text-xs text-slate-500 dark:text-slate-400">
+        <p>aibilling &bull; AI Billing, Ledger &amp; Offline PWA &bull; سمارٹ کھاتہ</p>
+    </footer>
+
+</div>
+
+<script>
+    function offlineShell() {
+        return {
+            isOnline: navigator.onLine,
+            retrying: false,
+            init() {
+                window.addEventListener('online', () => {
+                    this.isOnline = true;
+                });
+                window.addEventListener('offline', () => {
+                    this.isOnline = false;
+                });
+            },
+            retryConnection() {
+                this.retrying = true;
+                // Ping a lightweight URL or reload
+                fetch(window.location.href, { method: 'HEAD', cache: 'no-store' })
+                    .then(() => {
+                        window.location.reload();
+                    })
+                    .catch(() => {
+                        setTimeout(() => {
+                            this.retrying = false;
+                            this.isOnline = navigator.onLine;
+                        }, 1200);
+                    });
+            }
+        };
+    }
+</script>
+{% endblock %}

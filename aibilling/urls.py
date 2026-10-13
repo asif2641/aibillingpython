@@ -16,20 +16,37 @@ from django.conf import settings
 from django.conf.urls.i18n import i18n_patterns
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import include, path
+from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+from django.urls import include, path, re_path
 from django.views.i18n import set_language
+from django.views.static import serve
 
-from aibilling.views import dashboard_view
+from aibilling.views import (
+    dashboard_view,
+    manifest_view,
+    offline_view,
+    service_worker_view,
+)
 
 urlpatterns = [
+    # Static files serving route
+    re_path(r"^static/(?P<path>.*)$", serve, {"document_root": settings.STATICFILES_DIRS[0]}),
+    # PWA Service Worker & Web App Manifest (served at root, outside i18n)
+    path("sw.js", service_worker_view, name="service_worker"),
+    path("manifest.json", manifest_view, name="manifest"),
+    path("offline/", offline_view, name="offline"),
     # Language switcher — must be outside i18n_patterns.
     # POST to this URL with a "language" form field to change the active language.
     path("i18n/set-language/", set_language, name="set_language"),
+    # Non-prefixed API endpoints for offline PWA sync (/sync/push/, /sync/pull/, /sync/status/)
+    path("sync/", include("sync.urls", namespace="sync_root")),
 ]
 
 urlpatterns += i18n_patterns(
     # Main dashboard view at root of localized paths (/en/, /ur/)
     path("", dashboard_view, name="dashboard"),
+    # Offline fallback shell for localized paths (/en/offline/, /ur/offline/)
+    path("offline/", offline_view, name="offline_localized"),
     # Django admin panel.
     path("admin/", admin.site.urls),
     # Accounts app (login, logout, password change, etc.)
@@ -48,11 +65,14 @@ urlpatterns += i18n_patterns(
     path("ledger/", include("ledger.urls", namespace="ledger")),
     # Reports app (spending analytics, price history, CSV exports)
     path("reports/", include("reports.urls", namespace="reports")),
+    # Sync app (offline PWA sync endpoints)
+    path("sync/", include("sync.urls", namespace="sync")),
     # Prefix URLs with the language code (default: True).
     prefix_default_language=True,
 )
 
-# Serve uploaded media files in development.
-# In production, a CDN or cloud storage handles this.
+# Serve uploaded media files and static assets in development.
+# In production, WhiteNoise or a CDN handles this.
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += staticfiles_urlpatterns()
