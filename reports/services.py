@@ -11,7 +11,7 @@ from collections import defaultdict
 from decimal import Decimal
 from typing import Any, Dict, List, Tuple
 
-from django.db.models import Count, F, Sum
+from django.db.models import Count, F, Q, Sum
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -385,4 +385,176 @@ def generate_spending_csv(start_date=None, end_date=None) -> str:
             ]
         )
 
+    return output.getvalue()
+
+
+def get_incorrect_bills_report(
+    start_date: datetime.date | None = None,
+    end_date: datetime.date | None = None,
+    party_type: str = "all",
+    party_id: int | str | None = None,
+    query: str | None = None,
+) -> Dict[str, Any]:
+    """Retrieve and aggregate records of all bills with calculation discrepancies or missing prices.
+
+    Filters date-wise, customer-wise, and vendor-wise.
+    """
+    qs = (
+        Bill.objects.filter(is_deleted=False)
+        .filter(
+            Q(has_discrepancy=True)
+            | Q(
+                errors__error_type__in=[
+                    "math_mismatch",
+                    "subtotal_mismatch",
+                    "grand_total_mismatch",
+                    "missing_field",
+                ],
+                errors__is_resolved=False,
+            )
+            | Q(items__unit_price__lte=0)
+        )
+        .select_related("party", "category")
+        .prefetch_related("items", "errors")
+        .distinct()
+        .order_by("-bill_date", "-id")
+    )
+
+    if start_date:
+        qs = qs.filter(bill_date__gte=start_date)
+    if end_date:
+        qs = qs.filter(bill_date__lte=end_date)
+
+    if party_type == "vendor":
+        qs = qs.filter(party__party_type__in=["vendor", "both"])
+    elif party_type == "customer":
+        qs = qs.filter(party__party_type__in=["customer", "both"])
+
+    if party_id:
+        qs = qs.filter(party_id=party_id)
+
+    if query:
+        q_clean = query.strip()
+        qs = qs.filter(
+            Q(invoice_no__icontains=q_clean)
+            | Q(party__name__icontains=q_clean)
+            | Q(party__urdu_name__icontains=q_clean)
+            | Q(party__phone__icontains=q_clean)
+        )
+
+    records = []
+    total_slip_amount = Decimal("0.00")
+    total_computed_amount = Decimal("0.00")
+    total_difference = Decimal("0.00")
+    vendor_count = 0
+    customer_count = 0
+
+    for bill in qs:
+        items = list(bill.items.all())
+        items_sum = money_round(sum(it.line_total for it in items))
+        computed_total = money_round(
+            items_sum - (bill.discount or Decimal("0.00")) + (bill.tax or Decimal("0.00"))
+        )
+        slip_total = (
+            bill.original_slip_total if bill.original_slip_total is not None else bill.grand_total
+        )
+        diff = money_round(computed_total - slip_total)
+
+        reason = bill.discrepancy_reason
+        if not reason:
+            unresolved_errs = [e.message for e in bill.errors.filter(is_resolved=False)]
+            if unresolved_errs:
+                reason = "; ".join(unresolved_errs[:2])
+            elif bill.has_missing_price:
+                reason = _("Item price is missing or 0.00.")
+            elif diff != Decimal("0.00"):
+                reason = _("Items sum (%(comp)s) differs from slip total (%(slip)s).") % {
+                    "comp": computed_total,
+                    "slip": slip_total,
+                }
+            else:
+                reason = _("Discrepancy detected.")
+
+        p_type = bill.party.party_type if bill.party else "vendor"
+        if p_type in ("vendor", "both"):
+            vendor_count += 1
+        if p_type in ("customer", "both"):
+            customer_count += 1
+
+        total_slip_amount += slip_total
+        total_computed_amount += computed_total
+        total_difference += abs(diff)
+
+        records.append(
+            {
+                "bill": bill,
+                "party": bill.party,
+                "party_type": p_type,
+                "date": bill.bill_date,
+                "invoice_no": bill.invoice_no or f"#{bill.pk}",
+                "slip_total": slip_total,
+                "computed_total": computed_total,
+                "difference": diff,
+                "reason": reason,
+                "has_missing_price": bill.has_missing_price,
+                "has_discrepancy": bill.has_discrepancy,
+                "status": bill.status,
+            }
+        )
+
+    return {
+        "records": records,
+        "total_count": len(records),
+        "total_slip_amount": money_round(total_slip_amount),
+        "total_computed_amount": money_round(total_computed_amount),
+        "total_difference": money_round(total_difference),
+        "vendor_count": vendor_count,
+        "customer_count": customer_count,
+    }
+
+
+def generate_incorrect_bills_csv(
+    start_date: datetime.date | None = None,
+    end_date: datetime.date | None = None,
+    party_type: str = "all",
+    party_id: int | str | None = None,
+    query: str | None = None,
+) -> str:
+    """Generate RFC-compliant CSV content of incorrect / discrepant bills."""
+    data = get_incorrect_bills_report(
+        start_date=start_date,
+        end_date=end_date,
+        party_type=party_type,
+        party_id=party_id,
+        query=query,
+    )
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(
+        [
+            "Invoice No",
+            "Bill Date",
+            "Party Name",
+            "Party Type",
+            "Paper Slip Total",
+            "Computed Items Total",
+            "Difference",
+            "Discrepancy Details",
+            "Status",
+        ]
+    )
+    for r in data["records"]:
+        writer.writerow(
+            [
+                r["invoice_no"],
+                r["date"].strftime("%Y-%m-%d"),
+                r["party"].name if r["party"] else "",
+                r["party_type"],
+                str(r["slip_total"]),
+                str(r["computed_total"]),
+                str(r["difference"]),
+                r["reason"],
+                r["status"],
+            ]
+        )
     return output.getvalue()

@@ -597,3 +597,131 @@ class TestReportsServicesEdgeCases:
         )
         vend_stmt_settled = get_party_ledger_statement(vend)
         assert vend_stmt_settled["balance_type"] == "settled"
+
+
+class TestIncorrectBillsReport:
+    """Test suite for incorrect & discrepant bills reporting, filters, and CSV exports."""
+
+    def test_incorrect_bills_report_service(
+        self, db, superadmin_user, vendor_party, customer_party
+    ):
+        from reports.services import generate_incorrect_bills_csv, get_incorrect_bills_report
+
+        # 1. Correct bill (should not appear)
+        Bill.objects.create(
+            party=vendor_party,
+            invoice_no="INV-OK-01",
+            subtotal=Decimal("100.00"),
+            grand_total=Decimal("100.00"),
+            has_discrepancy=False,
+            created_by=superadmin_user,
+        )
+
+        # 2. Incorrect vendor bill with discrepancy
+        b_vend = Bill.objects.create(
+            party=vendor_party,
+            invoice_no="INV-ERR-VEND",
+            subtotal=Decimal("2670.00"),
+            grand_total=Decimal("2670.00"),
+            original_slip_total=Decimal("2670.00"),
+            has_discrepancy=True,
+            discrepancy_reason="Customer handwritten slip PKR 2670 differs from items sum PKR 2676",
+            created_by=superadmin_user,
+        )
+        BillItem.objects.create(
+            bill=b_vend,
+            serial_no=1,
+            item_name="Rice Basmati",
+            quantity=Decimal("2.000"),
+            unit="kg",
+            unit_price=Decimal("1338.00"),
+            line_total=Decimal("2676.00"),
+        )
+
+        # 3. Incorrect customer bill
+        b_cust = Bill.objects.create(
+            party=customer_party,
+            invoice_no="INV-ERR-CUST",
+            subtotal=Decimal("500.00"),
+            grand_total=Decimal("500.00"),
+            original_slip_total=Decimal("500.00"),
+            has_discrepancy=True,
+            discrepancy_reason="Line total math mismatch",
+            created_by=superadmin_user,
+        )
+        BillItem.objects.create(
+            bill=b_cust,
+            serial_no=1,
+            item_name="Oil Can",
+            quantity=Decimal("1.000"),
+            unit="can",
+            unit_price=Decimal("550.00"),
+            line_total=Decimal("550.00"),
+        )
+
+        # Test all parties
+        all_rep = get_incorrect_bills_report(party_type="all")
+        assert all_rep["total_count"] == 2
+        assert all_rep["vendor_count"] == 1
+        assert all_rep["customer_count"] == 1
+        assert all_rep["total_slip_amount"] == Decimal("3170.00")
+        assert all_rep["total_computed_amount"] == Decimal("3226.00")
+
+        # Test vendor filter
+        vend_rep = get_incorrect_bills_report(party_type="vendor")
+        assert vend_rep["total_count"] == 1
+        assert vend_rep["records"][0]["invoice_no"] == "INV-ERR-VEND"
+
+        # Test customer filter
+        cust_rep = get_incorrect_bills_report(party_type="customer")
+        assert cust_rep["total_count"] == 1
+        assert cust_rep["records"][0]["invoice_no"] == "INV-ERR-CUST"
+
+        # Test party_id filter
+        specific_rep = get_incorrect_bills_report(party_id=vendor_party.pk)
+        assert specific_rep["total_count"] == 1
+
+        # Test CSV export
+        csv_out = generate_incorrect_bills_csv(party_type="all")
+        assert "INV-ERR-VEND" in csv_out
+        assert "INV-ERR-CUST" in csv_out
+        assert "INV-OK-01" not in csv_out
+
+    def test_incorrect_bills_views(self, client, db, superadmin_user, vendor_party):
+        from django.urls import reverse
+
+        client.force_login(superadmin_user)
+
+        # Create discrepant bill
+        Bill.objects.create(
+            party=vendor_party,
+            invoice_no="INV-VIEW-01",
+            subtotal=Decimal("1000.00"),
+            grand_total=Decimal("1000.00"),
+            original_slip_total=Decimal("1000.00"),
+            has_discrepancy=True,
+            discrepancy_reason="Test discrepancy",
+            created_by=superadmin_user,
+        )
+
+        # Report view
+        resp = client.get(reverse("reports:incorrect_bills"))
+        assert resp.status_code == 200
+        assert "INV-VIEW-01" in resp.content.decode("utf-8")
+        assert "Discrepant Bills" in resp.content.decode("utf-8")
+
+        # Filter by vendor
+        resp_vend = client.get(reverse("reports:incorrect_bills") + "?party_type=vendor")
+        assert resp_vend.status_code == 200
+        assert "INV-VIEW-01" in resp_vend.content.decode("utf-8")
+
+        # Filter by customer (empty result)
+        resp_cust = client.get(reverse("reports:incorrect_bills") + "?party_type=customer")
+        assert resp_cust.status_code == 200
+        assert "No Incorrect or Discrepant Bills Found" in resp_cust.content.decode("utf-8")
+
+        # CSV export
+        resp_csv = client.get(reverse("reports:incorrect_bills_csv"))
+        assert resp_csv.status_code == 200
+        assert resp_csv["Content-Type"].startswith("text/csv")
+        assert "INV-VIEW-01" in resp_csv.content.decode("utf-8")

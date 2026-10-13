@@ -44,6 +44,20 @@ def bill_list_view(request: HttpRequest) -> HttpResponse:
     status_filter = request.GET.get("status", "").strip()
     if status_filter == "all":
         pass
+    elif status_filter == "discrepant":
+        qs = qs.filter(
+            Q(has_discrepancy=True)
+            | Q(
+                errors__error_type__in=[
+                    "math_mismatch",
+                    "subtotal_mismatch",
+                    "grand_total_mismatch",
+                    "missing_field",
+                ],
+                errors__is_resolved=False,
+            )
+            | Q(items__unit_price__lte=0)
+        ).distinct()
     elif status_filter:
         qs = qs.filter(status=status_filter)
     else:

@@ -1230,3 +1230,104 @@ class TestAIExtractorProviderResolution:
         assert item.unit_price == Decimal("450.00")
         assert item.line_total == Decimal("450.00")
         assert bill.grand_total == Decimal("450.00")
+
+    def test_review_page_action_correct_and_go(self, client, superadmin_user):
+        """Action 'correct_and_go' updates grand_total to computed items sum, marks verified, and approves bill."""
+        from bills.models import Bill, BillItem
+        from parties.models import Party
+        from scanning.models import BillError, ScanJob
+
+        party = Party.objects.create(name="Vendor Math Test", party_type=Party.PartyType.VENDOR)
+        bill = Bill.objects.create(
+            party=party,
+            invoice_no="INV-MATH-CORRECT",
+            bill_date=timezone.now().date(),
+            subtotal=Decimal("2670.00"),
+            grand_total=Decimal("2670.00"),
+            status=Bill.Status.NEEDS_REVIEW,
+        )
+        item = BillItem.objects.create(
+            bill=bill,
+            item_name="Item 1",
+            quantity=Decimal("1"),
+            unit_price=Decimal("2676.00"),
+            line_total=Decimal("2676.00"),
+        )
+        err = BillError.objects.create(
+            bill=bill,
+            error_type="math_mismatch",
+            message="Items total 2676.00 != Grand total 2670.00",
+            is_resolved=False,
+        )
+        job = ScanJob.objects.create(bill=bill, provider="mock", status=ScanJob.Status.COMPLETED)
+
+        client.force_login(superadmin_user)
+        post_data = {
+            "action": "correct_and_go",
+            "invoice_no": "INV-MATH-CORRECT",
+            "party": str(party.pk),
+            "bill_date": str(timezone.now().date()),
+            "discount": "0.00",
+            "tax": "0.00",
+            "item_id": [str(item.pk)],
+            f"item_name_{item.pk}": "Item 1",
+            f"item_qty_{item.pk}": "1",
+            f"item_price_{item.pk}": "2676.00",
+        }
+        response = client.post(f"/en/scanning/review/{job.pk}/", post_data)
+        assert response.status_code == 302
+
+        bill.refresh_from_db()
+        err.refresh_from_db()
+        assert bill.grand_total == Decimal("2676.00")
+        assert bill.has_discrepancy is False
+        assert bill.status == Bill.Status.VERIFIED
+        assert err.is_resolved is True
+
+    def test_review_page_action_accept_incorrect(self, client, superadmin_user):
+        """Action 'accept_incorrect' keeps slip total, sets has_discrepancy=True, logs reason, and verifies bill."""
+        from bills.models import Bill, BillItem
+        from parties.models import Party
+        from scanning.models import ScanJob
+
+        party = Party.objects.create(name="Customer Math Test", party_type=Party.PartyType.CUSTOMER)
+        bill = Bill.objects.create(
+            party=party,
+            invoice_no="INV-MATH-INCORRECT",
+            bill_date=timezone.now().date(),
+            subtotal=Decimal("2670.00"),
+            grand_total=Decimal("2670.00"),
+            status=Bill.Status.NEEDS_REVIEW,
+        )
+        item = BillItem.objects.create(
+            bill=bill,
+            item_name="Item 1",
+            quantity=Decimal("1"),
+            unit_price=Decimal("2676.00"),
+            line_total=Decimal("2676.00"),
+        )
+        job = ScanJob.objects.create(bill=bill, provider="mock", status=ScanJob.Status.COMPLETED)
+
+        client.force_login(superadmin_user)
+        post_data = {
+            "action": "accept_incorrect",
+            "invoice_no": "INV-MATH-INCORRECT",
+            "party": str(party.pk),
+            "bill_date": str(timezone.now().date()),
+            "discount": "0.00",
+            "tax": "0.00",
+            "grand_total": "2670.00",
+            "item_id": [str(item.pk)],
+            f"item_name_{item.pk}": "Item 1",
+            f"item_qty_{item.pk}": "1",
+            f"item_price_{item.pk}": "2676.00",
+        }
+        response = client.post(f"/en/scanning/review/{job.pk}/", post_data)
+        assert response.status_code == 302
+
+        bill.refresh_from_db()
+        assert bill.grand_total == Decimal("2670.00")
+        assert bill.original_slip_total == Decimal("2670.00")
+        assert bill.has_discrepancy is True
+        assert "Paper slip total was PKR 2670.00" in bill.discrepancy_reason
+        assert bill.status == Bill.Status.VERIFIED

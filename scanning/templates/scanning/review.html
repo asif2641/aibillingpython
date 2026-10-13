@@ -222,28 +222,61 @@
                     </div>
 
                     <!-- Grand Total Card -->
-                    <div id="grand-total-container" class="pt-3 border-t border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 text-sm transition-all duration-200 {% if is_total_invalid %}p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-800{% endif %}">
-                        <div class="flex items-center gap-2">
-                            <span class="font-bold {% if is_total_invalid %}text-red-900 dark:text-red-200{% else %}text-slate-800 dark:text-slate-200{% endif %}">
-                                {% trans "Grand Total" %}:
-                            </span>
-                            {% if is_total_invalid %}
-                                <span id="total-badge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-red-100 text-red-800 dark:bg-red-900/60 dark:text-red-200">
-                                    ⚠️ {% trans "Check Total" %}
+                    <div id="grand-total-container" class="pt-3 border-t border-slate-200 dark:border-slate-700 flex flex-col gap-3 text-sm transition-all duration-200 {% if is_total_invalid %}p-4 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-800{% endif %}">
+                        <input type="hidden" name="original_slip_total" id="id_original_slip_total" value="{{ bill.grand_total }}">
+                        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold {% if is_total_invalid %}text-red-900 dark:text-red-200{% else %}text-slate-800 dark:text-slate-200{% endif %}">
+                                    {% trans "Grand Total" %}:
                                 </span>
-                            {% endif %}
-                        </div>
-                        <div class="text-right">
-                            <span id="grand-total-display" class="text-xl font-bold font-mono transition-colors {% if is_total_invalid %}text-red-600 dark:text-red-400 font-extrabold{% else %}text-primary-600 dark:text-primary-400{% endif %}">
-                                PKR <span id="grand-total-amount" data-bill-total="{{ bill.grand_total }}">{{ bill.grand_total|floatformat:2 }}</span>
-                            </span>
-                            <p id="total-error-hint" class="text-[11px] text-red-600 dark:text-red-400 font-medium mt-1 {% if not is_total_invalid %}hidden{% endif %}">
-                                {% if has_missing_price %}
-                                    ⚠️ {% trans "Item price is missing or 0.00. Grand total may be incomplete." %}
-                                {% elif has_total_mismatch %}
-                                    ⚠️ {% trans "Total mismatch: Items sum (PKR" %} {{ items_sum|floatformat:2 }}) {% trans "differs from slip total (PKR" %} {{ bill.grand_total|floatformat:2 }}).
+                                {% if is_total_invalid %}
+                                    <span id="total-badge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-red-100 text-red-800 dark:bg-red-900/60 dark:text-red-200">
+                                        ⚠️ {% trans "Check Total" %}
+                                    </span>
                                 {% endif %}
-                            </p>
+                            </div>
+                            <div class="text-right">
+                                <span id="grand-total-display" class="text-xl font-bold font-mono transition-colors {% if is_total_invalid %}text-red-600 dark:text-red-400 font-extrabold{% else %}text-primary-600 dark:text-primary-400{% endif %}">
+                                    PKR <span id="grand-total-amount" data-bill-total="{{ bill.grand_total }}">{{ bill.grand_total|floatformat:2 }}</span>
+                                </span>
+                                <p id="total-error-hint" class="text-[11px] text-red-600 dark:text-red-400 font-medium mt-1 {% if not is_total_invalid %}hidden{% endif %}">
+                                    {% if has_missing_price %}
+                                        ⚠️ {% trans "Item price is missing or 0.00. Grand total may be incomplete." %}
+                                    {% elif has_total_mismatch %}
+                                        ⚠️ {% trans "Total mismatch: Items sum (PKR" %} {{ items_sum|floatformat:2 }}) {% trans "differs from slip total (PKR" %} {{ bill.grand_total|floatformat:2 }}).
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- 2 Approval Options when Total is Discrepant / Incorrect -->
+                        <div id="discrepancy-options-panel" class="pt-3 border-t border-red-200 dark:border-red-800/80 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 {% if not is_total_invalid %}hidden{% endif %}">
+                            <div class="text-xs text-red-800 dark:text-red-200">
+                                <p class="font-bold flex items-center gap-1">
+                                    <span>⚖️</span>
+                                    <span>{% trans "Choose how you want to record this bill:" %}</span>
+                                </p>
+                                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                                    {% trans "Option 1 keeps original slip total in Incorrect Bills records. Option 2 corrects calculation." %}
+                                </p>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <!-- Option 1: Go with Incorrect Bill -->
+                                <button type="submit" name="action" value="accept_incorrect"
+                                        class="flex-1 sm:flex-none px-3.5 py-2 min-h-[42px] inline-flex items-center justify-center gap-1.5 rounded-xl border border-amber-400 bg-amber-100 hover:bg-amber-200 dark:bg-amber-950 dark:hover:bg-amber-900/60 text-amber-900 dark:text-amber-200 font-bold text-xs shadow-sm transition-all focus:ring-2 focus:ring-amber-500"
+                                        title="{% trans 'Accept original slip total and log into Incorrect Bills records' %}">
+                                    <span>⚠️</span>
+                                    <span>{% trans "1. Go with Incorrect Bill" %} (PKR <span class="slip-total-label">{{ bill.grand_total|floatformat:2 }}</span>)</span>
+                                </button>
+
+                                <!-- Option 2: Correct & Go -->
+                                <button type="submit" name="action" value="correct_and_go"
+                                        class="flex-1 sm:flex-none px-4 py-2 min-h-[42px] inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm shadow-emerald-500/30 transition-all focus:ring-2 focus:ring-emerald-500"
+                                        title="{% trans 'Auto-correct grand total to real sum of items and approve' %}">
+                                    <span>⚡</span>
+                                    <span>{% trans "2. Correct & Go" %} (PKR <span class="computed-total-label">{{ expected_grand_total|floatformat:2 }}</span>)</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -318,13 +351,24 @@
                 const hasMismatch = Math.abs(computedGrandTotal - slipTotal) > 0.05;
                 const isInvalid = anyMissingPrice || hasMismatch;
 
+                const optionsPanel = document.getElementById('discrepancy-options-panel');
+                const computedTotalLabel = document.querySelector('.computed-total-label');
+                const slipTotalLabel = document.querySelector('.slip-total-label');
+
+                if (computedTotalLabel) {
+                    computedTotalLabel.textContent = computedGrandTotal.toFixed(2);
+                }
+                if (slipTotalLabel) {
+                    slipTotalLabel.textContent = slipTotal.toFixed(2);
+                }
+
                 if (isInvalid) {
                     if (grandTotalDisplay) {
                         grandTotalDisplay.classList.remove('text-primary-600', 'dark:text-primary-400', 'text-emerald-600', 'dark:text-emerald-400');
                         grandTotalDisplay.classList.add('text-red-600', 'dark:text-red-400', 'font-extrabold');
                     }
                     if (grandTotalContainer) {
-                        grandTotalContainer.classList.add('p-3', 'rounded-xl', 'bg-red-50', 'dark:bg-red-950/40', 'border', 'border-red-300', 'dark:border-red-800');
+                        grandTotalContainer.classList.add('p-4', 'rounded-xl', 'bg-red-50', 'dark:bg-red-950/40', 'border', 'border-red-300', 'dark:border-red-800');
                     }
                     if (totalHint) {
                         totalHint.classList.remove('hidden');
@@ -334,19 +378,25 @@
                             totalHint.textContent = `⚠️ {% trans 'Total mismatch: Items sum (PKR' %} ${computedGrandTotal.toFixed(2)}) {% trans 'differs from slip total (PKR' %} ${slipTotal.toFixed(2)}).`;
                         }
                     }
+                    if (optionsPanel) {
+                        optionsPanel.classList.remove('hidden');
+                    }
                 } else {
                     if (grandTotalDisplay) {
                         grandTotalDisplay.classList.remove('text-red-600', 'dark:text-red-400', 'font-extrabold');
                         grandTotalDisplay.classList.add('text-emerald-600', 'dark:text-emerald-400');
                     }
                     if (grandTotalContainer) {
-                        grandTotalContainer.classList.remove('p-3', 'rounded-xl', 'bg-red-50', 'dark:bg-red-950/40', 'border', 'border-red-300', 'dark:border-red-800');
+                        grandTotalContainer.classList.remove('p-4', 'rounded-xl', 'bg-red-50', 'dark:bg-red-950/40', 'border', 'border-red-300', 'dark:border-red-800');
                     }
                     if (totalHint) {
                         totalHint.classList.add('hidden');
                     }
                     if (totalBadge) {
                         totalBadge.classList.add('hidden');
+                    }
+                    if (optionsPanel) {
+                        optionsPanel.classList.add('hidden');
                     }
                 }
             }

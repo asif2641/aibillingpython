@@ -175,6 +175,26 @@ class Bill(models.Model):
         default="",
         verbose_name=_("notes"),
     )
+    has_discrepancy = models.BooleanField(
+        default=False,
+        db_index=True,
+        verbose_name=_("has discrepancy / incorrect total"),
+        help_text=_(
+            "True if bill calculation differed from original paper slip and was accepted as-is."
+        ),
+    )
+    discrepancy_reason = models.TextField(
+        blank=True,
+        default="",
+        verbose_name=_("discrepancy details"),
+    )
+    original_slip_total = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name=_("original slip total"),
+    )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
@@ -263,8 +283,8 @@ class Bill(models.Model):
 
     @property
     def is_total_invalid(self) -> bool:
-        """Return True if total has a mismatch or any item price is missing."""
-        return self.has_calculation_error or self.has_missing_price
+        """Return True if total has a mismatch, missing item price, or recorded discrepancy."""
+        return self.has_discrepancy or self.has_calculation_error or self.has_missing_price
 
 
 class BillItem(models.Model):

@@ -8,10 +8,13 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 from django.utils import timezone
 
+from parties.models import Party
 from reports.services import (
+    generate_incorrect_bills_csv,
     generate_spending_csv,
     get_all_items_price_summary,
     get_date_range,
+    get_incorrect_bills_report,
     get_item_price_history,
     get_spending_by_category,
     get_spending_over_time,
@@ -82,3 +85,77 @@ def price_history_view(request: HttpRequest) -> HttpResponse:
         "selected_item": item_query,
     }
     return render(request, "reports/price_history.html", context)
+
+
+@login_required
+def incorrect_bills_report_view(request: HttpRequest) -> HttpResponse:
+    """Render dedicated report of incorrect/discrepant bills with filters and KPIs."""
+    range_key = request.GET.get("range", "all")
+    start_date = request.GET.get("start_date")
+    end_date = request.GET.get("end_date")
+    party_type = request.GET.get("party_type", "all").strip().lower()
+    party_id = request.GET.get("party") or request.GET.get("party_id")
+    query = request.GET.get("q", "").strip()
+
+    start, end = get_date_range(range_key, start_date, end_date)
+
+    report_data = get_incorrect_bills_report(
+        start_date=start,
+        end_date=end,
+        party_type=party_type,
+        party_id=party_id,
+        query=query,
+    )
+
+    parties_qs = Party.objects.filter(is_active=True)
+    if party_type == "vendor":
+        parties_qs = parties_qs.filter(party_type__in=["vendor", "both"])
+    elif party_type == "customer":
+        parties_qs = parties_qs.filter(party_type__in=["customer", "both"])
+    parties = parties_qs.order_by("name")
+
+    selected_party = None
+    if party_id:
+        selected_party = Party.objects.filter(pk=party_id).first()
+
+    context = {
+        "title": "Incorrect & Discrepant Bills Report",
+        "range_key": range_key,
+        "start_date": start_date or "",
+        "end_date": end_date or "",
+        "party_type": party_type,
+        "party_id": party_id or "",
+        "selected_party": selected_party,
+        "parties": parties,
+        "query": query,
+        "report": report_data,
+        "records": report_data["records"],
+    }
+    return render(request, "reports/incorrect_bills.html", context)
+
+
+@login_required
+def export_incorrect_bills_csv_view(request: HttpRequest) -> HttpResponse:
+    """Export filtered incorrect bills records as an RFC-compliant CSV."""
+    range_key = request.GET.get("range", "all")
+    start_date = request.GET.get("start_date")
+    end_date = request.GET.get("end_date")
+    party_type = request.GET.get("party_type", "all").strip().lower()
+    party_id = request.GET.get("party") or request.GET.get("party_id")
+    query = request.GET.get("q", "").strip()
+
+    start, end = get_date_range(range_key, start_date, end_date)
+    csv_content = generate_incorrect_bills_csv(
+        start_date=start,
+        end_date=end,
+        party_type=party_type,
+        party_id=party_id,
+        query=query,
+    )
+
+    today_str = timezone.now().date().strftime("%Y-%m-%d")
+    response = HttpResponse(csv_content, content_type="text/csv; charset=utf-8")
+    response["Content-Disposition"] = (
+        f'attachment; filename="incorrect-bills-report-{today_str}.csv"'
+    )
+    return response

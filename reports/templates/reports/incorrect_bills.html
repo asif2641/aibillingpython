@@ -1,0 +1,403 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% block title %}{% trans "Incorrect Bills Report" %} — Bill Scanner & Ledger{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+
+    <!-- Header and Actions -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
+        <div>
+            <div class="flex items-center gap-2">
+                <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 text-lg">⚠️</span>
+                <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                    {% trans "Incorrect & Discrepant Bills" %}
+                </h1>
+            </div>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {% trans "Audit records of paper bills with math calculation errors, differences, or missing item prices." %}
+            </p>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <a href="{% url 'reports:incorrect_bills_csv' %}?range={{ range_key }}&start_date={{ start_date }}&end_date={{ end_date }}&party_type={{ party_type }}&party={{ party_id }}&q={{ query }}" class="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
+                <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                <span>{% trans "Export CSV" %}</span>
+            </a>
+            <a href="{% url 'bills:bill_list' %}?status=discrepant" class="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-semibold shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                <span>{% trans "Manage in Bills List" %}</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- 4 High-Level KPI Summary Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-amber-200 dark:border-amber-900/60 shadow-sm relative overflow-hidden">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">{% trans "Discrepant Bills" %}</span>
+                <span class="px-2 py-0.5 text-xs font-bold rounded-full bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300">{{ report.total_count }}</span>
+            </div>
+            <div class="mt-3 text-2xl sm:text-3xl font-bold text-amber-600 dark:text-amber-400">
+                {{ report.total_count }}
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                {% trans "Vendor:" %} <strong class="text-slate-700 dark:text-slate-300">{{ report.vendor_count }}</strong> &bull; {% trans "Customer:" %} <strong class="text-slate-700 dark:text-slate-300">{{ report.customer_count }}</strong>
+            </p>
+        </div>
+
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">{% trans "Paper Slip Total" %}</span>
+            <div class="mt-3 text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
+                PKR {{ report.total_slip_amount|stringformat:".2f" }}
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">{% trans "Total amount written on paper slips" %}</p>
+        </div>
+
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">{% trans "Computed Items Total" %}</span>
+            <div class="mt-3 text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
+                PKR {{ report.total_computed_amount|stringformat:".2f" }}
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">{% trans "Actual sum of all individual items" %}</p>
+        </div>
+
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-rose-200 dark:border-rose-900/60 shadow-sm">
+            <span class="text-xs font-semibold uppercase tracking-wider text-rose-600 dark:text-rose-400">{% trans "Total Discrepancy Variance" %}</span>
+            <div class="mt-3 text-2xl sm:text-3xl font-bold text-rose-600 dark:text-rose-400">
+                PKR {{ report.total_difference|stringformat:".2f" }}
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">{% trans "Cumulative difference / gap" %}</p>
+        </div>
+    </div>
+
+    <!-- Filters & Search Controls -->
+    <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
+        <!-- Party Type Filter Tabs (Vendor vs Customer vs All) -->
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-700/60 pb-3">
+            <div class="flex items-center gap-2">
+                <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{% trans "Party Type:" %}</span>
+                <div class="inline-flex p-1 bg-slate-100 dark:bg-slate-900 rounded-xl">
+                    <a href="?party_type=all&range={{ range_key }}&start_date={{ start_date }}&end_date={{ end_date }}&q={{ query }}"
+                       class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors {% if party_type == 'all' %}bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white{% endif %}">
+                        {% trans "All Parties" %} ({{ report.total_count }})
+                    </a>
+                    <a href="?party_type=vendor&range={{ range_key }}&start_date={{ start_date }}&end_date={{ end_date }}&q={{ query }}"
+                       class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors {% if party_type == 'vendor' %}bg-white dark:bg-slate-800 text-primary-600 dark:text-primary-400 shadow-sm{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white{% endif %}">
+                        🏭 {% trans "Vendors Only" %}
+                    </a>
+                    <a href="?party_type=customer&range={{ range_key }}&start_date={{ start_date }}&end_date={{ end_date }}&q={{ query }}"
+                       class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors {% if party_type == 'customer' %}bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white{% endif %}">
+                        👥 {% trans "Customers Only" %}
+                    </a>
+                </div>
+            </div>
+
+            <!-- Quick Date Presets -->
+            <div class="flex flex-wrap items-center gap-1.5">
+                <a href="?party_type={{ party_type }}&party={{ party_id }}&range=all&q={{ query }}" class="px-2.5 py-1 rounded-lg text-xs font-medium {% if range_key == 'all' %}bg-primary-600 text-white{% else %}bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200{% endif %}">
+                    {% trans "All Time" %}
+                </a>
+                <a href="?party_type={{ party_type }}&party={{ party_id }}&range=today&q={{ query }}" class="px-2.5 py-1 rounded-lg text-xs font-medium {% if range_key == 'today' %}bg-primary-600 text-white{% else %}bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200{% endif %}">
+                    {% trans "Today" %}
+                </a>
+                <a href="?party_type={{ party_type }}&party={{ party_id }}&range=yesterday&q={{ query }}" class="px-2.5 py-1 rounded-lg text-xs font-medium {% if range_key == 'yesterday' %}bg-primary-600 text-white{% else %}bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200{% endif %}">
+                    {% trans "Yesterday" %}
+                </a>
+                <a href="?party_type={{ party_type }}&party={{ party_id }}&range=this_week&q={{ query }}" class="px-2.5 py-1 rounded-lg text-xs font-medium {% if range_key == 'this_week' %}bg-primary-600 text-white{% else %}bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200{% endif %}">
+                    {% trans "This Week" %}
+                </a>
+                <a href="?party_type={{ party_type }}&party={{ party_id }}&range=this_month&q={{ query }}" class="px-2.5 py-1 rounded-lg text-xs font-medium {% if range_key == 'this_month' %}bg-primary-600 text-white{% else %}bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200{% endif %}">
+                    {% trans "This Month" %}
+                </a>
+            </div>
+        </div>
+
+        <!-- Filter Form with Specific Party Dropdown and Custom Dates -->
+        <form method="get" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+            <input type="hidden" name="party_type" value="{{ party_type }}">
+            <input type="hidden" name="range" value="custom">
+
+            <!-- Specific Party Select -->
+            <div>
+                <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    {% trans "Filter by Specific Party" %}
+                </label>
+                <select name="party" class="w-full px-3 py-2 min-h-[42px] rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-primary-500">
+                    <option value="">{% trans "All Parties" %}</option>
+                    {% for p in parties %}
+                        <option value="{{ p.pk }}" {% if party_id == p.pk|stringformat:"s" %}selected{% endif %}>
+                            {{ p.name }}{% if p.urdu_name and p.urdu_name != p.name %} ({{ p.urdu_name }}){% endif %} - {{ p.get_party_type_display }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Start Date -->
+            <div>
+                <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    {% trans "From Date" %}
+                </label>
+                <input type="date" name="start_date" value="{{ start_date }}" class="w-full px-3 py-2 min-h-[42px] rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-primary-500">
+            </div>
+
+            <!-- End Date -->
+            <div>
+                <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    {% trans "To Date" %}
+                </label>
+                <input type="date" name="end_date" value="{{ end_date }}" class="w-full px-3 py-2 min-h-[42px] rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-primary-500">
+            </div>
+
+            <!-- Search input -->
+            <div>
+                <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    {% trans "Search Keyword" %}
+                </label>
+                <input type="text" name="q" value="{{ query }}" placeholder="{% trans "Invoice #, party, phone..." %}" class="w-full px-3 py-2 min-h-[42px] rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-primary-500">
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center gap-2">
+                <button type="submit" class="flex-1 px-4 py-2 min-h-[42px] bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl shadow-sm transition-colors">
+                    {% trans "Apply Filter" %}
+                </button>
+                {% if party_id or start_date or end_date or query or range_key != 'all' or party_type != 'all' %}
+                <a href="{% url 'reports:incorrect_bills' %}" class="px-3 py-2 min-h-[42px] inline-flex items-center justify-center bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 text-xs font-semibold rounded-xl transition-colors" title="{% trans "Reset Filters" %}">
+                    {% trans "Reset" %}
+                </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- Records Table -->
+    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700/60 flex items-center justify-between">
+            <div>
+                <h2 class="text-base font-semibold text-slate-900 dark:text-white">
+                    {% trans "Incorrect & Discrepant Bills Records" %}
+                </h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    {% blocktrans count counter=records|length %}Showing {{ counter }} record{% plural %}Showing {{ counter }} records{% endblocktrans %}
+                </p>
+            </div>
+        </div>
+
+        {% if records %}
+        <!-- Desktop Table View -->
+        <div class="hidden md:block overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-700 dark:text-slate-200 divide-y divide-slate-200 dark:divide-slate-700">
+                <thead class="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider">
+                    <tr>
+                        <th class="px-6 py-3.5">{% trans "Date & Bill #" %}</th>
+                        <th class="px-6 py-3.5">{% trans "Party / Contact" %}</th>
+                        <th class="px-6 py-3.5 text-right">{% trans "Paper Slip Total" %}</th>
+                        <th class="px-6 py-3.5 text-right">{% trans "Items Sum" %}</th>
+                        <th class="px-6 py-3.5 text-right">{% trans "Difference" %}</th>
+                        <th class="px-6 py-3.5">{% trans "Discrepancy Details" %}</th>
+                        <th class="px-6 py-3.5 text-center">{% trans "Status" %}</th>
+                        <th class="px-6 py-3.5 text-right">{% trans "Actions" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-700/60 font-medium">
+                    {% for r in records %}
+                    <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-700/30 transition-colors">
+                        <!-- Date & Bill # -->
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="font-bold text-slate-900 dark:text-white">
+                                <a href="{% url 'bills:bill_detail' r.bill.pk %}" class="hover:text-primary-600 transition-colors">
+                                    {{ r.invoice_no }}
+                                </a>
+                            </div>
+                            <div class="text-[11px] text-slate-500 dark:text-slate-400">
+                                {{ r.date|date:"d M Y" }}
+                            </div>
+                        </td>
+
+                        <!-- Party / Contact -->
+                        <td class="px-6 py-4">
+                            {% if r.party %}
+                                <div class="font-semibold text-slate-900 dark:text-white">
+                                    <a href="{% url 'ledger:party_ledger' r.party.pk %}" class="hover:text-primary-600 transition-colors">
+                                        {{ r.party.name }}
+                                    </a>
+                                </div>
+                                {% if r.party.urdu_name and r.party.urdu_name != r.party.name %}
+                                <div class="font-urdu text-slate-500 text-xs">
+                                    {{ r.party.urdu_name }}
+                                </div>
+                                {% endif %}
+                                <div class="mt-1 flex items-center gap-1.5">
+                                    {% if r.party_type == "customer" %}
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                                        {% trans "Customer" %}
+                                    </span>
+                                    {% else %}
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300">
+                                        {% trans "Vendor" %}
+                                    </span>
+                                    {% endif %}
+                                    {% if r.party.phone %}
+                                    <span class="text-[11px] text-slate-400 font-mono">{{ r.party.phone }}</span>
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <span class="text-slate-400 italic">{% trans "No party linked" %}</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Paper Slip Total -->
+                        <td class="px-6 py-4 text-right whitespace-nowrap font-mono font-semibold text-slate-900 dark:text-white">
+                            PKR {{ r.slip_total|stringformat:".2f" }}
+                        </td>
+
+                        <!-- Items Sum -->
+                        <td class="px-6 py-4 text-right whitespace-nowrap font-mono font-semibold text-slate-900 dark:text-white">
+                            PKR {{ r.computed_total|stringformat:".2f" }}
+                        </td>
+
+                        <!-- Difference -->
+                        <td class="px-6 py-4 text-right whitespace-nowrap font-mono font-bold">
+                            {% if r.difference > 0 %}
+                            <span class="text-rose-600 dark:text-rose-400">+PKR {{ r.difference|stringformat:".2f" }}</span>
+                            {% elif r.difference < 0 %}
+                            <span class="text-amber-600 dark:text-amber-400">PKR {{ r.difference|stringformat:".2f" }}</span>
+                            {% else %}
+                            <span class="text-slate-400">PKR 0.00</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Discrepancy Details -->
+                        <td class="px-6 py-4 max-w-xs">
+                            <div class="text-xs text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 p-2 rounded-lg border border-rose-200 dark:border-rose-900/60">
+                                {{ r.reason }}
+                            </div>
+                        </td>
+
+                        <!-- Status -->
+                        <td class="px-6 py-4 text-center whitespace-nowrap">
+                            {% if r.status == "Verified" %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                                ✓ {% trans "Verified" %}
+                            </span>
+                            {% elif r.status == "NeedsReview" %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
+                                ⏳ {% trans "Needs Review" %}
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300">
+                                {{ r.status }}
+                            </span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Actions -->
+                        <td class="px-6 py-4 text-right whitespace-nowrap">
+                            <div class="flex items-center justify-end gap-1.5">
+                                <a href="{% url 'bills:bill_detail' r.bill.pk %}" class="p-1.5 text-slate-500 hover:text-primary-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors" title="{% trans "View Bill" %}">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                </a>
+                                <a href="{% url 'bills:bill_edit' r.bill.pk %}" class="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors" title="{% trans "Edit Bill" %}">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                </a>
+                                {% if r.party %}
+                                <a href="{% url 'ledger:party_ledger' r.party.pk %}" class="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors" title="{% trans "Party Ledger" %}">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Mobile Card View -->
+        <div class="block md:hidden divide-y divide-slate-100 dark:divide-slate-700/60">
+            {% for r in records %}
+            <div class="p-4 space-y-3">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <a href="{% url 'bills:bill_detail' r.bill.pk %}" class="font-bold text-sm text-slate-900 dark:text-white hover:text-primary-600">
+                            {{ r.invoice_no }}
+                        </a>
+                        <div class="text-[11px] text-slate-500">{{ r.date|date:"d M Y" }}</div>
+                    </div>
+                    {% if r.status == "Verified" %}
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                        ✓ {% trans "Verified" %}
+                    </span>
+                    {% else %}
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
+                        {{ r.status }}
+                    </span>
+                    {% endif %}
+                </div>
+
+                <div class="flex items-center justify-between text-xs">
+                    <span class="text-slate-500">{% trans "Party:" %}</span>
+                    <span class="font-semibold text-slate-900 dark:text-white">
+                        {% if r.party %}{{ r.party.name }}{% else %}-{% endif %}
+                    </span>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2 bg-slate-50 dark:bg-slate-900/60 p-2.5 rounded-xl text-center text-xs">
+                    <div>
+                        <div class="text-[10px] text-slate-500 uppercase">{% trans "Slip Total" %}</div>
+                        <div class="font-bold text-slate-900 dark:text-white font-mono mt-0.5">{{ r.slip_total|stringformat:".2f" }}</div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] text-slate-500 uppercase">{% trans "Items Sum" %}</div>
+                        <div class="font-bold text-slate-900 dark:text-white font-mono mt-0.5">{{ r.computed_total|stringformat:".2f" }}</div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] text-rose-500 uppercase">{% trans "Diff" %}</div>
+                        <div class="font-bold font-mono mt-0.5 text-rose-600 dark:text-rose-400">
+                            {{ r.difference|stringformat:".2f" }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-xs text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 p-2 rounded-lg border border-rose-200 dark:border-rose-900/60">
+                    {{ r.reason }}
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-1">
+                    <a href="{% url 'bills:bill_detail' r.bill.pk %}" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200">
+                        {% trans "View" %}
+                    </a>
+                    <a href="{% url 'bills:bill_edit' r.bill.pk %}" class="px-3 py-1.5 bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 rounded-lg text-xs font-semibold">
+                        {% trans "Edit" %}
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <!-- Empty State -->
+        <div class="text-center py-16 px-4">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 mb-4">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <h3 class="text-lg font-bold text-slate-900 dark:text-white">
+                {% trans "No Incorrect or Discrepant Bills Found" %}
+            </h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto mt-1">
+                {% trans "All scanned and recorded bills in the selected date range and party category match perfectly with zero math discrepancies." %}
+            </p>
+            {% if party_id or start_date or end_date or query or range_key != 'all' or party_type != 'all' %}
+            <div class="mt-4">
+                <a href="{% url 'reports:incorrect_bills' %}" class="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold hover:bg-slate-200 transition-colors">
+                    {% trans "Clear Filter Criteria" %}
+                </a>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

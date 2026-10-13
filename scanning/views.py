@@ -199,13 +199,68 @@ def review_view(request: HttpRequest, job_id: int) -> HttpResponse:
         recalculate_bill_totals(bill)
 
         # Audit history log
+        new_status = (
+            Bill.Status.VERIFIED
+            if action in ("verify", "correct_and_go", "accept_incorrect")
+            else Bill.Status.DRAFT
+        )
         BillEditHistory.objects.create(
             bill=bill,
             user=request.user,
             field_name="status",
             old_value=bill.status,
-            new_value=Bill.Status.VERIFIED if action == "verify" else Bill.Status.DRAFT,
+            new_value=new_status,
         )
+
+        items_sum = money_round(sum(it.line_total for it in bill.items.all()))
+        computed_grand_total = money_round(items_sum - bill.discount + bill.tax)
+
+        if action == "correct_and_go":
+            # Option 2: Correct & Go -> Update bill to mathematically correct items total and verify
+            bill.subtotal = items_sum
+            bill.grand_total = computed_grand_total
+            bill.has_discrepancy = False
+            bill.discrepancy_reason = ""
+            bill.status = Bill.Status.VERIFIED
+            bill.save()
+            bill.errors.filter(
+                error_type__in=["math_mismatch", "subtotal_mismatch", "grand_total_mismatch"]
+            ).update(is_resolved=True)
+            messages.success(
+                request,
+                _("Bill total was corrected to PKR %(total)s and approved successfully!")
+                % {"total": bill.grand_total},
+            )
+            return redirect("bills:bill_detail", pk=bill.pk)
+
+        if action == "accept_incorrect":
+            # Option 1: Go with Incorrect Bill -> Keep the handwritten / slip total and record discrepancy
+            slip_total_raw = request.POST.get("original_slip_total") or request.POST.get(
+                "grand_total"
+            )
+            try:
+                slip_total = money_round(Decimal(str(slip_total_raw)))
+            except Exception:
+                slip_total = bill.grand_total
+
+            bill.original_slip_total = slip_total
+            bill.grand_total = slip_total
+            bill.has_discrepancy = True
+            diff = money_round(slip_total - computed_grand_total)
+            bill.discrepancy_reason = (
+                f"Accepted incorrect bill: Paper slip total was PKR {slip_total} "
+                f"while items sum was PKR {computed_grand_total} (Difference: PKR {diff})."
+            )
+            bill.status = Bill.Status.VERIFIED
+            bill.save()
+            messages.warning(
+                request,
+                _(
+                    "Bill approved with original slip total (PKR %(total)s). Recorded in Incorrect Bills log."
+                )
+                % {"total": bill.grand_total},
+            )
+            return redirect("bills:bill_detail", pk=bill.pk)
 
         if action == "verify":
             bill.status = Bill.Status.VERIFIED
@@ -214,6 +269,7 @@ def review_view(request: HttpRequest, job_id: int) -> HttpResponse:
             bill.errors.update(is_resolved=True)
             messages.success(request, _("Bill verified and saved successfully!"))
             return redirect("bills:bill_detail", pk=bill.pk)
+
         bill.status = Bill.Status.DRAFT
         bill.save()
         messages.info(request, _("Bill saved as Draft."))

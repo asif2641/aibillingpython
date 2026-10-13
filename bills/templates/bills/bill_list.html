@@ -84,6 +84,7 @@
                         name="status"
                         class="w-full px-3.5 py-2 min-h-[42px] rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-primary-500 transition-colors">
                         <option value="" {% if not status_filter %}selected{% endif %}>✓ {% trans "Verified & Approved" %}</option>
+                        <option value="discrepant" {% if status_filter == 'discrepant' %}selected{% endif %}>⚠️ {% trans "Incorrect / Discrepant" %}</option>
                         <option value="NeedsReview" {% if status_filter == 'NeedsReview' %}selected{% endif %}>⏳ {% trans "Pending Review" %}{% if needs_review_count %} ({{ needs_review_count }}){% endif %}</option>
                         <option value="Draft" {% if status_filter == 'Draft' %}selected{% endif %}>📝 {% trans "Drafts" %}</option>
                         <option value="all" {% if status_filter == 'all' %}selected{% endif %}>📁 {% trans "All Statuses" %}</option>
