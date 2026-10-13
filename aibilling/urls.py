@@ -42,6 +42,8 @@ urlpatterns += i18n_patterns(
     path("parties/", include("parties.urls", namespace="parties")),
     # Bills app (invoices, line items, trash)
     path("bills/", include("bills.urls", namespace="bills")),
+    # Scanning app (AI document upload and split-screen review)
+    path("scanning/", include("scanning.urls", namespace="scanning")),
     # Ledger app (payments and balances)
     path("ledger/", include("ledger.urls", namespace="ledger")),
     # Add more app URLs here as they are built:

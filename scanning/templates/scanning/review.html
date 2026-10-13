@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Review Bill" %} — {{ bill.invoice_no|default:"Scanned Document" }} — Bill Scanner & Ledger{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 py-6 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto space-y-6">
+
+        <!-- Top Header & Status -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <a href="{% url 'scanning:upload' %}" 
+                   class="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                   title="{% trans "New Scan" %}">
+                    <svg class="w-5 h-5 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                </a>
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+                        <span>🔍</span>
+                        <span>{% trans "Review Scanned Bill" %}</span>
+                    </h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        {% trans "Verify AI-extracted details against original document. Correct discrepancies before approving." %}
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200 dark:border-amber-900/60">
+                    <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                    <span>{{ bill.get_status_display }}</span>
+                </span>
+            </div>
+        </div>
+
+        <!-- Issue / Discrepancies Alerts Banner -->
+        {% if errors %}
+        <div class="p-5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 space-y-3" role="alert">
+            <div class="flex items-center gap-2 text-amber-900 dark:text-amber-200 font-bold text-xs">
+                <span>⚠️</span>
+                <span>{% trans "Integrity Issues Detected" %} ({{ errors.count }})</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                {% for err in errors %}
+                <div class="p-3 rounded-xl bg-white/80 dark:bg-slate-900/60 border border-amber-200 dark:border-amber-800 flex items-start justify-between gap-2">
+                    <div>
+                        <span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold uppercase {% if err.severity == 'error' %}bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300{% else %}bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300{% endif %}">
+                            {{ err.get_error_type_display }}
+                        </span>
+                        <p class="text-slate-800 dark:text-slate-200 mt-1 font-medium">{{ err.message }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Split-Screen Grid: Left = Document Preview, Right = Editable Form -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+            <!-- Left Column: Document Viewer (5 cols) -->
+            <div class="lg:col-span-5 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm p-4 space-y-4 lg:sticky lg:top-6">
+                <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/60 pb-3">
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                        <span>📄</span>
+                        <span>{% trans "Original Document" %}</span>
+                    </h2>
+                    <span class="text-[11px] text-slate-400">
+                        {{ files.count }} {% trans "page(s)" %}
+                    </span>
+                </div>
+
+                <div class="bg-slate-100 dark:bg-slate-900 rounded-xl overflow-hidden min-h-[420px] max-h-[650px] flex items-center justify-center p-2 relative group">
+                    {% if files.first %}
+                        {% if files.first.file_type == 'image' %}
+                            <img src="{{ files.first.file.url }}" alt="{% trans "Scanned bill document" %}" class="max-h-[620px] w-auto mx-auto object-contain rounded shadow-sm">
+                        {% else %}
+                            <iframe src="{{ files.first.file.url }}" class="w-full h-[600px] border-none rounded"></iframe>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-center text-slate-400 p-8">
+                            <span class="text-4xl block mb-2">📑</span>
+                            {% trans "No preview available" %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                {% if files.count > 1 %}
+                <div class="flex gap-2 overflow-x-auto pb-2">
+                    {% for f in files %}
+                    <div class="w-16 h-20 flex-shrink-0 rounded-lg border-2 border-slate-200 dark:border-slate-700 overflow-hidden bg-slate-100 text-center flex flex-col items-center justify-center text-[10px]">
+                        <span>Page {{ f.page_number }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Right Column: Editable Invoice Form (7 cols) -->
+            <form method="post" class="lg:col-span-7 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm p-6 sm:p-8 space-y-6">
+                {% csrf_token %}
+
+                <!-- Invoice Header Details -->
+                <div class="space-y-4">
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 border-b border-slate-100 dark:border-slate-700/60 pb-2">
+                        {% trans "Invoice Details" %}
+                    </h2>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Party Selection -->
+                        <div class="sm:col-span-2">
+                            <label for="id_party" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                {% trans "Party (Vendor / Supplier)" %} <span class="text-red-500">*</span>
+                            </label>
+                            <select name="party" id="id_party" 
+                                    class="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-500">
+                                {% for p in parties %}
+                                    <option value="{{ p.pk }}" {% if p.pk == bill.party.pk %}selected{% endif %}>{{ p.name }} ({{ p.get_party_type_display }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Invoice Number -->
+                        <div>
+                            <label for="id_invoice_no" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                {% trans "Invoice #" %}
+                            </label>
+                            <input type="text" name="invoice_no" id="id_invoice_no" value="{{ bill.invoice_no }}" 
+                                   class="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm font-mono focus:ring-2 focus:ring-primary-500">
+                        </div>
+
+                        <!-- Bill Date -->
+                        <div>
+                            <label for="id_bill_date" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                {% trans "Bill Date" %}
+                            </label>
+                            <input type="date" name="bill_date" id="id_bill_date" value="{{ bill.bill_date|date:'Y-m-d' }}" 
+                                   class="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Line Items Section -->
+                <div class="space-y-4">
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 border-b border-slate-100 dark:border-slate-700/60 pb-2">
+                        {% trans "Line Items" %} ({{ items.count }})
+                    </h2>
+
+                    <div class="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+                        <table class="w-full text-left rtl:text-right border-collapse text-xs">
+                            <thead class="bg-slate-50 dark:bg-slate-900/60 text-[11px] uppercase font-semibold text-slate-500 dark:text-slate-400">
+                                <tr>
+                                    <th class="py-2.5 px-3">{% trans "Item Name" %}</th>
+                                    <th class="py-2.5 px-3 text-center">{% trans "Qty" %}</th>
+                                    <th class="py-2.5 px-3 text-right rtl:text-left">{% trans "Price" %}</th>
+                                    <th class="py-2.5 px-3 text-right rtl:text-left">{% trans "Total" %}</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+                                {% for it in items %}
+                                <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-700/30">
+                                    <td class="py-2.5 px-3 font-medium text-slate-900 dark:text-white">
+                                        {{ it.item_name }}
+                                    </td>
+                                    <td class="py-2.5 px-3 text-center font-mono">
+                                        {{ it.quantity }} <span class="text-[10px] text-slate-400">{{ it.unit }}</span>
+                                    </td>
+                                    <td class="py-2.5 px-3 text-right rtl:text-left font-mono">
+                                        {{ it.unit_price }}
+                                    </td>
+                                    <td class="py-2.5 px-3 text-right rtl:text-left font-mono font-bold">
+                                        {{ it.line_total }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Totals Breakdown & Discount / Tax Inputs -->
+                <div class="bg-slate-50 dark:bg-slate-900/60 rounded-xl p-4 space-y-3">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="id_discount" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                {% trans "Discount (PKR)" %}
+                            </label>
+                            <input type="number" step="0.01" name="discount" id="id_discount" value="{{ bill.discount }}" 
+                                   class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm font-mono">
+                        </div>
+                        <div>
+                            <label for="id_tax" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                {% trans "Tax / GST (PKR)" %}
+                            </label>
+                            <input type="number" step="0.01" name="tax" id="id_tax" value="{{ bill.tax }}" 
+                                   class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm font-mono">
+                        </div>
+                    </div>
+
+                    <div class="pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center text-sm">
+                        <span class="font-bold text-slate-800 dark:text-slate-200">{% trans "Grand Total" %}:</span>
+                        <span class="text-xl font-bold font-mono text-primary-600 dark:text-primary-400">PKR {{ bill.grand_total }}</span>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="pt-4 border-t border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-end gap-3">
+                    <button type="submit" name="action" value="save_draft" 
+                            class="px-5 py-2.5 min-h-[44px] inline-flex items-center rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 font-semibold text-xs transition-colors">
+                        {% trans "Save as Draft" %}
+                    </button>
+                    <button type="submit" name="action" value="verify" 
+                            class="px-6 py-2.5 min-h-[44px] inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm shadow-emerald-500/25 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        <span>{% trans "Verify & Approve Bill" %}</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

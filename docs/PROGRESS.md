@@ -53,6 +53,23 @@
 
 ---
 
+## Phase 4 — AI Scanning (Document Upload, Gemini/Claude Vision Pipeline, Review & Correction Screen)
+
+**Branch:** `phase-4/ai-scanning`  
+**Status:** ✅ Complete (Passed Quality Gate with 276/276 tests, 94% coverage)
+
+| # | Task | Owner | Status | Notes |
+|---|------|-------|--------|-------|
+| 1 | Scanning data models (BillFile, ScanJob, BillError, BillEditHistory) | AI Extraction Agent | ✅ Done | Document tracking, token logging, error models |
+| 2 | Provider-agnostic AI extraction engine & Mock provider | AI Extraction Agent | ✅ Done | Pillow preprocessing, Section 7 schema, quota limits |
+| 3 | Automated error detection & duplicate detection service | AI Extraction Agent | ✅ Done | 7 accounting rules, auto-profiles, category suggestion |
+| 4 | QA test-first suites for Phase 4 | QA Agent | ✅ Done | 25 automated unit & integration tests |
+| 5 | Bill upload UI with multi-page management | Frontend Agent | ✅ Done | Drag-and-drop, camera trigger, page previews |
+| 6 | Split-screen review & correction screen | Frontend Agent | ✅ Done | Original doc viewer, editable form, live math, RTL |
+| 7 | QC review & Gate Report | QC + Browser QA | ✅ Done | APPROVED with 0 Critical/High issues |
+
+---
+
 ## Risk Log
 
 | Risk | Mitigation |

@@ -35,6 +35,16 @@ if sys.version_info >= (3, 14):
 User = get_user_model()
 
 
+@pytest.fixture(autouse=True)
+def reset_translation():
+    """Ensure every test starts and ends with English active, preventing locale leakage."""
+    from django.utils import translation
+
+    translation.activate("en")
+    yield
+    translation.activate("en")
+
+
 @pytest.fixture
 def superadmin_user(db):
     """Create and return a superadmin user for testing.
