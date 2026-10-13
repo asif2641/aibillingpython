@@ -104,7 +104,7 @@
             </div>
             <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-4 shadow-sm">
                 <span class="text-[11px] font-semibold uppercase text-slate-400">{% trans "Total Amount" %}</span>
-                <p class="text-xl font-bold text-primary-600 dark:text-primary-400 font-mono mt-1">Rs. {{ total_amount }}</p>
+                <p class="text-xl font-bold text-primary-600 dark:text-primary-400 font-mono mt-1">Rs. {{ total_amount|floatformat:2 }}</p>
             </div>
             {% if selected_party %}
             <div class="col-span-2 bg-primary-50/70 dark:bg-primary-950/40 rounded-2xl border border-primary-200 dark:border-primary-900/50 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-sm">
@@ -159,7 +159,7 @@
                                 </a>
                             </td>
                             <td class="py-3.5 px-4 font-mono font-bold text-slate-900 dark:text-white">
-                                Rs. {{ bill.grand_total }}
+                                Rs. {{ bill.grand_total|floatformat:2 }}
                             </td>
                             <td class="py-3.5 px-4">
                                 {% if bill.payment_status == 'Paid' %}
@@ -211,7 +211,7 @@
                         <tr>
                             <td class="py-3.5 px-4 sm:px-6">{% trans "Total" %} ({{ total_count }} {% trans "bills" %})</td>
                             <td></td>
-                            <td class="py-3.5 px-4 font-mono font-bold text-primary-600 dark:text-primary-400">Rs. {{ total_amount }}</td>
+                            <td class="py-3.5 px-4 font-mono font-bold text-primary-600 dark:text-primary-400">Rs. {{ total_amount|floatformat:2 }}</td>
                             <td colspan="3"></td>
                         </tr>
                     </tfoot>

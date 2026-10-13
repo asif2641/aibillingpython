@@ -740,6 +740,19 @@ class TestBillViewsAndWorkflow:
         assert sample_bill.invoice_no in content
         assert other_bill.invoice_no not in content
 
+    def test_bill_list_total_amount_formatted_to_two_decimal_places(
+        self, staff_client, sample_bill
+    ):
+        """Bill list total amount is rounded and formatted with exactly 2 decimal places."""
+        sample_bill.grand_total = Decimal("1234.50")
+        sample_bill.save(update_fields=["grand_total"])
+
+        response = staff_client.get(self._bills_url())
+        assert response.status_code == 200
+        content = response.content.decode("utf-8")
+        assert "Rs. 1234.50" in content
+        assert "1234.50000000" not in content
+
     def test_bill_list_filter_by_party(self, staff_client, sample_bill):
         """Bill list filters bills by party."""
         assert Party is not None, "Party model is missing."

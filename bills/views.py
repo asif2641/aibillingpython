@@ -13,6 +13,7 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
+from billing.utils import money_round
 from bills.forms import BillForm, BillItemFormSet
 from bills.models import Bill
 from bills.services import recalculate_bill_totals
@@ -59,7 +60,7 @@ def bill_list_view(request: HttpRequest) -> HttpResponse:
         qs = qs.filter(bill_date=date_filter)
 
     # Aggregates for all matching filtered bills
-    total_amount = qs.aggregate(total=Sum("grand_total"))["total"] or Decimal("0.00")
+    total_amount = money_round(Decimal(str(qs.aggregate(total=Sum("grand_total"))["total"] or 0)))
     total_count = qs.count()
 
     selected_party = Party.objects.filter(pk=party_id).first() if party_id else None

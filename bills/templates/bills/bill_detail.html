@@ -105,10 +105,10 @@
                                 {{ item.quantity }} {{ item.unit }}
                             </td>
                             <td class="py-3 text-right rtl:text-left font-mono">
-                                Rs. {{ item.unit_price }}
+                                Rs. {{ item.unit_price|floatformat:2 }}
                             </td>
                             <td class="py-3 text-right rtl:text-left font-mono font-bold text-slate-900 dark:text-white">
-                                Rs. {{ item.line_total }}
+                                Rs. {{ item.line_total|floatformat:2 }}
                             </td>
                         </tr>
                         {% empty %}
@@ -126,27 +126,27 @@
             <div class="pt-4 border-t border-slate-200 dark:border-slate-700 space-y-2 text-xs">
                 <div class="flex justify-between text-slate-500">
                     <span>{% trans "Subtotal" %}</span>
-                    <span class="font-mono font-medium">Rs. {{ bill.subtotal }}</span>
+                    <span class="font-mono font-medium">Rs. {{ bill.subtotal|floatformat:2 }}</span>
                 </div>
                 {% if bill.discount > 0 %}
                 <div class="flex justify-between text-emerald-600 dark:text-emerald-400">
                     <span>{% trans "Discount" %}</span>
-                    <span class="font-mono font-medium">- Rs. {{ bill.discount }}</span>
+                    <span class="font-mono font-medium">- Rs. {{ bill.discount|floatformat:2 }}</span>
                 </div>
                 {% endif %}
                 {% if bill.tax > 0 %}
                 <div class="flex justify-between text-slate-500">
                     <span>{% trans "Tax" %}</span>
-                    <span class="font-mono font-medium">+ Rs. {{ bill.tax }}</span>
+                    <span class="font-mono font-medium">+ Rs. {{ bill.tax|floatformat:2 }}</span>
                 </div>
                 {% endif %}
                 <div class="flex justify-between text-base font-bold text-slate-900 dark:text-white pt-2 border-t border-slate-200 dark:border-slate-700">
                     <span>{% trans "Grand Total" %}</span>
-                    <span class="font-mono text-primary-600 dark:text-primary-400">Rs. {{ bill.grand_total }}</span>
+                    <span class="font-mono text-primary-600 dark:text-primary-400">Rs. {{ bill.grand_total|floatformat:2 }}</span>
                 </div>
                 <div class="flex justify-between text-xs text-slate-500 pt-1">
                     <span>{% trans "Amount Paid" %}</span>
-                    <span class="font-mono">Rs. {{ bill.amount_paid }}</span>
+                    <span class="font-mono">Rs. {{ bill.amount_paid|floatformat:2 }}</span>
                 </div>
             </div>
         </div>
