@@ -82,6 +82,20 @@ class TestSettingsSubNavigationAndShell:
         assert "Measurement Units" in content
         assert "Add Custom Unit" in content
 
+    def test_reset_data_tab_visible_only_for_superadmin(
+        self, client, superadmin_user, staff_with_all_permissions
+    ):
+        """Reset App Data tab is rendered for superadmin, but hidden for regular staff."""
+        client.force_login(superadmin_user)
+        response = client.get(reverse("shop_profile"))
+        assert response.status_code == 200
+        assert "Reset App Data" in response.content.decode("utf-8")
+
+        client.force_login(staff_with_all_permissions)
+        response_staff = client.get(reverse("shop_profile"))
+        assert response_staff.status_code == 200
+        assert "Reset App Data" not in response_staff.content.decode("utf-8")
+
 
 @pytest.mark.django_db
 class TestSettingsBilingualAndRTL:
@@ -111,6 +125,14 @@ class TestSettingsBilingualAndRTL:
         content = response.content.decode("utf-8")
         assert 'dir="rtl"' in content
 
+    def test_reset_data_urdu_renders_rtl(self, client, superadmin_user):
+        """Accessing reset data page in Urdu renders dir='rtl'."""
+        client.force_login(superadmin_user)
+        response = client.get("/ur/settings/reset-data/")
+        assert response.status_code == 200
+        content = response.content.decode("utf-8")
+        assert 'dir="rtl"' in content
+
 
 @pytest.mark.django_db
 class TestSettingsThemeAndDarkMode:
@@ -124,6 +146,7 @@ class TestSettingsThemeAndDarkMode:
             reverse("staff_list"),
             reverse("categories:category_list"),
             reverse("categories:unit_list"),
+            reverse("reset_data"),
         ]:
             response = client.get(url)
             assert response.status_code == 200

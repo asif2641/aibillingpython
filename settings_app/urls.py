@@ -36,7 +36,8 @@ urlpatterns = [
     path("backups/", views.backup_export_view, name="backup_export"),
     path("backups/create/", views.backup_create_view, name="backup_create"),
     path("backups/download-json/", views.backup_download_json_view, name="backup_download_json"),
-    path("backups/download-csv/", views.backup_download_csv_view, name="backup_download_csv"),
+    # Reset app data (Superadmin only)
+    path("reset-data/", views.reset_data_view, name="reset_data"),
     # Category and Unit aliases under settings
     path("categories/", categories_views.category_list_view),
     path("categories/add/", categories_views.category_add_view),

@@ -7,22 +7,28 @@ Views for the settings_app application: shop profile, activity audit logs, and b
 from __future__ import annotations
 
 import json
+import shutil
 from functools import wraps
+from pathlib import Path
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
+from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponse, HttpResponseForbidden, HttpResponseNotAllowed
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from bills.models import Bill
-from categories.models import Category
+from bills.models import Bill, BillItem
+from categories.models import Category, Unit
 from ledger.models import Payment
 from parties.models import Party
+from scanning.models import BillEditHistory, BillError, BillFile, ScanJob
+from sync.models import SyncQueue
 
 from .forms import ShopProfileForm
 from .models import ActivityLog, ShopProfile
@@ -43,6 +49,25 @@ def _get_client_ip(request) -> str | None:
     if x_forwarded_for:
         return x_forwarded_for.split(",")[0].strip()
     return request.META.get("REMOTE_ADDR")
+
+
+def superadmin_required(view_func):
+    """Decorator requiring login and Super Admin permissions."""
+
+    @wraps(view_func)
+    @login_required
+    def _wrapped_view(request, *args, **kwargs):
+        user = request.user
+        is_super = (
+            user.is_superuser
+            or getattr(user, "is_superadmin", False)
+            or getattr(user, "role", "") == "superadmin"
+        )
+        if not is_super:
+            return HttpResponseForbidden("Only super admins are allowed to access this page.")
+        return view_func(request, *args, **kwargs)
+
+    return _wrapped_view
 
 
 def shop_management_required(view_func):
@@ -214,3 +239,122 @@ def backup_download_csv_view(request):
     response = HttpResponse(csv_content, content_type="text/csv; charset=utf-8")
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
     return response
+
+
+def _get_reset_summary_context(request) -> dict:
+    """Collect record counts for reset confirmation screen."""
+    return {
+        "active_tab": "reset",
+        "bills_count": Bill.all_objects.count(),
+        "parties_count": Party.objects.count(),
+        "payments_count": Payment.objects.count(),
+        "scans_count": ScanJob.objects.count(),
+        "files_count": BillFile.objects.count(),
+        "logs_count": ActivityLog.objects.count(),
+        "categories_count": Category.objects.count(),
+        "units_count": Unit.objects.count(),
+        "staff_count": User.objects.exclude(pk=request.user.pk).count(),
+    }
+
+
+@superadmin_required
+def reset_data_view(request):
+    """Factory reset all application data for a new client installation.
+
+    Strictly limited to Super Admins. Requires typing 'RESET' to confirm.
+    Wipes bills, payments, parties, scans, uploaded media files, sync queue,
+    activity logs, restores default categories/units, resets shop profile,
+    and optionally removes non-superadmin staff.
+    """
+    if request.method == "POST":
+        confirm_code = request.POST.get("confirm_code", "").strip()
+        if confirm_code != "RESET":
+            messages.error(
+                request,
+                _(
+                    "Confirmation code did not match. You must type RESET in capital letters to confirm."
+                ),
+            )
+            context = _get_reset_summary_context(request)
+            return render(request, "settings_app/reset_data.html", context, status=400)
+
+        reset_staff = request.POST.get("reset_staff") == "on"
+
+        with transaction.atomic():
+            # 1. Delete payments (safe before parties or bills)
+            Payment.objects.all().delete()
+
+            # 2. Delete scanning records and uploaded file references
+            BillError.objects.all().delete()
+            BillEditHistory.objects.all().delete()
+            BillFile.objects.all().delete()
+            ScanJob.objects.all().delete()
+
+            # 3. Delete bills and items (including trashed bills)
+            BillItem.objects.all().delete()
+            Bill.all_objects.all().delete()
+
+            # 4. Delete offline sync items
+            SyncQueue.objects.all().delete()
+
+            # 5. Delete parties/vendors/customers
+            Party.objects.all().delete()
+
+            # 6. Reset categories and units to factory seed defaults
+            Category.objects.all().delete()
+            Category.seed_defaults()
+            Unit.objects.all().delete()
+            Unit.seed_defaults()
+
+            # 7. Reset ShopProfile singleton to factory default
+            profile = ShopProfile.get_solo()
+            profile.name = "My Shop"
+            profile.logo = None
+            profile.address = ""
+            profile.phone = ""
+            profile.email = ""
+            profile.tax_number = ""
+            profile.currency = "PKR"
+            profile.timezone = "Asia/Karachi"
+            profile.date_format = "YYYY-MM-DD"
+            profile.default_language = "en"
+            profile.invoice_footer_text = ""
+            profile.daily_scan_limit = 50
+            profile.monthly_scan_limit = 500
+            profile.save()
+
+            # 8. Optionally delete non-superadmin staff accounts (preserving active superadmin)
+            if reset_staff:
+                User.objects.exclude(pk=request.user.pk).delete()
+
+            # 9. Clean physical uploaded media files from disk
+            bills_media_dir = Path(settings.MEDIA_ROOT) / "bills"
+            if bills_media_dir.exists():
+                shutil.rmtree(bills_media_dir, ignore_errors=True)
+                bills_media_dir.mkdir(parents=True, exist_ok=True)
+
+            shop_media_dir = Path(settings.MEDIA_ROOT) / "shop"
+            if shop_media_dir.exists():
+                shutil.rmtree(shop_media_dir, ignore_errors=True)
+                shop_media_dir.mkdir(parents=True, exist_ok=True)
+
+            # 10. Clear past activity logs and log fresh reset action
+            ActivityLog.objects.all().delete()
+            log_activity(
+                user=request.user,
+                action="system_reset",
+                target_type="System",
+                description="System factory reset completed by superadmin for new client installation.",
+                ip_address=_get_client_ip(request),
+            )
+
+        messages.success(
+            request,
+            _(
+                "All application data has been permanently reset. The system is ready for a new client."
+            ),
+        )
+        return redirect("shop_profile")
+
+    context = _get_reset_summary_context(request)
+    return render(request, "settings_app/reset_data.html", context)
