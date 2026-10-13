@@ -822,3 +822,54 @@ class TestAIExtractorProviderResolution:
         with pytest.raises(AIExtractionError) as exc_info:
             extractor.extract(sample_image)
         assert "Quota limit reached" in str(exc_info.value)
+
+    def test_scan_to_bill_handles_null_item_fields(
+        self, superadmin_user, sample_image, monkeypatch
+    ):
+        """When AI returns items with null urdu_name or null unit, scanning succeeds without NOT NULL error."""
+        from unittest.mock import MagicMock
+
+        from scanning.models import BillFile, ScanJob
+        from scanning.services.extraction import process_scan_job
+
+        job = ScanJob.objects.create(provider="gemini", created_by=superadmin_user)
+        BillFile.objects.create(scan_job=job, file=sample_image, page_number=1)
+
+        mock_payload = {
+            "document_type": "printed",
+            "languages": ["en"],
+            "vendor": {"name": "Test Vendor", "urdu_name": None},
+            "customer": {"name": None},
+            "invoice_no": "INV-NULL-TEST",
+            "date": "2026-10-13",
+            "items": [
+                {
+                    "serial_no": 1,
+                    "name": "Live Chicken",
+                    "urdu_name": None,
+                    "quantity": 2.5,
+                    "unit": None,
+                    "unit_price": 400.0,
+                    "line_total": 1000.0,
+                }
+            ],
+            "grand_total": 1000.0,
+            "subtotal": 1000.0,
+            "discount": 0.0,
+            "tax": 0.0,
+        }
+
+        mock_extractor = MagicMock()
+        mock_extractor.extract.return_value = mock_payload
+        mock_extractor.last_token_count = 100
+        monkeypatch.setattr(
+            "scanning.services.extraction.get_ai_extractor", lambda provider: mock_extractor
+        )
+
+        bill = process_scan_job(job)
+        assert bill is not None
+        assert bill.items.count() == 1
+        item = bill.items.first()
+        assert item.item_name == "Live Chicken"
+        assert item.urdu_item_name == ""
+        assert item.unit == "pcs"

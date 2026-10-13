@@ -508,14 +508,17 @@ def process_scan_job(job: ScanJob) -> Bill:
             qty = Decimal(str(it.get("quantity") or 1))
             price = money_round(Decimal(str(it.get("unit_price") or 0)))
             lt = money_round(Decimal(str(it.get("line_total") or (qty * price))))
+            item_name = str(it.get("name") or it.get("item_name") or f"Item {idx}").strip()
+            urdu_item_name = str(it.get("urdu_name") or it.get("urdu_item_name") or "").strip()
+            unit_val = str(it.get("unit") or "pcs").strip()
 
             BillItem.objects.create(
                 bill=bill,
                 serial_no=it.get("serial_no") or idx,
-                item_name=it.get("name") or it.get("item_name") or f"Item {idx}",
-                urdu_item_name=it.get("urdu_name", ""),
+                item_name=item_name or f"Item {idx}",
+                urdu_item_name=urdu_item_name,
                 quantity=qty,
-                unit=it.get("unit", "pcs"),
+                unit=unit_val,
                 unit_price=price,
                 line_total=lt,
             )
@@ -526,9 +529,9 @@ def process_scan_job(job: ScanJob) -> Bill:
             BillError.objects.create(
                 bill=bill,
                 error_type=disc["error_type"],
-                field_name=disc.get("field_name", ""),
-                severity=disc.get("severity", "warning"),
-                message=disc.get("message", ""),
+                field_name=disc.get("field_name") or "",
+                severity=disc.get("severity") or "warning",
+                message=disc.get("message") or "",
                 suggested_fix=disc.get("suggested_fix"),
             )
 

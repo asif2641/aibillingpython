@@ -281,5 +281,19 @@ class BillItem(models.Model):
             models.Index(fields=["item_name"]),
         ]
 
+    def clean(self) -> None:
+        super().clean()
+        if self.urdu_item_name is None:
+            self.urdu_item_name = ""
+        if self.unit is None:
+            self.unit = ""
+
+    def save(self, *args, **kwargs):
+        if self.urdu_item_name is None:
+            self.urdu_item_name = ""
+        if self.unit is None:
+            self.unit = ""
+        super().save(*args, **kwargs)
+
     def __str__(self) -> str:
         return f"{self.item_name} ({self.quantity} {self.unit})".strip()
