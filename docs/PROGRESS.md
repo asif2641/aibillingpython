@@ -91,16 +91,35 @@
 ## Phase 6 — Offline PWA & Sync Queue (Installable App, Offline Manual Entry, Conflict Resolution)
 
 **Branch:** `phase-6/offline-pwa`  
-**Status:** ⏳ In Progress (Planning stage)
+**Status:** ✅ Complete (Passed Quality Gate with 345/345 tests, all criteria met)
 
 | # | Task | Owner | Status | Notes |
 |---|------|-------|--------|-------|
-| 1 | SyncQueue data model & processing services | Backend Agent | [ ] Not started | Idempotent bill creation, Decimal recalculations, conflict handling |
-| 2 | Sync API endpoints (/sync/push/, /sync/pull/, /sync/status/) | Backend Agent | [ ] Not started | Authenticated sync push & pull JSON endpoints |
-| 3 | QA test-first suites for Offline Sync & PWA | QA Agent | [ ] Not started | Automated tests for sync, idempotency, edge cases, PWA assets |
-| 4 | PWA Web Manifest, Service Worker & Offline Shell | Frontend Agent | [ ] Not started | manifest.json, sw.js caching app shell, offline fallback template |
-| 5 | IndexedDB client storage & auto-sync engine | Frontend Agent | [ ] Not started | Offline form interception, IndexedDB queue, online sync triggers, RTL |
-| 6 | QC review & Gate Report | QC + Browser QA | [ ] Not started | Final quality audit & verification gate before merge |
+| 1 | SyncQueue data model & processing services | Backend Agent | ✅ Done | Idempotent client_id guard, Decimal recalculations, conflict handling |
+| 2 | Sync API endpoints (/sync/push/, /sync/pull/, /sync/status/) | Backend Agent | ✅ Done | Authenticated JSON endpoints, i18n + root namespaces |
+| 3 | QA test-first suites for Offline Sync & PWA | QA Agent | ✅ Done | 46 automated tests: test_sync.py (29), test_pwa.py (10), test_offline_ui.py (7) |
+| 4 | PWA Web Manifest, Service Worker & Offline Shell | Frontend Agent | ✅ Done | manifest.json, sw.js network-first caching, bilingual offline.html |
+| 5 | IndexedDB client storage & auto-sync engine | Frontend Agent | ✅ Done | offline-sync.js (607 lines), form interception, auto-sync on reconnect, Urdu RTL |
+| 6 | QC review & Gate Report | QC + Browser QA | ✅ Done | APPROVED — all 9 QC criteria passed, 0 Critical/High issues |
+
+---
+
+## Phase 7 — Polish & Security (Responsive/Mobile Polish, Performance, Activity Log, Backups)
+
+**Branch:** `phase-7/polish-security`  
+**Status:** ⏳ In Progress
+
+| # | Task | Owner | Status | Notes |
+|---|------|-------|--------|-------|
+| 1 | `purge_sync_queue` management command (>30 days cleanup) | Backend Agent | [ ] Not started | QC non-blocking recommendation from Phase 6 |
+| 2 | `?since=` delta sync in offline-sync.js (store last_pulled_at in IndexedDB) | Frontend Agent | [ ] Not started | QC non-blocking recommendation from Phase 6 |
+| 3 | Activity log model & middleware (audit trail) | Backend Agent | [ ] Not started | Track bill creation, edits, deletions per user |
+| 4 | Mobile responsiveness polish (tables → cards on phones) | Frontend Agent | [ ] Not started | Bills list, ledger, reports → card layout on mobile |
+| 5 | Performance hardening (DB indexes, dashboard caching) | Backend Agent | [ ] Not started | Index on bill_date, party, status; cache dashboard KPIs |
+| 6 | Security hardening (rate limiting, security headers, signed URLs) | Security/DevOps Agent | [ ] Not started | django-ratelimit on scan, X-Frame-Options, CSP header |
+| 7 | Automated backup management command | Security/DevOps Agent | [ ] Not started | `python manage.py backup_db` with retention policy |
+| 8 | QA test-first suites for Phase 7 | QA Agent | [ ] Not started | Tests for activity log, purge command, security headers |
+| 9 | QC review & Gate Report | QC + Browser QA | [ ] Not started | Final quality audit before Phase 8 (Deployment) |
 
 ---
 
