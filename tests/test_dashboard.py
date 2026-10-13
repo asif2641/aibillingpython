@@ -203,3 +203,24 @@ class TestDashboardEdgeCases:
         """Non-existent dashboard route returns 404 rather than 500 error."""
         response = staff_client.get("/en/dashboard-route-that-does-not-exist-xyz/")
         assert response.status_code == 404
+
+
+@pytest.mark.django_db
+class TestDashboardEmptyState:
+    """Tests verifying the empty state when no bills exist."""
+
+    def test_empty_state_action_buttons_have_valid_urls(self, staff_client):
+        """Empty state 'Scan Bill' and 'Add Bill' buttons link to actual application routes, not fragment hashes."""
+        response = staff_client.get("/en/")
+        assert response.status_code == 200
+        content = response.content.decode()
+
+        # Must not contain dummy hash anchors
+        assert 'href="#scan-bill"' not in content
+        assert 'href="#add-bill"' not in content
+
+        # Must contain actual routes
+        scan_url = reverse("scanning:upload")
+        add_bill_url = reverse("bills:bill_add")
+        assert f'href="{scan_url}"' in content
+        assert f'href="{add_bill_url}"' in content
