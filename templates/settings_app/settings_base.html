@@ -4,452 +4,91 @@
 {% block title %}{% block settings_title %}{% trans "Settings & Administration" %}{% endblock %} — Bill Scanner & Ledger{% endblock %}
 
 {% block content %}
-<div class="min-h-screen flex flex-col md:flex-row bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100">
-
-    <!-- ========================================================================= -->
-    <!-- MOBILE SIDEBAR BACKDROP & DRAWER -->
-    <!-- ========================================================================= -->
-    <div 
-        x-show="sidebarOpen" 
-        x-cloak
-        class="fixed inset-0 z-50 md:hidden flex"
-        role="dialog" 
-        aria-modal="true"
-        aria-label="Navigation Sidebar">
-        
-        <!-- Backdrop -->
-        <div 
-            x-show="sidebarOpen"
-            x-transition:enter="transition-opacity ease-linear duration-200"
-            x-transition:enter-start="opacity-0"
-            x-transition:enter-end="opacity-100"
-            x-transition:leave="transition-opacity ease-linear duration-200"
-            x-transition:leave-start="opacity-100"
-            x-transition:leave-end="opacity-0"
-            @click="sidebarOpen = false"
-            class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm">
-        </div>
-
-        <!-- Off-canvas drawer -->
-        <div 
-            x-show="sidebarOpen"
-            x-transition:enter="transition ease-in-out duration-300 transform"
-            x-transition:enter-start="{% if LANGUAGE_BIDI %}translate-x-full{% else %}-translate-x-full{% endif %}"
-            x-transition:enter-end="translate-x-0"
-            x-transition:leave="transition ease-in-out duration-300 transform"
-            x-transition:leave-start="translate-x-0"
-            x-transition:leave-end="{% if LANGUAGE_BIDI %}translate-x-full{% else %}-translate-x-full{% endif %}"
-            class="relative flex-1 flex flex-col max-w-xs w-full bg-white dark:bg-slate-800 shadow-2xl border-r border-slate-200 dark:border-slate-700">
-            
-            <!-- Drawer header -->
-            <div class="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
-                <a href="{% url 'dashboard' %}" class="flex items-center gap-2">
-                    <span class="text-2xl">🧾</span>
-                    <span class="font-bold text-lg text-slate-900 dark:text-white">aibilling</span>
-                </a>
-                <button 
-                    @click="sidebarOpen = false" 
-                    type="button" 
-                    class="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700" 
-                    aria-label="{% trans "Close navigation menu" %}">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
-            </div>
-
-            <!-- Drawer navigation links -->
-            <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1" aria-label="Mobile Sidebar Links">
-                <a href="{% url 'dashboard' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-                    <svg class="w-5 h-5 flex-shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-                    <span>{% trans "Dashboard" %}</span>
-                </a>
-                <a href="{% url 'dashboard' %}#scan-bill" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-                    <svg class="w-5 h-5 flex-shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                    <span>{% trans "Scan Bill" %}</span>
-                </a>
-                <a href="{% url 'dashboard' %}#add-bill" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-                    <svg class="w-5 h-5 flex-shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                    <span>{% trans "Add Bill" %}</span>
-                </a>
-                <a href="{% url 'dashboard' %}#bills" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-                    <svg class="w-5 h-5 flex-shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                    <span>{% trans "Bills" %}</span>
-                </a>
-                <a href="{% url 'categories:category_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-                    <svg class="w-5 h-5 flex-shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
-                    <span>{% trans "Categories" %}</span>
-                </a>
-                <a href="{% url 'shop_profile' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold bg-primary-50 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400 border border-primary-100 dark:border-primary-900/50">
-                    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                    <span>{% trans "Settings" %}</span>
-                </a>
-            </nav>
-        </div>
+<!-- Settings Page Header -->
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2">
+    <div>
+        <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
+            <span class="text-2xl">⚙️</span>
+            <span>{% trans "Settings & Administration" %}</span>
+        </h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            {% trans "Manage your business branding, receipts, and system scan limits." %}
+        </p>
     </div>
-
-    <!-- ========================================================================= -->
-    <!-- DESKTOP COLLAPSIBLE SIDEBAR -->
-    <!-- ========================================================================= -->
-    <aside 
-        class="hidden md:flex flex-col flex-shrink-0 bg-white dark:bg-slate-800/90 border-r border-slate-200 dark:border-slate-800 transition-all duration-300 z-30"
-        :class="sidebarCollapsed ? 'w-20' : 'w-64'"
-        aria-label="Desktop Sidebar Navigation">
-        
-        <!-- App Logo & Branding -->
-        <div class="h-16 flex items-center px-4 border-b border-slate-200 dark:border-slate-800 justify-between">
-            <a href="{% url 'dashboard' %}" class="flex items-center gap-2.5 overflow-hidden">
-                <span class="text-2xl flex-shrink-0">🧾</span>
-                <span 
-                    x-show="!sidebarCollapsed" 
-                    x-transition
-                    class="font-bold text-lg text-slate-900 dark:text-white whitespace-nowrap">
-                    aibilling
-                </span>
-            </a>
-            <button 
-                @click="toggleCollapse()" 
-                type="button" 
-                class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
-                aria-label="Collapse sidebar"
-                title="Collapse or expand sidebar">
-                <svg class="w-5 h-5 transform transition-transform" :class="sidebarCollapsed ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
-                </svg>
-            </button>
-        </div>
-
-        <!-- Desktop Navigation Items -->
-        <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1" aria-label="Main Navigation">
-            <a href="{% url 'dashboard' %}" 
-               class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors"
-               title="{% trans "Dashboard" %}">
-                <svg class="w-5 h-5 flex-shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-                <span x-show="!sidebarCollapsed" class="whitespace-nowrap">{% trans "Dashboard" %}</span>
-            </a>
-
-            <a href="{% url 'dashboard' %}#scan-bill" 
-               class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors"
-               title="{% trans "Scan Bill" %}">
-                <svg class="w-5 h-5 flex-shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                <span x-show="!sidebarCollapsed" class="whitespace-nowrap">{% trans "Scan Bill" %}</span>
-            </a>
-
-            <a href="{% url 'dashboard' %}#add-bill" 
-               class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors"
-               title="{% trans "Add Bill" %}">
-                <svg class="w-5 h-5 flex-shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                <span x-show="!sidebarCollapsed" class="whitespace-nowrap">{% trans "Add Bill" %}</span>
-            </a>
-
-            <a href="{% url 'dashboard' %}#bills" 
-               class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors"
-               title="{% trans "Bills" %}">
-                <svg class="w-5 h-5 flex-shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                <span x-show="!sidebarCollapsed" class="whitespace-nowrap">{% trans "Bills" %}</span>
-            </a>
-
-            <a href="{% url 'categories:category_list' %}" 
-               class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium {% if active_tab == 'categories' or active_tab == 'units' %}bg-primary-50 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400 border border-primary-100 dark:border-primary-900/40{% else %}text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60{% endif %} transition-colors"
-               title="{% trans "Categories" %}">
-                <svg class="w-5 h-5 flex-shrink-0 {% if active_tab == 'categories' or active_tab == 'units' %}text-primary-600 dark:text-primary-400{% else %}text-slate-500{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
-                <span x-show="!sidebarCollapsed" class="whitespace-nowrap">{% trans "Categories" %}</span>
-            </a>
-
-            <a href="{% url 'shop_profile' %}" 
-               class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold {% if active_tab == 'shop' or active_tab == 'staff' or active_tab == 'activity_log' or active_tab == 'backups' %}bg-primary-50 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400 border border-primary-100 dark:border-primary-900/40 shadow-sm{% else %}text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60{% endif %} transition-colors"
-               title="{% trans "Settings" %}">
-                <svg class="w-5 h-5 flex-shrink-0 {% if active_tab == 'shop' or active_tab == 'staff' or active_tab == 'activity_log' or active_tab == 'backups' %}text-primary-600 dark:text-primary-400{% else %}text-slate-500{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                <span x-show="!sidebarCollapsed" class="whitespace-nowrap">{% trans "Settings" %}</span>
-            </a>
-        </nav>
-    </aside>
-
-    <!-- ========================================================================= -->
-    <!-- MAIN WORKSPACE & TOP BAR -->
-    <!-- ========================================================================= -->
-    <div class="flex-1 flex flex-col min-w-0 pb-20 md:pb-8">
-
-        <!-- Top Bar -->
-        <header class="h-16 flex-shrink-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 flex items-center justify-between gap-3 sticky top-0 z-20">
-            
-            <!-- Left: Mobile menu toggle & Title -->
-            <div class="flex items-center gap-3">
-                <button 
-                    @click="sidebarOpen = true" 
-                    type="button" 
-                    class="md:hidden p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700" 
-                    aria-label="{% trans "Open sidebar menu" %}">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
-                </button>
-                <div class="hidden sm:flex items-center gap-2">
-                    <a href="{% url 'dashboard' %}" class="text-xs text-slate-500 hover:text-primary-600 dark:text-slate-400 dark:hover:text-primary-400 transition-colors">
-                        {% trans "Dashboard" %}
-                    </a>
-                    <span class="text-slate-400 text-xs">/</span>
-                    <span class="text-xs font-semibold text-slate-900 dark:text-white">
-                        {% trans "Settings" %}
-                    </span>
-                </div>
-            </div>
-
-            <!-- Center: Compact Global Search Bar -->
-            <form action="{% url 'global_search' %}" method="get" class="flex-1 max-w-xs sm:max-w-sm mx-2" role="search">
-                <label for="settings-global-search" class="sr-only">{% trans "Global Search" %}</label>
-                <div class="relative flex items-center">
-                    <svg class="w-4 h-4 text-slate-400 absolute ltr:left-3 rtl:right-3 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                    </svg>
-                    <input
-                        id="settings-global-search"
-                        type="search"
-                        name="q"
-                        placeholder="{% trans 'Search bills, parties, items...' %}"
-                        class="w-full min-h-[38px] ltr:pl-9 ltr:pr-3 rtl:pr-9 rtl:pl-3 py-1.5 text-xs sm:text-sm bg-slate-100 dark:bg-slate-700/70 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-400 rounded-xl border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white dark:focus:bg-slate-800 transition-all">
-                </div>
-            </form>
-
-            <!-- Right: Controls -->
-            <div class="flex items-center gap-2 sm:gap-3">
-
-                <!-- Language Switcher Form -->
-                <form action="{% url 'set_language' %}" method="post" class="inline-flex items-center">
-                    {% csrf_token %}
-                    <input name="next" type="hidden" value="{{ request.path }}">
-                    {% if LANGUAGE_CODE == 'ur' %}
-                        <button 
-                            type="submit" 
-                            name="language" 
-                            value="en" 
-                            class="inline-flex items-center gap-1 px-2.5 py-1.5 min-h-[44px] text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-primary-500" 
-                            title="{% trans "Switch to English" %}" 
-                            aria-label="{% trans "Switch to English" %}">
-                            <span>EN</span>
-                            <span class="text-slate-400">|</span>
-                            <span class="text-xs">English</span>
-                        </button>
-                    {% else %}
-                        <button 
-                            type="submit" 
-                            name="language" 
-                            value="ur" 
-                            class="inline-flex items-center gap-1 px-2.5 py-1.5 min-h-[44px] text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-primary-500" 
-                            title="{% trans "Switch to Urdu language" %}" 
-                            aria-label="{% trans "Switch to Urdu language" %}">
-                            <span>اردو</span>
-                            <span class="text-slate-400">|</span>
-                            <span class="text-xs">Urdu</span>
-                        </button>
-                    {% endif %}
-                </form>
-
-                <!-- Theme Toggle Button -->
-                <button 
-                    @click="toggleTheme()" 
-                    type="button" 
-                    class="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500" 
-                    title="{% trans "Toggle light and dark theme mode" %}" 
-                    aria-label="{% trans "Toggle light and dark theme mode" %}">
-                    <svg x-show="darkMode" x-cloak class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
-                    </svg>
-                    <svg x-show="!darkMode" class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
-                    </svg>
-                </button>
-
-                <div class="h-6 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
-
-                <!-- User profile badge -->
-                <div class="flex items-center gap-2.5">
-                    <div class="w-8 h-8 rounded-full bg-primary-600 text-white font-semibold flex items-center justify-center text-xs shadow-sm ring-2 ring-white dark:ring-slate-800">
-                        {{ request.user.username|make_list|first|upper }}
-                    </div>
-                    <div class="hidden sm:flex flex-col text-left rtl:text-right">
-                        <span class="text-xs font-semibold text-slate-900 dark:text-slate-100 leading-tight">
-                            {{ request.user.first_name|default:request.user.username }}
-                        </span>
-                        <span class="text-[11px] text-slate-500 dark:text-slate-400">
-                            @{{ request.user.username }}
-                        </span>
-                    </div>
-
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold {% if request.user.is_superadmin or request.user.is_superuser %}bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800{% else %}bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800{% endif %}">
-                        {{ request.user.get_role_display|default:"Staff" }}
-                    </span>
-
-                    <form action="{% url 'accounts:logout' %}" method="post" class="inline">
-                        {% csrf_token %}
-                        <button 
-                            type="submit" 
-                            class="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500" 
-                            title="{% trans "Sign out" %}" 
-                            aria-label="{% trans "Sign out" %}">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </header>
-
-        <!-- Main settings workspace -->
-        <main class="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
-
-            <!-- System Messages / Notification Alert Container -->
-            {% if messages %}
-                <div class="space-y-2" role="alert" aria-live="polite">
-                    {% for message in messages %}
-                        <div class="flex items-center justify-between p-4 rounded-xl border text-sm font-medium {% if message.tags == 'error' %}bg-red-50 text-red-800 border-red-200 dark:bg-red-950/50 dark:text-red-300 dark:border-red-900{% elif message.tags == 'warning' %}bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-900{% else %}bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-900{% endif %} shadow-sm">
-                            <div class="flex items-center gap-2.5">
-                                {% if message.tags == 'error' %}
-                                    <svg class="w-5 h-5 flex-shrink-0 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                {% else %}
-                                    <svg class="w-5 h-5 flex-shrink-0 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                {% endif %}
-                                <span>{{ message }}</span>
-                            </div>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-
-            <!-- Settings Page Header -->
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2">
-                <div>
-                    <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
-                        <span class="text-2xl">⚙️</span>
-                        <span>{% trans "Settings & Administration" %}</span>
-                    </h1>
-                    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                        {% trans "Manage your business branding, receipts, and system scan limits." %}
-                    </p>
-                </div>
-                <div class="flex items-center gap-2">
-                    {% block settings_header_actions %}{% endblock %}
-                </div>
-            </div>
-
-            <!-- ================================================================= -->
-            <!-- SETTINGS SUB-NAVIGATION TABS (DESKTOP & RESPONSIVE MOBILE SCROLL) -->
-            <!-- ================================================================= -->
-            <nav 
-                id="settings-subnav"
-                class="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-200 dark:border-slate-800 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none" 
-                aria-label="{% trans "Settings Navigation Tabs" %}">
-                
-                <!-- Tab 1: Shop Profile -->
-                <a href="{% url 'shop_profile' %}" 
-                   class="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl text-sm font-semibold whitespace-nowrap transition-all {% if active_tab == 'shop' %}bg-primary-600 text-white shadow-sm shadow-primary-500/25 dark:bg-primary-500{% else %}bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 border border-slate-200 dark:border-slate-700/80{% endif %}"
-                   {% if active_tab == 'shop' %}aria-current="page"{% endif %}>
-                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-                    <span>🏪 {% trans "Shop Profile" %}</span>
-                </a>
-
-                <!-- Tab 2: Staff Management (Superadmin only) -->
-                {% if request.user.is_superuser or request.user.is_superadmin or request.user.role == 'superadmin' %}
-                <a href="{% url 'staff_list' %}" 
-                   class="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl text-sm font-semibold whitespace-nowrap transition-all {% if active_tab == 'staff' %}bg-primary-600 text-white shadow-sm shadow-primary-500/25 dark:bg-primary-500{% else %}bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 border border-slate-200 dark:border-slate-700/80{% endif %}"
-                   {% if active_tab == 'staff' %}aria-current="page"{% endif %}>
-                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-                    <span>👥 {% trans "Staff Management" %}</span>
-                </a>
-                {% endif %}
-
-                <!-- Tab 3: Categories -->
-                {% if request.user.is_superuser or request.user.is_superadmin or request.user.role == 'superadmin' or request.user.can_manage_categories %}
-                <a href="{% url 'categories:category_list' %}" 
-                   class="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl text-sm font-semibold whitespace-nowrap transition-all {% if active_tab == 'categories' %}bg-primary-600 text-white shadow-sm shadow-primary-500/25 dark:bg-primary-500{% else %}bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 border border-slate-200 dark:border-slate-700/80{% endif %}"
-                   {% if active_tab == 'categories' %}aria-current="page"{% endif %}>
-                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
-                    <span>🏷️ {% trans "Categories" %}</span>
-                </a>
-                {% endif %}
-
-                <!-- Tab 4: Units -->
-                {% if request.user.is_superuser or request.user.is_superadmin or request.user.role == 'superadmin' or request.user.can_manage_categories %}
-                <a href="{% url 'categories:unit_list' %}" 
-                   class="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl text-sm font-semibold whitespace-nowrap transition-all {% if active_tab == 'units' %}bg-primary-600 text-white shadow-sm shadow-primary-500/25 dark:bg-primary-500{% else %}bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 border border-slate-200 dark:border-slate-700/80{% endif %}"
-                   {% if active_tab == 'units' %}aria-current="page"{% endif %}>
-                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg>
-                    <span>⚖️ {% trans "Units of Measurement" %}</span>
-                </a>
-                {% endif %}
-
-                <!-- Tab 5: Activity Log -->
-                {% if request.user.is_superuser or request.user.is_superadmin or request.user.role == 'superadmin' or request.user.can_manage_shop %}
-                <a href="{% url 'activity_log' %}" 
-                   class="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl text-sm font-semibold whitespace-nowrap transition-all {% if active_tab == 'activity_log' %}bg-primary-600 text-white shadow-sm shadow-primary-500/25 dark:bg-primary-500{% else %}bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 border border-slate-200 dark:border-slate-700/80{% endif %}"
-                   {% if active_tab == 'activity_log' %}aria-current="page"{% endif %}>
-                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
-                    <span>📋 {% trans "Activity Log" %}</span>
-                </a>
-                {% endif %}
-
-                <!-- Tab 6: Backups & Export -->
-                {% if request.user.is_superuser or request.user.is_superadmin or request.user.role == 'superadmin' or request.user.can_manage_shop %}
-                <a href="{% url 'backup_export' %}" 
-                   class="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl text-sm font-semibold whitespace-nowrap transition-all {% if active_tab == 'backups' %}bg-primary-600 text-white shadow-sm shadow-primary-500/25 dark:bg-primary-500{% else %}bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 border border-slate-200 dark:border-slate-700/80{% endif %}"
-                   {% if active_tab == 'backups' %}aria-current="page"{% endif %}>
-                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                    <span>💾 {% trans "Backups & Export" %}</span>
-                </a>
-                {% endif %}
-            </nav>
-
-            <!-- Settings Content Block -->
-            <div class="settings-content-wrapper">
-                {% block settings_content %}{% endblock %}
-            </div>
-
-        </main>
+    <div class="flex items-center gap-2">
+        {% block settings_header_actions %}{% endblock %}
     </div>
+</div>
 
-    <!-- ========================================================================= -->
-    <!-- MOBILE BOTTOM NAVIGATION BAR -->
-    <!-- ========================================================================= -->
-    <nav 
-        class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 px-4 py-1.5 shadow-lg" 
-        aria-label="Mobile Bottom Navigation Bar">
-        <div class="flex items-center justify-around max-w-md mx-auto">
-            
-            <a href="{% url 'dashboard' %}" 
-               class="flex flex-col items-center justify-center min-w-[48px] min-h-[48px] text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 focus:outline-none" 
-               aria-label="{% trans "Dashboard" %}">
-                <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-                <span class="text-[10px]">{% trans "Dashboard" %}</span>
-            </a>
+<!-- ================================================================= -->
+<!-- SETTINGS SUB-NAVIGATION TABS (DESKTOP & RESPONSIVE MOBILE SCROLL) -->
+<!-- ================================================================= -->
+<nav 
+    id="settings-subnav"
+    class="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-200 dark:border-slate-800 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none" 
+    aria-label="{% trans "Settings Navigation Tabs" %}">
+    
+    <!-- Tab 1: Shop Profile -->
+    <a href="{% url 'shop_profile' %}" 
+       class="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl text-sm font-semibold whitespace-nowrap transition-all {% if active_tab == 'shop' %}bg-primary-600 text-white shadow-sm shadow-primary-500/25 dark:bg-primary-500{% else %}bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 border border-slate-200 dark:border-slate-700/80{% endif %}"
+       {% if active_tab == 'shop' %}aria-current="page"{% endif %}>
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+        <span>🏪 {% trans "Shop Profile" %}</span>
+    </a>
 
-            <a href="{% url 'dashboard' %}#bills" 
-               class="flex flex-col items-center justify-center min-w-[48px] min-h-[48px] text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 focus:outline-none" 
-               aria-label="{% trans "Bills" %}">
-                <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                <span class="text-[10px]">{% trans "Bills" %}</span>
-            </a>
+    <!-- Tab 2: Staff Management (Superadmin only) -->
+    {% if request.user.is_superuser or request.user.is_superadmin or request.user.role == 'superadmin' %}
+    <a href="{% url 'staff_list' %}" 
+       class="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl text-sm font-semibold whitespace-nowrap transition-all {% if active_tab == 'staff' %}bg-primary-600 text-white shadow-sm shadow-primary-500/25 dark:bg-primary-500{% else %}bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 border border-slate-200 dark:border-slate-700/80{% endif %}"
+       {% if active_tab == 'staff' %}aria-current="page"{% endif %}>
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+        <span>👥 {% trans "Staff Management" %}</span>
+    </a>
+    {% endif %}
 
-            <!-- Scan Bill Floating Center Button -->
-            <a href="{% url 'dashboard' %}#scan-bill" 
-               class="flex flex-col items-center justify-center -mt-5 min-w-[56px] min-h-[56px] w-14 h-14 bg-primary-600 hover:bg-primary-700 text-white rounded-full shadow-lg shadow-primary-500/40 ring-4 ring-white dark:ring-slate-900 focus:outline-none focus:ring-primary-500 transition-transform active:scale-95" 
-               aria-label="{% trans "Scan Bill" %}">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                <span class="sr-only">{% trans "Scan Bill" %}</span>
-            </a>
+    <!-- Tab 3: Categories -->
+    {% if request.user.is_superuser or request.user.is_superadmin or request.user.role == 'superadmin' or request.user.can_manage_categories %}
+    <a href="{% url 'categories:category_list' %}" 
+       class="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl text-sm font-semibold whitespace-nowrap transition-all {% if active_tab == 'categories' %}bg-primary-600 text-white shadow-sm shadow-primary-500/25 dark:bg-primary-500{% else %}bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 border border-slate-200 dark:border-slate-700/80{% endif %}"
+       {% if active_tab == 'categories' %}aria-current="page"{% endif %}>
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+        <span>🏷️ {% trans "Categories" %}</span>
+    </a>
+    {% endif %}
 
-            <a href="{% url 'shop_profile' %}" 
-               class="flex flex-col items-center justify-center min-w-[48px] min-h-[48px] text-xs font-semibold text-primary-600 dark:text-primary-400 focus:outline-none" 
-               aria-label="{% trans "Settings" %}">
-                <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                <span class="text-[10px]">{% trans "Settings" %}</span>
-            </a>
+    <!-- Tab 4: Units -->
+    {% if request.user.is_superuser or request.user.is_superadmin or request.user.role == 'superadmin' or request.user.can_manage_categories %}
+    <a href="{% url 'categories:unit_list' %}" 
+       class="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl text-sm font-semibold whitespace-nowrap transition-all {% if active_tab == 'units' %}bg-primary-600 text-white shadow-sm shadow-primary-500/25 dark:bg-primary-500{% else %}bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 border border-slate-200 dark:border-slate-700/80{% endif %}"
+       {% if active_tab == 'units' %}aria-current="page"{% endif %}>
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg>
+        <span>⚖️ {% trans "Units of Measurement" %}</span>
+    </a>
+    {% endif %}
 
-            <button 
-                @click="sidebarOpen = true" 
-                type="button" 
-                class="flex flex-col items-center justify-center min-w-[48px] min-h-[48px] text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 focus:outline-none" 
-                aria-label="{% trans "Open sidebar menu" %}">
-                <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
-                <span class="text-[10px]">{% trans "Menu" %}</span>
-            </button>
+    <!-- Tab 5: Activity Log -->
+    {% if request.user.is_superuser or request.user.is_superadmin or request.user.role == 'superadmin' or request.user.can_manage_shop %}
+    <a href="{% url 'activity_log' %}" 
+       class="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl text-sm font-semibold whitespace-nowrap transition-all {% if active_tab == 'activity_log' %}bg-primary-600 text-white shadow-sm shadow-primary-500/25 dark:bg-primary-500{% else %}bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 border border-slate-200 dark:border-slate-700/80{% endif %}"
+       {% if active_tab == 'activity_log' %}aria-current="page"{% endif %}>
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+        <span>📋 {% trans "Activity Log" %}</span>
+    </a>
+    {% endif %}
 
-        </div>
-    </nav>
+    <!-- Tab 6: Backups & Export -->
+    {% if request.user.is_superuser or request.user.is_superadmin or request.user.role == 'superadmin' or request.user.can_manage_shop %}
+    <a href="{% url 'backup_export' %}" 
+       class="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl text-sm font-semibold whitespace-nowrap transition-all {% if active_tab == 'backups' %}bg-primary-600 text-white shadow-sm shadow-primary-500/25 dark:bg-primary-500{% else %}bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 border border-slate-200 dark:border-slate-700/80{% endif %}"
+       {% if active_tab == 'backups' %}aria-current="page"{% endif %}>
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        <span>💾 {% trans "Backups & Export" %}</span>
+    </a>
+    {% endif %}
+</nav>
 
+<!-- Settings Content Block -->
+<div class="settings-content-wrapper">
+    {% block settings_content %}{% endblock %}
 </div>
 {% endblock %}

@@ -198,7 +198,7 @@ class GeminiAIExtractor:
 
     def __init__(self, api_key: str, model_name: str | None = None):
         self.api_key = api_key
-        self.model_name = model_name or getattr(settings, "GEMINI_MODEL", "gemini-3.8-flash")
+        self.model_name = model_name or getattr(settings, "GEMINI_MODEL", "gemini-3.5-flash-lite")
         self.last_token_count = 1250
 
     def extract(self, *files: Any) -> Dict[str, Any]:
@@ -215,7 +215,13 @@ class GeminiAIExtractor:
                 "Please run: pip install google-genai"
             ) from err
 
-        client = genai.Client(api_key=self.api_key)
+        try:
+            client = genai.Client(
+                api_key=self.api_key,
+                http_options=types.HttpOptions(timeout=30000),
+            )
+        except (TypeError, AttributeError):
+            client = genai.Client(api_key=self.api_key)
         contents = []
 
         for f in files:
@@ -230,7 +236,7 @@ class GeminiAIExtractor:
         )
 
         candidate_models = [self.model_name]
-        for fallback in ["gemini-3.8-flash", "gemini-flash-latest"]:
+        for fallback in ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-flash-latest"]:
             if fallback not in candidate_models:
                 candidate_models.append(fallback)
 

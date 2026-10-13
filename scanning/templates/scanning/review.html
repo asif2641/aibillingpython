@@ -4,8 +4,7 @@
 {% block title %}{% trans "Review Bill" %} — {{ bill.invoice_no|default:"Scanned Document" }} — Bill Scanner & Ledger{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 py-6 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-7xl mx-auto space-y-6">
+<div class="max-w-7xl mx-auto space-y-6">
 
         <!-- Top Header & Status -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -219,5 +218,4 @@
             </form>
         </div>
     </div>
-</div>
 {% endblock %}

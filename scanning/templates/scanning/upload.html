@@ -4,8 +4,7 @@
 {% block title %}{% trans "Scan Bill — AI Extraction" %} — Bill Scanner & Ledger{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 py-8 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-3xl mx-auto space-y-6" x-data="uploadManager()">
+<div class="max-w-3xl mx-auto space-y-6" x-data="uploadManager()">
 
         <!-- Header -->
         <div class="flex items-center justify-between">
@@ -126,7 +125,6 @@
             </div>
         </form>
     </div>
-</div>
 
 <script>
 function uploadManager() {
