@@ -1,7 +1,7 @@
 """
 settings_app/urls.py
 ====================
-URL routing for Shop Profile, Staff Management, and Settings.
+URL routing for Shop Profile, Staff Management, Activity Log, Backups, and Settings.
 """
 
 from django.urls import path
@@ -31,6 +31,12 @@ urlpatterns = [
         accounts_views.staff_reset_password_view,
         name="staff_reset_password",
     ),
+    # Activity Log & Backups
+    path("activity-log/", views.activity_log_view, name="activity_log"),
+    path("backups/", views.backup_export_view, name="backup_export"),
+    path("backups/create/", views.backup_create_view, name="backup_create"),
+    path("backups/download-json/", views.backup_download_json_view, name="backup_download_json"),
+    path("backups/download-csv/", views.backup_download_csv_view, name="backup_download_csv"),
     # Category and Unit aliases under settings
     path("categories/", categories_views.category_list_view),
     path("categories/add/", categories_views.category_add_view),

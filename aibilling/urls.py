@@ -23,6 +23,7 @@ from django.views.static import serve
 
 from aibilling.views import (
     dashboard_view,
+    global_search_view,
     manifest_view,
     offline_view,
     service_worker_view,
@@ -45,6 +46,8 @@ urlpatterns = [
 urlpatterns += i18n_patterns(
     # Main dashboard view at root of localized paths (/en/, /ur/)
     path("", dashboard_view, name="dashboard"),
+    # Global search across bills, parties, and items
+    path("search/", global_search_view, name="global_search"),
     # Offline fallback shell for localized paths (/en/offline/, /ur/offline/)
     path("offline/", offline_view, name="offline_localized"),
     # Django admin panel.

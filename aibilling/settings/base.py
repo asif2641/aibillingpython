@@ -45,6 +45,11 @@ ALLOWED_HOSTS = [
     if h.strip()
 ]
 
+# Security headers enforced across all environments
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = "DENY"
+SECURE_REFERRER_POLICY = "same-origin"
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Application definition

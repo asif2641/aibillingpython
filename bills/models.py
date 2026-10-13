@@ -206,6 +206,7 @@ class Bill(models.Model):
         indexes = [
             models.Index(fields=["bill_date"]),
             models.Index(fields=["party"]),
+            models.Index(fields=["category"]),
             models.Index(fields=["invoice_no"]),
             models.Index(fields=["payment_status"]),
             models.Index(fields=["is_deleted"]),
@@ -276,6 +277,9 @@ class BillItem(models.Model):
         verbose_name = _("bill item")
         verbose_name_plural = _("bill items")
         ordering = ["serial_no", "id"]
+        indexes = [
+            models.Index(fields=["item_name"]),
+        ]
 
     def __str__(self) -> str:
         return f"{self.item_name} ({self.quantity} {self.unit})".strip()

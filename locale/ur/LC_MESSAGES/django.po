@@ -786,3 +786,81 @@ msgstr "نیا آف لائن بل بنائیں"
 msgid "Retry Connection"
 msgstr "دوبارہ کوشش کریں"
 
+msgid "Activity Log"
+msgstr "سرگرمی کا ریکارڈ"
+
+msgid "Backups & Export"
+msgstr "بیک اپ اور ایکسپورٹ"
+
+msgid "Backups & Data Export"
+msgstr "بیک اپ اور ڈیٹا ایکسپورٹ"
+
+msgid "Download JSON Backup"
+msgstr "جے سن بیک اپ ڈاؤنلوڈ کریں"
+
+msgid "Download All Bills CSV"
+msgstr "تمام بلز سی ایس وی ڈاؤنلوڈ کریں"
+
+msgid "Create Server Snapshot"
+msgstr "سرور بیک اپ بنائیں"
+
+msgid "Saved Server Snapshots"
+msgstr "محفوظ شدہ سرور بیک اپس"
+
+msgid "No server backups created yet."
+msgstr "ابھی تک کوئی سرور بیک اپ نہیں بنایا گیا۔"
+
+msgid "Global Search"
+msgstr "تلاش کریں"
+
+msgid "Search Results"
+msgstr "تلاش کے نتائج"
+
+msgid "Search bills, parties, items..."
+msgstr "بلز، دکاندار، گاہک یا اشیاء تلاش کریں..."
+
+msgid "Matching Bills"
+msgstr "ملتے جلتے بلز"
+
+msgid "Matching Vendors & Customers"
+msgstr "ملتے جلتے دکاندار اور گاہک"
+
+msgid "Matching Line Items"
+msgstr "ملتی جلتی اشیاء"
+
+msgid "Total Active Bills"
+msgstr "کل فعال بلز"
+
+msgid "Vendors & Customers"
+msgstr "دکاندار اور گاہک"
+
+msgid "Recorded Payments"
+msgstr "درج شدہ ادائیگیاں"
+
+msgid "No activity logs found."
+msgstr "سرگرمی کا کوئی ریکارڈ نہیں ملا۔"
+
+msgid "Filter"
+msgstr "فلٹر کریں"
+
+msgid "Clear"
+msgstr "صاف کریں"
+
+msgid "Search"
+msgstr "تلاش کریں"
+
+msgid "Timestamp"
+msgstr "وقت اور تاریخ"
+
+msgid "Action"
+msgstr "کارروائی"
+
+msgid "Target"
+msgstr "ہدف"
+
+msgid "Description"
+msgstr "تفصیل"
+
+msgid "All Actions"
+msgstr "تمام کارروائیاں"
+

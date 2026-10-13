@@ -22,6 +22,7 @@ db.sqlite3
 db.sqlite3-journal
 media/
 staticfiles/
+backups/
 
 # Environment variables — NEVER commit this
 .env
