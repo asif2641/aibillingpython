@@ -8,6 +8,7 @@ from decimal import Decimal
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
+from django.db.models import Q, Sum
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -15,6 +16,7 @@ from django.utils import timezone
 from bills.forms import BillForm, BillItemFormSet
 from bills.models import Bill
 from bills.services import recalculate_bill_totals
+from parties.models import Party
 
 
 def check_can_delete_permission(user) -> None:
@@ -36,7 +38,12 @@ def bill_list_view(request: HttpRequest) -> HttpResponse:
     # Filters
     query = request.GET.get("q")
     if query:
-        qs = qs.filter(invoice_no__icontains=query.strip())
+        q_clean = query.strip()
+        qs = qs.filter(
+            Q(invoice_no__icontains=q_clean)
+            | Q(party__name__icontains=q_clean)
+            | Q(party__urdu_name__icontains=q_clean)
+        )
 
     party_id = request.GET.get("party")
     if party_id:
@@ -50,6 +57,13 @@ def bill_list_view(request: HttpRequest) -> HttpResponse:
     if date_filter:
         qs = qs.filter(bill_date=date_filter)
 
+    # Aggregates for all matching filtered bills
+    total_amount = qs.aggregate(total=Sum("grand_total"))["total"] or Decimal("0.00")
+    total_count = qs.count()
+
+    selected_party = Party.objects.filter(pk=party_id).first() if party_id else None
+    parties = Party.objects.filter(is_active=True).order_by("name")
+
     paginator = Paginator(qs, 25)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
@@ -60,6 +74,11 @@ def bill_list_view(request: HttpRequest) -> HttpResponse:
         {
             "bills": page_obj,
             "page_obj": page_obj,
+            "parties": parties,
+            "selected_party": selected_party,
+            "selected_party_id": party_id,
+            "total_count": total_count,
+            "total_amount": total_amount,
         },
     )
 

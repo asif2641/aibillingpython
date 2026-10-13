@@ -44,8 +44,15 @@
             <!-- Metadata Row -->
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pb-6 border-b border-slate-200 dark:border-slate-700 text-xs">
                 <div>
-                    <p class="text-slate-400 font-semibold mb-0.5">{% trans "Party / Vendor" %}</p>
-                    <p class="font-bold text-slate-900 dark:text-white text-sm">{{ bill.party.name }}</p>
+                    <p class="font-bold text-slate-900 dark:text-white text-sm">
+                        <a href="{% url 'ledger:party_ledger' bill.party.pk %}" class="hover:text-primary-600 dark:hover:text-primary-400 hover:underline inline-flex items-center gap-1.5" title="{% trans 'View Khata Ledger' %}">
+                            <span>{{ bill.party.name }}</span>
+                            <span class="text-[10px] text-primary-500 font-normal">📖 {% trans "Khata" %}</span>
+                        </a>
+                    </p>
+                    {% if bill.party.urdu_name and bill.party.urdu_name != bill.party.name %}
+                        <p class="text-xs text-slate-400 dark:text-slate-500 font-urdu">{{ bill.party.urdu_name }}</p>
+                    {% endif %}
                     <p class="text-slate-500 text-[11px]">{{ bill.party.phone }}</p>
                 </div>
                 <div>

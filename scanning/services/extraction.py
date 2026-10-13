@@ -86,7 +86,7 @@ EXTRACTION_SYSTEM_PROMPT = """You are an expert AI bill, receipt, and invoice sc
 Extract all details from the provided document image(s) or PDF according to the schema below.
 Follow these critical rules:
 1. Return ONLY a single valid JSON object matching the schema. No markdown code blocks, no explanation text outside JSON.
-2. Read handwritten and printed bills in English, Urdu, and mixed text. Preserve original Urdu or English item and vendor names.
+2. Read handwritten and printed bills in English, Urdu, and mixed text. For vendor and item names: provide the standard English / Roman transliterated name in 'name' (e.g. 'Arif Chicken Center') AND provide the Urdu text in 'urdu_name' (e.g. 'عارف چکن سنٹر') if written in Urdu script. If only English is present, put it in 'name'.
 3. If a field is not present or cannot be read with confidence, set it to null. NEVER invent or guess data.
 4. Accurately extract all line items in order: item name, quantity, unit, unit price, discount, tax, line total, confidence (0-100).
 5. Accurately extract totals: subtotal, discount, tax, other charges, grand total, amount paid, balance due.
@@ -98,7 +98,7 @@ Schema to return:
 {
   "document_type": "printed",
   "languages": ["en", "ur"],
-  "vendor": {"name": null, "phone": null, "address": null, "tax_no": null},
+  "vendor": {"name": null, "urdu_name": null, "phone": null, "address": null, "tax_no": null},
   "customer": {"name": null, "phone": null, "address": null},
   "invoice_no": null,
   "date": "YYYY-MM-DD",

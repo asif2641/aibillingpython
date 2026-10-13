@@ -125,18 +125,28 @@ def resolve_scan_party(
         return fallback, is_new
 
     name = party_data.get("name") or "Unspecified Vendor"
+    urdu_name = party_data.get("urdu_name") or ""
     phone = party_data.get("phone") or ""
     address = party_data.get("address") or ""
     tax_number = party_data.get("tax_no") or ""
+
+    import re
+
+    if re.search(r"[\u0600-\u06FF]", name) and not urdu_name:
+        urdu_name = name
 
     existing_before = Party.objects.filter(name__iexact=name.strip()).first()
     party = match_or_create_party(
         name=name,
         phone=phone,
         party_type=party_type,
+        urdu_name=urdu_name,
         address=address,
         tax_number=tax_number,
     )
+    if urdu_name and not party.urdu_name:
+        party.urdu_name = urdu_name
+        party.save(update_fields=["urdu_name"])
 
     is_new = existing_before is None
     return party, is_new

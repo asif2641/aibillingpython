@@ -4,8 +4,7 @@
 {% block title %}{% trans "Bills & Invoices" %} — Bill Scanner & Ledger{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 py-8 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-7xl mx-auto space-y-6">
+<div class="max-w-7xl mx-auto space-y-6">
 
         <!-- Top Header & Actions -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -34,15 +33,29 @@
 
         <!-- Filter / Search Card -->
         <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm p-4 sm:p-5">
-            <form method="get" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+            <form method="get" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
                 <!-- Search input -->
                 <div>
                     <input 
                         type="text" 
                         name="q" 
                         value="{{ request.GET.q|default:'' }}"
-                        placeholder="{% trans "Search invoice #..." %}"
+                        placeholder="{% trans "Search invoice # or party..." %}"
                         class="w-full px-3.5 py-2 min-h-[42px] rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-primary-500 transition-colors">
+                </div>
+
+                <!-- Party filter -->
+                <div>
+                    <select 
+                        name="party"
+                        class="w-full px-3.5 py-2 min-h-[42px] rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-primary-500 transition-colors">
+                        <option value="">{% trans "All Parties" %}</option>
+                        {% for p in parties %}
+                            <option value="{{ p.pk }}" {% if selected_party_id == p.pk|stringformat:"s" %}selected{% endif %}>
+                                {{ p.name }}{% if p.urdu_name and p.urdu_name != p.name %} ({{ p.urdu_name }}){% endif %}
+                            </option>
+                        {% endfor %}
+                    </select>
                 </div>
 
                 <!-- Status filter -->
@@ -73,7 +86,7 @@
                         class="flex-1 py-2 min-h-[42px] rounded-xl bg-slate-900 dark:bg-slate-700 text-white font-semibold text-xs hover:bg-slate-800 transition-colors">
                         {% trans "Filter" %}
                     </button>
-                    {% if request.GET.q or request.GET.payment_status or request.GET.date %}
+                    {% if request.GET.q or request.GET.party or request.GET.payment_status or request.GET.date %}
                         <a href="{% url 'bills:bill_list' %}" 
                            class="px-3 py-2 min-h-[42px] inline-flex items-center rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-700 text-xs font-medium">
                             {% trans "Clear" %}
@@ -81,6 +94,34 @@
                     {% endif %}
                 </div>
             </form>
+        </div>
+
+        <!-- Summary KPI Cards -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-4 shadow-sm">
+                <span class="text-[11px] font-semibold uppercase text-slate-400">{% trans "Total Bills" %}</span>
+                <p class="text-xl font-bold text-slate-900 dark:text-white mt-1">{{ total_count }}</p>
+            </div>
+            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-4 shadow-sm">
+                <span class="text-[11px] font-semibold uppercase text-slate-400">{% trans "Total Amount" %}</span>
+                <p class="text-xl font-bold text-primary-600 dark:text-primary-400 font-mono mt-1">Rs. {{ total_amount }}</p>
+            </div>
+            {% if selected_party %}
+            <div class="col-span-2 bg-primary-50/70 dark:bg-primary-950/40 rounded-2xl border border-primary-200 dark:border-primary-900/50 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-sm">
+                <div>
+                    <span class="text-[11px] font-semibold uppercase text-primary-600 dark:text-primary-400">{% trans "Party Ledger (Khata)" %}</span>
+                    <p class="text-sm font-bold text-slate-900 dark:text-white mt-0.5">
+                        {{ selected_party.name }}
+                        {% if selected_party.urdu_name and selected_party.urdu_name != selected_party.name %}
+                            <span class="font-normal text-xs text-slate-500 font-urdu mr-1">({{ selected_party.urdu_name }})</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <a href="{% url 'ledger:party_ledger' selected_party.pk %}" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold shadow-sm transition-colors whitespace-nowrap">
+                    <span>📖 {% trans "View Full Khata Ledger" %}</span>
+                </a>
+            </div>
+            {% endif %}
         </div>
 
         <!-- Table Card -->
@@ -107,7 +148,12 @@
                                 <p class="text-[11px] text-slate-400">{{ bill.bill_date }}</p>
                             </td>
                             <td class="py-3.5 px-4 font-medium text-slate-900 dark:text-white">
-                                {{ bill.party.name }}
+                                <a href="{% url 'ledger:party_ledger' bill.party.pk %}" class="hover:text-primary-600 dark:hover:text-primary-400 hover:underline block" title="{% trans 'View Khata Ledger' %}">
+                                    <span class="font-semibold">{{ bill.party.name }}</span>
+                                    {% if bill.party.urdu_name and bill.party.urdu_name != bill.party.name %}
+                                        <span class="text-[11px] text-slate-400 dark:text-slate-500 font-normal block font-urdu">{{ bill.party.urdu_name }}</span>
+                                    {% endif %}
+                                </a>
                             </td>
                             <td class="py-3.5 px-4 font-mono font-bold text-slate-900 dark:text-white">
                                 Rs. {{ bill.grand_total }}
@@ -158,6 +204,14 @@
                         </tr>
                         {% endfor %}
                     </tbody>
+                    <tfoot class="bg-slate-50/80 dark:bg-slate-900/60 font-semibold border-t border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white">
+                        <tr>
+                            <td class="py-3.5 px-4 sm:px-6">{% trans "Total" %} ({{ total_count }} {% trans "bills" %})</td>
+                            <td></td>
+                            <td class="py-3.5 px-4 font-mono font-bold text-primary-600 dark:text-primary-400">Rs. {{ total_amount }}</td>
+                            <td colspan="3"></td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
 
@@ -179,5 +233,4 @@
             {% endif %}
         </div>
     </div>
-</div>
 {% endblock %}
