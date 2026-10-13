@@ -587,7 +587,7 @@ def process_scan_job(job: ScanJob) -> Bill:
 
         # 5. Detect and attach errors
         discrepancies = detect_bill_errors(validated_data)
-        if is_fast_duplicate and prev_bill:
+        if is_fast_duplicate and prev_bill and not prev_bill.is_deleted:
             discrepancies.append(
                 {
                     "error_type": BillError.ErrorType.DUPLICATE_SUSPECT,

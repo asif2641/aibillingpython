@@ -158,9 +158,10 @@ def detect_bill_errors(extracted_data: Dict[str, Any]) -> List[Dict[str, Any]]:
     invoice_no = extracted_data.get("invoice_no")
     if invoice_no and grand_total_raw is not None and date_val:
         with contextlib.suppress(ValueError, TypeError, InvalidOperation, ObjectDoesNotExist):
-            existing = Bill.all_objects.filter(
+            existing = Bill.objects.filter(
                 invoice_no__iexact=str(invoice_no).strip(),
                 grand_total=money_round(Decimal(str(grand_total_raw))),
+                is_deleted=False,
             ).first()
             if existing:
                 errors.append(

@@ -108,7 +108,7 @@ def check_duplicate_view(request: HttpRequest) -> JsonResponse:
         return JsonResponse({"is_duplicate": False})
 
     existing_file = (
-        BillFile.objects.filter(file_hash=file_hash, bill__isnull=False)
+        BillFile.objects.filter(file_hash=file_hash, bill__isnull=False, bill__is_deleted=False)
         .select_related("bill__party", "scan_job")
         .order_by("-id")
         .first()

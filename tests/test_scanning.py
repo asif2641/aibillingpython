@@ -1021,3 +1021,64 @@ class TestAIExtractorProviderResolution:
         assert new_bill is not None
         assert new_bill.items.filter(item_name="Cached Item").exists()
         assert new_bill.errors.filter(error_type=BillError.ErrorType.DUPLICATE_SUSPECT).exists()
+
+    def test_deleted_bill_not_flagged_as_duplicate(self, client, superadmin_user, sample_image):
+        """When an earlier bill was deleted, re-uploading the same document does NOT flag duplicate suspect."""
+        from bills.models import Bill
+        from parties.models import Party
+        from scanning.models import BillError, BillFile, ScanJob
+        from scanning.services.extraction import process_scan_job
+
+        vendor = Party.objects.create(name="Deleted Vendor", party_type="vendor")
+        old_bill = Bill.all_objects.create(
+            party=vendor,
+            bill_date="2026-10-13",
+            grand_total=Decimal("600.00"),
+            is_deleted=True,  # DELETED bill!
+        )
+
+        old_job = ScanJob.objects.create(
+            provider="mock",
+            bill=old_bill,
+            status=ScanJob.Status.COMPLETED,
+            extracted_data={
+                "document_type": "printed",
+                "vendor": {"name": "Deleted Vendor"},
+                "items": [
+                    {
+                        "name": "Item Once Deleted",
+                        "quantity": 1,
+                        "unit_price": 600,
+                        "line_total": 600,
+                    }
+                ],
+                "grand_total": 600.0,
+            },
+        )
+        test_hash = "hash_of_deleted_document_12345"
+        BillFile.objects.create(
+            scan_job=old_job,
+            bill=old_bill,
+            file=sample_image,
+            page_number=1,
+            file_hash=test_hash,
+        )
+
+        # 1. Check duplicate endpoint returns False
+        client.force_login(superadmin_user)
+        response = client.get(f"/en/scanning/check-duplicate/?hash={test_hash}")
+        assert response.status_code == 200
+        assert response.json()["is_duplicate"] is False
+
+        # 2. Process new scan job: data is reused from cache for speed, but NO duplicate warning is raised!
+        new_job = ScanJob.objects.create(provider="mock", created_by=superadmin_user)
+        BillFile.objects.create(
+            scan_job=new_job,
+            file=sample_image,
+            page_number=1,
+            file_hash=test_hash,
+        )
+
+        new_bill = process_scan_job(new_job)
+        assert new_bill is not None
+        assert not new_bill.errors.filter(error_type=BillError.ErrorType.DUPLICATE_SUSPECT).exists()
