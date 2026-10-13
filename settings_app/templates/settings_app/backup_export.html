@@ -1,0 +1,214 @@
+{% extends "settings_app/settings_base.html" %}
+{% load i18n %}
+
+{% block settings_title %}{% trans "Backups & Export" %}{% endblock %}
+
+{% block settings_content %}
+<div class="space-y-6">
+
+    <!-- 4 Live Database Summary KPI Cards -->
+    <section aria-label="{% trans 'Database Records Summary' %}" class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white dark:bg-slate-800/90 rounded-2xl p-5 border border-slate-200 dark:border-slate-700/80 shadow-sm">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    {% trans "Total Active Bills" %}
+                </span>
+                <span class="text-xl">🧾</span>
+            </div>
+            <div class="mt-3 text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
+                {{ bills_count|default:"0" }}
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-slate-800/90 rounded-2xl p-5 border border-slate-200 dark:border-slate-700/80 shadow-sm">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    {% trans "Vendors & Customers" %}
+                </span>
+                <span class="text-xl">🤝</span>
+            </div>
+            <div class="mt-3 text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
+                {{ parties_count|default:"0" }}
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-slate-800/90 rounded-2xl p-5 border border-slate-200 dark:border-slate-700/80 shadow-sm">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    {% trans "Recorded Payments" %}
+                </span>
+                <span class="text-xl">💸</span>
+            </div>
+            <div class="mt-3 text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
+                {{ payments_count|default:"0" }}
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-slate-800/90 rounded-2xl p-5 border border-slate-200 dark:border-slate-700/80 shadow-sm">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    {% trans "Categories" %}
+                </span>
+                <span class="text-xl">🏷️</span>
+            </div>
+            <div class="mt-3 text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
+                {{ categories_count|default:"0" }}
+            </div>
+        </div>
+    </section>
+
+    <!-- Export & Backup Action Cards -->
+    <section aria-label="{% trans 'Backup and Export Actions' %}" class="grid grid-cols-1 md:grid-cols-3 gap-5">
+
+        <!-- Action 1: Download Full JSON Backup -->
+        <div class="bg-white dark:bg-slate-800/90 rounded-2xl p-6 border border-slate-200 dark:border-slate-700/80 shadow-sm flex flex-col justify-between space-y-4">
+            <div class="space-y-2">
+                <div class="w-11 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl">
+                    📦
+                </div>
+                <h3 class="text-base font-bold text-slate-900 dark:text-white">
+                    {% trans "Download JSON Backup" %}
+                </h3>
+                <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                    {% trans "Export complete shop profile, categories, units, parties, bills, line items, and payments in a portable JSON file." %}
+                </p>
+            </div>
+            <div>
+                <a href="{% url 'backup_download_json' %}"
+                   class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 min-h-[44px] rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    <span>{% trans "Download JSON Backup" %}</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Action 2: Download All Bills CSV -->
+        <div class="bg-white dark:bg-slate-800/90 rounded-2xl p-6 border border-slate-200 dark:border-slate-700/80 shadow-sm flex flex-col justify-between space-y-4">
+            <div class="space-y-2">
+                <div class="w-11 h-11 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xl">
+                    📊
+                </div>
+                <h3 class="text-base font-bold text-slate-900 dark:text-white">
+                    {% trans "Download All Bills CSV" %}
+                </h3>
+                <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                    {% trans "Download a spreadsheet-ready CSV of all active purchase and sale invoices for Excel or accounting software." %}
+                </p>
+            </div>
+            <div>
+                <a href="{% url 'backup_download_csv' %}"
+                   class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 min-h-[44px] rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    <span>{% trans "Download All Bills CSV" %}</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Action 3: Create Server Snapshot -->
+        <div class="bg-white dark:bg-slate-800/90 rounded-2xl p-6 border border-slate-200 dark:border-slate-700/80 shadow-sm flex flex-col justify-between space-y-4">
+            <div class="space-y-2">
+                <div class="w-11 h-11 rounded-xl bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center text-xl">
+                    💾
+                </div>
+                <h3 class="text-base font-bold text-slate-900 dark:text-white">
+                    {% trans "Create Server Snapshot" %}
+                </h3>
+                <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                    {% trans "Save an immediate timestamped JSON snapshot on the server disk and automatically prune backups older than 30 days." %}
+                </p>
+            </div>
+            <form method="post" action="{% url 'backup_create' %}">
+                {% csrf_token %}
+                <button type="submit"
+                        class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 min-h-[44px] rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+                    <span>{% trans "Create Server Snapshot" %}</span>
+                </button>
+            </form>
+        </div>
+
+    </section>
+
+    <!-- Server Snapshots History Section -->
+    <div class="bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm overflow-hidden">
+        <div class="p-4 sm:p-6 border-b border-slate-200 dark:border-slate-700/80 flex items-center justify-between">
+            <div>
+                <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+                    {% trans "Saved Server Snapshots" %}
+                </h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    {% trans "Snapshots stored in the server backups directory (30-day automatic retention)." %}
+                </p>
+            </div>
+            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
+                {{ backups|length }}
+            </span>
+        </div>
+
+        <!-- Desktop Table -->
+        <div class="hidden md:block overflow-x-auto">
+            <table class="w-full text-left rtl:text-right border-collapse">
+                <thead>
+                    <tr class="border-b border-slate-200 dark:border-slate-700/80 bg-slate-50/80 dark:bg-slate-900/50 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        <th class="py-3.5 px-6">{% trans "Filename" %}</th>
+                        <th class="py-3.5 px-6">{% trans "Size" %}</th>
+                        <th class="py-3.5 px-6">{% trans "Created / Modified At" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 dark:divide-slate-700/60 text-sm">
+                    {% for b in backups %}
+                    <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-700/30 transition-colors">
+                        <td class="py-3.5 px-6 font-mono text-xs sm:text-sm font-medium text-slate-900 dark:text-white">
+                            📄 {{ b.filename }}
+                        </td>
+                        <td class="py-3.5 px-6 text-slate-600 dark:text-slate-300">
+                            {{ b.size_kb }} KB <span class="text-xs text-slate-400">({{ b.size_bytes }} B)</span>
+                        </td>
+                        <td class="py-3.5 px-6 text-slate-600 dark:text-slate-300 font-mono text-xs">
+                            {{ b.modified_at|date:"Y-m-d H:i:s" }} UTC
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="py-10 px-6 text-center">
+                            <div class="flex flex-col items-center justify-center space-y-2">
+                                <span class="text-3xl">🗄️</span>
+                                <p class="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                    {% trans "No server backups created yet." %}
+                                </p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">
+                                    {% trans "Click 'Create Server Snapshot' above to store an immediate snapshot on the server." %}
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Mobile Cards -->
+        <div class="md:hidden p-4 space-y-3">
+            {% for b in backups %}
+            <div class="rounded-xl border border-slate-200 dark:border-slate-700 p-3.5 bg-slate-50/60 dark:bg-slate-900/40 space-y-1.5">
+                <div class="font-mono text-xs font-bold text-slate-900 dark:text-white break-all">
+                    📄 {{ b.filename }}
+                </div>
+                <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                    <span>{{ b.size_kb }} KB</span>
+                    <span class="font-mono">{{ b.modified_at|date:"Y-m-d H:i" }}</span>
+                </div>
+            </div>
+            {% empty %}
+            <div class="py-6 text-center space-y-2">
+                <div class="text-2xl">🗄️</div>
+                <p class="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    {% trans "No server backups created yet." %}
+                </p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}

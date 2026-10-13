@@ -239,7 +239,7 @@
         <!-- ===================================================================== -->
         <!-- TOP BAR -->
         <!-- ===================================================================== -->
-        <header class="h-16 flex-shrink-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-20">
+        <header class="h-16 flex-shrink-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 flex items-center justify-between gap-3 sticky top-0 z-20">
             
             <!-- Left section: Mobile menu button & breadcrumbs/greeting -->
             <div class="flex items-center gap-3">
@@ -259,6 +259,22 @@
                     </span>
                 </div>
             </div>
+
+            <!-- Center section: Compact Global Search Bar -->
+            <form action="{% url 'global_search' %}" method="get" class="flex-1 max-w-xs sm:max-w-sm mx-2" role="search">
+                <label for="dashboard-global-search" class="sr-only">{% trans "Global Search" %}</label>
+                <div class="relative flex items-center">
+                    <svg class="w-4 h-4 text-slate-400 absolute ltr:left-3 rtl:right-3 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    <input
+                        id="dashboard-global-search"
+                        type="search"
+                        name="q"
+                        placeholder="{% trans 'Search bills, parties, items...' %}"
+                        class="w-full min-h-[38px] ltr:pl-9 ltr:pr-3 rtl:pr-9 rtl:pl-3 py-1.5 text-xs sm:text-sm bg-slate-100 dark:bg-slate-700/70 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-400 rounded-xl border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white dark:focus:bg-slate-800 transition-all">
+                </div>
+            </form>
 
             <!-- Right section: Controls, Language Switcher, Theme Toggle, User Profile -->
             <div class="flex items-center gap-2 sm:gap-3">

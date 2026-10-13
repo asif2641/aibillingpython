@@ -9,6 +9,7 @@ tax, localization, receipt footer, and scanning limit settings.
 
 from __future__ import annotations
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
@@ -141,3 +142,64 @@ class ShopProfile(models.Model):
         """Retrieve the existing singleton instance or create the default."""
         obj, _ = cls.objects.get_or_create(pk=1)
         return obj
+
+
+class ActivityLog(models.Model):
+    """Audit trail record for key financial, party, settings, and system actions."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="activity_logs",
+        verbose_name=_("user"),
+    )
+    action = models.CharField(
+        max_length=100,
+        db_index=True,
+        verbose_name=_("action"),
+    )
+    target_type = models.CharField(
+        max_length=50,
+        blank=True,
+        default="",
+        verbose_name=_("target type"),
+    )
+    target_id = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_("target ID"),
+    )
+    description = models.TextField(
+        blank=True,
+        default="",
+        verbose_name=_("description"),
+    )
+    ip_address = models.GenericIPAddressField(
+        null=True,
+        blank=True,
+        verbose_name=_("IP address"),
+    )
+    metadata = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name=_("metadata"),
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        db_index=True,
+        verbose_name=_("created at"),
+    )
+
+    class Meta:
+        verbose_name = _("activity log")
+        verbose_name_plural = _("activity logs")
+        ordering = ["-created_at", "-id"]
+        indexes = [
+            models.Index(fields=["action", "created_at"]),
+            models.Index(fields=["target_type", "target_id"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.action} by {self.user or 'System'} at {self.created_at}"

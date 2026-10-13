@@ -116,14 +116,42 @@
   }
 
   // ───────────────────────────────────────────────────────────────────────────
-  // 2. Reference Data Caching (/sync/pull/)
+  // 2. Reference Data Caching (/sync/pull/ with ?since= Delta Sync)
   // ───────────────────────────────────────────────────────────────────────────
+
+  function populateStore(db, storeName, items, isDeltaPull) {
+    return new Promise((resolve, reject) => {
+      if (!Array.isArray(items)) return resolve();
+      const tx = db.transaction(storeName, 'readwrite');
+      const store = tx.objectStore(storeName);
+
+      if (!isDeltaPull) {
+        store.clear();
+      }
+
+      items.forEach((item) => {
+        store.put(item);
+      });
+
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
 
   async function cacheReferenceData() {
     if (!navigator.onLine) return;
     try {
+      const last_pulled_at = localStorage.getItem('aibilling_last_pulled_at') || '';
+      const isDeltaPull = Boolean(last_pulled_at);
+      const querySuffix = isDeltaPull
+        ? `?since=${encodeURIComponent(last_pulled_at)}`
+        : '';
+
       const langPrefix = document.documentElement.lang === 'ur' ? '/ur' : '/en';
-      const endpoints = ['/sync/pull/', `${langPrefix}/sync/pull/`];
+      const endpoints = [
+        `/sync/pull/${querySuffix}`,
+        `${langPrefix}/sync/pull/${querySuffix}`,
+      ];
       let response = null;
 
       for (const ep of endpoints) {
@@ -142,25 +170,25 @@
       const data = await response.json();
       const db = await openDB();
 
-      if (Array.isArray(data.parties) && data.parties.length > 0) {
-        const tx = db.transaction('cached_parties', 'readwrite');
-        const store = tx.objectStore('cached_parties');
-        data.parties.forEach((p) => store.put(p));
+      if (Array.isArray(data.parties)) {
+        await populateStore(db, 'cached_parties', data.parties, isDeltaPull);
       }
 
-      if (Array.isArray(data.categories) && data.categories.length > 0) {
-        const tx = db.transaction('cached_categories', 'readwrite');
-        const store = tx.objectStore('cached_categories');
-        data.categories.forEach((c) => store.put(c));
+      if (Array.isArray(data.categories)) {
+        await populateStore(db, 'cached_categories', data.categories, isDeltaPull);
       }
 
-      if (Array.isArray(data.units) && data.units.length > 0) {
-        const tx = db.transaction('cached_units', 'readwrite');
-        const store = tx.objectStore('cached_units');
-        data.units.forEach((u) => store.put(u));
+      if (Array.isArray(data.units)) {
+        await populateStore(db, 'cached_units', data.units, isDeltaPull);
       }
 
-      console.log('[OfflineSync] Reference data cached in IndexedDB.');
+      if (data.server_time) {
+        localStorage.setItem('aibilling_last_pulled_at', data.server_time);
+      }
+
+      console.log(
+        `[OfflineSync] Reference data cached in IndexedDB (${isDeltaPull ? 'delta' : 'full'} pull).`
+      );
     } catch (err) {
       console.warn('[OfflineSync] Failed to cache reference data:', err);
     }

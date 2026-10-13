@@ -1,0 +1,346 @@
+{% extends "settings_app/settings_base.html" %}
+{% load i18n %}
+
+{% block settings_title %}{% trans "Search Results" %}{% endblock %}
+
+{% block settings_content %}
+<div class="space-y-6">
+
+    <!-- Search Input & Match Count Header Card -->
+    <div class="bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm p-5 sm:p-6 space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+                <h2 class="text-lg sm:text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span>🔍</span>
+                    <span>{% trans "Search Results" %}</span>
+                </h2>
+                <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                    {% trans "Search across bills, vendors, customers, and line items in English and Urdu." %}
+                </p>
+            </div>
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-primary-50 dark:bg-primary-950/60 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800">
+                {% trans "Total results:" %} {{ total_results }}
+            </span>
+        </div>
+
+        <form action="{% url 'global_search' %}" method="get" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <label for="global-search-page-input" class="sr-only">{% trans "Search query" %}</label>
+            <div class="relative flex-1">
+                <input
+                    id="global-search-page-input"
+                    type="search"
+                    name="q"
+                    value="{% if total_results > 0 %}{{ query }}{% endif %}"
+                    placeholder="{% trans 'Search bills, parties, items...' %}"
+                    class="w-full min-h-[44px] px-4 py-2.5 text-sm bg-slate-50 dark:bg-slate-900/70 text-slate-900 dark:text-white rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all">
+            </div>
+            <button
+                type="submit"
+                class="min-h-[44px] px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
+                {% trans "Search" %}
+            </button>
+        </form>
+    </div>
+
+    {% if not query %}
+    <!-- Initial / Empty Query State -->
+    <div class="bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-10 text-center space-y-2 shadow-sm">
+        <div class="text-4xl">🔎</div>
+        <h3 class="text-base font-bold text-slate-900 dark:text-white">
+            {% trans "Enter a keyword to search" %}
+        </h3>
+        <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+            {% trans "Type an invoice number, vendor or customer name, phone number, or item name above." %}
+        </p>
+    </div>
+    {% else %}
+
+    <!-- ===================================================================== -->
+    <!-- SECTION 1: MATCHING BILLS -->
+    <!-- ===================================================================== -->
+    <section aria-label="{% trans 'Matching Bills' %}" class="bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm overflow-hidden">
+        <div class="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-700/80 flex items-center justify-between">
+            <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <span>🧾</span>
+                <span>{% trans "Matching Bills" %}</span>
+            </h3>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
+                {{ bills|length }}
+            </span>
+        </div>
+
+        <!-- Desktop Table -->
+        <div class="hidden md:block overflow-x-auto">
+            <table class="w-full text-left rtl:text-right border-collapse">
+                <thead>
+                    <tr class="border-b border-slate-200 dark:border-slate-700/80 bg-slate-50/80 dark:bg-slate-900/50 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        <th class="py-3 px-5">{% trans "Invoice #" %}</th>
+                        <th class="py-3 px-5">{% trans "Party" %}</th>
+                        <th class="py-3 px-5">{% trans "Bill Date" %}</th>
+                        <th class="py-3 px-5">{% trans "Grand Total" %}</th>
+                        <th class="py-3 px-5">{% trans "Status" %}</th>
+                        <th class="py-3 px-5 text-right rtl:text-left">{% trans "Actions" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 dark:divide-slate-700/60 text-sm">
+                    {% for bill in bills %}
+                    <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-700/30 transition-colors">
+                        <td class="py-3.5 px-5 font-semibold text-primary-600 dark:text-primary-400">
+                            <a href="{% url 'bills:bill_detail' bill.pk %}" class="hover:underline">
+                                {{ bill.invoice_no|default:bill.pk }}
+                            </a>
+                        </td>
+                        <td class="py-3.5 px-5 font-medium text-slate-900 dark:text-white">
+                            {{ bill.party.name|default:"—" }}
+                            {% if bill.party.urdu_name %}
+                            <span class="block text-xs text-slate-500 dark:text-slate-400">{{ bill.party.urdu_name }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-5 text-slate-600 dark:text-slate-300 font-mono text-xs">
+                            {{ bill.bill_date|date:"Y-m-d" }}
+                        </td>
+                        <td class="py-3.5 px-5 font-bold text-slate-900 dark:text-white">
+                            PKR {{ bill.grand_total }}
+                        </td>
+                        <td class="py-3.5 px-5">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold
+                                {% if bill.payment_status == 'Paid' or bill.payment_status == 'paid' %}
+                                    bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300
+                                {% elif bill.payment_status == 'Partially Paid' or bill.payment_status == 'partial' %}
+                                    bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300
+                                {% else %}
+                                    bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300
+                                {% endif %}">
+                                {{ bill.get_payment_status_display|default:bill.payment_status }}
+                            </span>
+                        </td>
+                        <td class="py-3.5 px-5 text-right rtl:text-left">
+                            <a href="{% url 'bills:bill_detail' bill.pk %}"
+                               class="inline-flex items-center px-3 py-1.5 min-h-[36px] rounded-lg text-xs font-semibold bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 hover:bg-primary-100 transition-colors">
+                                {% trans "View Bill" %}
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="py-6 px-5 text-center text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                            {% trans "No matching bills found." %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Mobile Cards -->
+        <div class="md:hidden p-4 space-y-3">
+            {% for bill in bills %}
+            <a href="{% url 'bills:bill_detail' bill.pk %}" class="block rounded-xl border border-slate-200 dark:border-slate-700 p-3.5 bg-slate-50/50 dark:bg-slate-900/40 space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="font-bold text-sm text-primary-600 dark:text-primary-400">
+                        {{ bill.invoice_no|default:bill.pk }}
+                    </span>
+                    <span class="text-xs font-bold text-slate-900 dark:text-white">
+                        PKR {{ bill.grand_total }}
+                    </span>
+                </div>
+                <div class="flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
+                    <span>{{ bill.party.name|default:"—" }}</span>
+                    <span class="font-mono">{{ bill.bill_date|date:"Y-m-d" }}</span>
+                </div>
+            </a>
+            {% empty %}
+            <p class="py-4 text-center text-xs text-slate-500 dark:text-slate-400">
+                {% trans "No matching bills found." %}
+            </p>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- SECTION 2: MATCHING VENDORS & CUSTOMERS -->
+    <!-- ===================================================================== -->
+    <section aria-label="{% trans 'Matching Vendors & Customers' %}" class="bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm overflow-hidden">
+        <div class="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-700/80 flex items-center justify-between">
+            <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <span>🤝</span>
+                <span>{% trans "Matching Vendors & Customers" %}</span>
+            </h3>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
+                {{ parties|length }}
+            </span>
+        </div>
+
+        <!-- Desktop Table -->
+        <div class="hidden md:block overflow-x-auto">
+            <table class="w-full text-left rtl:text-right border-collapse">
+                <thead>
+                    <tr class="border-b border-slate-200 dark:border-slate-700/80 bg-slate-50/80 dark:bg-slate-900/50 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        <th class="py-3 px-5">{% trans "Party / Business Name" %}</th>
+                        <th class="py-3 px-5">{% trans "Name in Urdu" %}</th>
+                        <th class="py-3 px-5">{% trans "Phone Number" %}</th>
+                        <th class="py-3 px-5">{% trans "Party Type" %}</th>
+                        <th class="py-3 px-5 text-right rtl:text-left">{% trans "Actions" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 dark:divide-slate-700/60 text-sm">
+                    {% for party in parties %}
+                    <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-700/30 transition-colors">
+                        <td class="py-3.5 px-5 font-semibold text-slate-900 dark:text-white">
+                            <a href="{% url 'ledger:party_ledger' party.pk %}" class="hover:text-primary-600 dark:hover:text-primary-400">
+                                {{ party.name }}
+                            </a>
+                        </td>
+                        <td class="py-3.5 px-5 text-slate-600 dark:text-slate-300">
+                            {{ party.urdu_name|default:"—" }}
+                        </td>
+                        <td class="py-3.5 px-5 font-mono text-xs text-slate-600 dark:text-slate-300">
+                            {{ party.phone|default:"—" }}
+                        </td>
+                        <td class="py-3.5 px-5">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300">
+                                {{ party.get_party_type_display|default:party.party_type }}
+                            </span>
+                        </td>
+                        <td class="py-3.5 px-5 text-right rtl:text-left space-x-2 rtl:space-x-reverse">
+                            <a href="{% url 'ledger:party_ledger' party.pk %}"
+                               class="inline-flex items-center px-3 py-1.5 min-h-[36px] rounded-lg text-xs font-semibold bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 hover:bg-primary-100 transition-colors">
+                                {% trans "Ledger" %}
+                            </a>
+                            <a href="{% url 'parties:party_edit' party.pk %}"
+                               class="inline-flex items-center px-3 py-1.5 min-h-[36px] rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 transition-colors">
+                                {% trans "Edit" %}
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="py-6 px-5 text-center text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                            {% trans "No matching parties found." %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Mobile Cards -->
+        <div class="md:hidden p-4 space-y-3">
+            {% for party in parties %}
+            <div class="rounded-xl border border-slate-200 dark:border-slate-700 p-3.5 bg-slate-50/50 dark:bg-slate-900/40 space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="font-bold text-sm text-slate-900 dark:text-white">{{ party.name }}</span>
+                    <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300 font-semibold">
+                        {{ party.get_party_type_display|default:party.party_type }}
+                    </span>
+                </div>
+                {% if party.urdu_name or party.phone %}
+                <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                    <span>{{ party.urdu_name|default:"" }}</span>
+                    <span class="font-mono">{{ party.phone|default:"" }}</span>
+                </div>
+                {% endif %}
+                <div class="flex items-center gap-2 pt-1">
+                    <a href="{% url 'ledger:party_ledger' party.pk %}" class="text-xs font-semibold text-primary-600 dark:text-primary-400 hover:underline">
+                        {% trans "Ledger" %}
+                    </a>
+                    <span class="text-slate-300">|</span>
+                    <a href="{% url 'parties:party_edit' party.pk %}" class="text-xs font-semibold text-slate-600 dark:text-slate-300 hover:underline">
+                        {% trans "Edit" %}
+                    </a>
+                </div>
+            </div>
+            {% empty %}
+            <p class="py-4 text-center text-xs text-slate-500 dark:text-slate-400">
+                {% trans "No matching parties found." %}
+            </p>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- SECTION 3: MATCHING LINE ITEMS -->
+    <!-- ===================================================================== -->
+    <section aria-label="{% trans 'Matching Line Items' %}" class="bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm overflow-hidden">
+        <div class="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-700/80 flex items-center justify-between">
+            <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <span>📦</span>
+                <span>{% trans "Matching Line Items" %}</span>
+            </h3>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
+                {{ items|length }}
+            </span>
+        </div>
+
+        <!-- Desktop Table -->
+        <div class="hidden md:block overflow-x-auto">
+            <table class="w-full text-left rtl:text-right border-collapse">
+                <thead>
+                    <tr class="border-b border-slate-200 dark:border-slate-700/80 bg-slate-50/80 dark:bg-slate-900/50 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        <th class="py-3 px-5">{% trans "Item Name" %}</th>
+                        <th class="py-3 px-5">{% trans "Quantity" %}</th>
+                        <th class="py-3 px-5">{% trans "Price" %}</th>
+                        <th class="py-3 px-5">{% trans "Total" %}</th>
+                        <th class="py-3 px-5">{% trans "Invoice #" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 dark:divide-slate-700/60 text-sm">
+                    {% for item in items %}
+                    <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-700/30 transition-colors">
+                        <td class="py-3.5 px-5 font-semibold text-slate-900 dark:text-white">
+                            {{ item.item_name }}
+                            {% if item.urdu_item_name %}
+                            <span class="block text-xs text-slate-500 dark:text-slate-400">{{ item.urdu_item_name }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-5 text-slate-600 dark:text-slate-300">
+                            {{ item.quantity }} {{ item.unit }}
+                        </td>
+                        <td class="py-3.5 px-5 text-slate-600 dark:text-slate-300">
+                            PKR {{ item.unit_price }}
+                        </td>
+                        <td class="py-3.5 px-5 font-bold text-slate-900 dark:text-white">
+                            PKR {{ item.line_total }}
+                        </td>
+                        <td class="py-3.5 px-5">
+                            <a href="{% url 'bills:bill_detail' item.bill.pk %}" class="text-xs font-semibold text-primary-600 dark:text-primary-400 hover:underline">
+                                {{ item.bill.invoice_no|default:item.bill.pk }} ({{ item.bill.party.name|default:"" }})
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="py-6 px-5 text-center text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                            {% trans "No matching line items found." %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Mobile Cards -->
+        <div class="md:hidden p-4 space-y-3">
+            {% for item in items %}
+            <a href="{% url 'bills:bill_detail' item.bill.pk %}" class="block rounded-xl border border-slate-200 dark:border-slate-700 p-3.5 bg-slate-50/50 dark:bg-slate-900/40 space-y-1.5">
+                <div class="flex items-center justify-between">
+                    <span class="font-bold text-sm text-slate-900 dark:text-white">{{ item.item_name }}</span>
+                    <span class="text-xs font-bold text-slate-900 dark:text-white">PKR {{ item.line_total }}</span>
+                </div>
+                <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                    <span>{{ item.quantity }} {{ item.unit }} @ PKR {{ item.unit_price }}</span>
+                    <span class="text-primary-600 dark:text-primary-400 font-semibold">{{ item.bill.invoice_no|default:item.bill.pk }}</span>
+                </div>
+            </a>
+            {% empty %}
+            <p class="py-4 text-center text-xs text-slate-500 dark:text-slate-400">
+                {% trans "No matching line items found." %}
+            </p>
+            {% endfor %}
+        </div>
+    </section>
+
+    {% endif %}
+
+</div>
+{% endblock %}
