@@ -3,8 +3,10 @@
 AI Vision Extraction pipeline, schema validator, mock extractor, and quota enforcement.
 """
 
+import json
 import time
 from decimal import Decimal
+from pathlib import Path
 from typing import Any, Dict
 
 from django.conf import settings
@@ -80,8 +82,277 @@ def validate_extraction_schema(data: Any) -> Dict[str, Any]:
     return data
 
 
+EXTRACTION_SYSTEM_PROMPT = """You are an expert AI bill, receipt, and invoice scanner specialized in extracting financial documents in English and Urdu.
+Extract all details from the provided document image(s) or PDF according to the schema below.
+Follow these critical rules:
+1. Return ONLY a single valid JSON object matching the schema. No markdown code blocks, no explanation text outside JSON.
+2. Read handwritten and printed bills in English, Urdu, and mixed text. Preserve original Urdu or English item and vendor names.
+3. If a field is not present or cannot be read with confidence, set it to null. NEVER invent or guess data.
+4. Accurately extract all line items in order: item name, quantity, unit, unit price, discount, tax, line total, confidence (0-100).
+5. Accurately extract totals: subtotal, discount, tax, other charges, grand total, amount paid, balance due.
+6. For multi-page bills, merge all pages into a single consolidated document.
+7. Set currency (e.g. "PKR", "USD") and payment method ("cash", "card", "online", "credit") if identifiable.
+8. If there are uncertainties, illegible text, or calculation discrepancies, list them in the "warnings" array.
+
+Schema to return:
+{
+  "document_type": "printed",
+  "languages": ["en", "ur"],
+  "vendor": {"name": null, "phone": null, "address": null, "tax_no": null},
+  "customer": {"name": null, "phone": null, "address": null},
+  "invoice_no": null,
+  "date": "YYYY-MM-DD",
+  "time": "HH:MM",
+  "currency": "PKR",
+  "items": [
+    {
+      "serial_no": 1,
+      "name": "",
+      "urdu_name": null,
+      "quantity": 1,
+      "unit": "pcs",
+      "unit_price": 0,
+      "discount": 0,
+      "tax": 0,
+      "line_total": 0,
+      "confidence": 95
+    }
+  ],
+  "subtotal": null,
+  "discount": 0,
+  "tax": 0,
+  "other_charges": 0,
+  "grand_total": null,
+  "paid_amount": 0,
+  "balance_due": null,
+  "payment_method": null,
+  "suggested_category": "",
+  "field_confidence": {"vendor_name": 90, "date": 90, "grand_total": 90},
+  "warnings": []
+}
+"""
+
+
+def get_file_bytes_and_mime(file_obj: Any) -> tuple[bytes, str]:
+    """Extract raw bytes and detected MIME type from BillFile, UploadedFile, or path."""
+    name = ""
+    data = b""
+
+    if hasattr(file_obj, "file") and hasattr(file_obj.file, "name"):
+        field = file_obj.file
+        name = getattr(field, "name", "")
+        try:
+            field.open("rb")
+            data = field.read()
+        except Exception:
+            if hasattr(field, "path"):
+                with open(field.path, "rb") as fp:
+                    data = fp.read()
+    elif hasattr(file_obj, "read"):
+        name = getattr(file_obj, "name", "")
+        if hasattr(file_obj, "seek"):
+            file_obj.seek(0)
+        data = file_obj.read()
+    elif isinstance(file_obj, (str, Path)):
+        name = str(file_obj)
+        with open(file_obj, "rb") as fp:
+            data = fp.read()
+    elif isinstance(file_obj, bytes):
+        data = file_obj
+        name = "image.jpg"
+    else:
+        raise ValidationError(f"Unsupported file input type: {type(file_obj)}")
+
+    ext = Path(name).suffix.lower()
+    if ext in [".jpg", ".jpeg"]:
+        mime = "image/jpeg"
+    elif ext == ".png":
+        mime = "image/png"
+    elif ext == ".webp":
+        mime = "image/webp"
+    elif ext == ".pdf":
+        mime = "application/pdf"
+    else:
+        mime = "image/jpeg"
+
+    return data, mime
+
+
+def _clean_and_parse_json(raw_text: str) -> Dict[str, Any]:
+    """Clean markdown code fences and parse JSON payload."""
+    text = (raw_text or "").strip()
+    if text.startswith("```"):
+        text = text.split("```", 2)[1]
+        if text.startswith("json"):
+            text = text[4:]
+        text = text.strip()
+    elif "{" in text and "}" in text:
+        start = text.find("{")
+        end = text.rfind("}") + 1
+        text = text[start:end]
+    return json.loads(text)
+
+
+class GeminiAIExtractor:
+    """Vision-capable AI extractor powered by Google Gemini API."""
+
+    def __init__(self, api_key: str, model_name: str | None = None):
+        self.api_key = api_key
+        self.model_name = model_name or getattr(settings, "GEMINI_MODEL", "gemini-2.5-flash")
+        self.last_token_count = 1250
+
+    def extract(self, *files: Any) -> Dict[str, Any]:
+        """Extract bill structured data using Gemini vision."""
+        if not files:
+            raise ValidationError("No files provided for AI extraction.")
+
+        try:
+            from google import genai
+            from google.genai import types
+        except ImportError as err:
+            raise AIExtractionError(
+                "The 'google-genai' library is required for Gemini AI extraction. "
+                "Please run: pip install google-genai"
+            ) from err
+
+        client = genai.Client(api_key=self.api_key)
+        contents = []
+
+        for f in files:
+            data, mime = get_file_bytes_and_mime(f)
+            contents.append(types.Part.from_bytes(data=data, mime_type=mime))
+
+        contents.append(EXTRACTION_SYSTEM_PROMPT)
+
+        config = types.GenerateContentConfig(
+            temperature=0.1,
+            response_mime_type="application/json",
+        )
+
+        response = None
+        try:
+            response = client.models.generate_content(
+                model=self.model_name,
+                contents=contents,
+                config=config,
+            )
+        except Exception as exc:
+            # Fallback to gemini-1.5-flash if 2.5-flash fails
+            if self.model_name != "gemini-1.5-flash":
+                try:
+                    response = client.models.generate_content(
+                        model="gemini-1.5-flash",
+                        contents=contents,
+                        config=config,
+                    )
+                except Exception as inner_exc:
+                    raise AIExtractionError(
+                        f"Gemini API request failed: {inner_exc}"
+                    ) from inner_exc
+            else:
+                raise AIExtractionError(f"Gemini API request failed: {exc}") from exc
+
+        raw_text = getattr(response, "text", "") or ""
+        usage = getattr(response, "usage_metadata", None)
+        if usage:
+            self.last_token_count = getattr(usage, "total_token_count", 0) or (
+                getattr(usage, "prompt_token_count", 0)
+                + getattr(usage, "candidates_token_count", 0)
+            )
+
+        try:
+            return _clean_and_parse_json(raw_text)
+        except Exception as parse_err:
+            raise AIExtractionError(
+                f"Failed to parse structured JSON from Gemini response: {parse_err}"
+            ) from parse_err
+
+
+class ClaudeAIExtractor:
+    """Vision-capable AI extractor powered by Anthropic Claude API."""
+
+    def __init__(self, api_key: str, model_name: str | None = None):
+        self.api_key = api_key
+        self.model_name = model_name or "claude-3-5-sonnet-20241022"
+        self.last_token_count = 1250
+
+    def extract(self, *files: Any) -> Dict[str, Any]:
+        """Extract structured bill JSON using Claude Messages API."""
+        if not files:
+            raise ValidationError("No files provided for AI extraction.")
+
+        try:
+            import base64
+
+            import httpx
+        except ImportError as err:
+            raise AIExtractionError(
+                "httpx package is required for Claude vision extraction."
+            ) from err
+
+        content_parts = []
+        for f in files:
+            data, mime = get_file_bytes_and_mime(f)
+            b64_data = base64.b64encode(data).decode("utf-8")
+            if mime == "application/pdf":
+                content_parts.append(
+                    {
+                        "type": "document",
+                        "source": {
+                            "type": "base64",
+                            "media_type": "application/pdf",
+                            "data": b64_data,
+                        },
+                    }
+                )
+            else:
+                content_parts.append(
+                    {
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": mime,
+                            "data": b64_data,
+                        },
+                    }
+                )
+
+        content_parts.append({"type": "text", "text": EXTRACTION_SYSTEM_PROMPT})
+
+        headers = {
+            "x-api-key": self.api_key,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+        }
+        payload = {
+            "model": self.model_name,
+            "max_tokens": 4096,
+            "messages": [{"role": "user", "content": content_parts}],
+        }
+
+        try:
+            resp = httpx.post(
+                "https://api.anthropic.com/v1/messages",
+                headers=headers,
+                json=payload,
+                timeout=60.0,
+            )
+            resp.raise_for_status()
+            res_data = resp.json()
+            raw_text = res_data["content"][0]["text"]
+            self.last_token_count = res_data.get("usage", {}).get("input_tokens", 0) + res_data.get(
+                "usage", {}
+            ).get("output_tokens", 0)
+            return _clean_and_parse_json(raw_text)
+        except Exception as exc:
+            raise AIExtractionError(f"Claude API request failed: {exc}") from exc
+
+
 class MockAIExtractor:
     """Deterministic, offline AI vision extractor for testing and development."""
+
+    def __init__(self):
+        self.last_token_count = 1250
 
     def extract(self, *files: Any) -> Dict[str, Any]:
         """Return high-fidelity structured bill JSON matching schema."""
@@ -141,14 +412,37 @@ class MockAIExtractor:
                 "date": 95,
                 "grand_total": 99,
             },
-            "warnings": [],
+            "warnings": [
+                "Extracted using Mock AI Provider for offline testing. Configure GEMINI_API_KEY in .env for real vision extraction."
+            ],
         }
 
 
-def get_ai_extractor():
-    """Factory returning active AI extractor based on settings."""
-    _ = getattr(settings, "AI_PROVIDER", "mock")
-    # For now in test and local environment, default to MockAIExtractor
+def get_ai_extractor(provider: str | None = None):
+    """Factory returning active AI extractor based on settings or explicit provider."""
+    active = provider or getattr(settings, "AI_PROVIDER", "gemini")
+
+    if active == "gemini":
+        api_key = getattr(settings, "GEMINI_API_KEY", "")
+        if not api_key:
+            raise AIExtractionError(
+                "Google Gemini API key is not configured. Please set GEMINI_API_KEY "
+                "in your .env file to enable AI bill extraction, or set AI_PROVIDER=mock for offline testing."
+            )
+        return GeminiAIExtractor(api_key=api_key)
+
+    if active == "claude":
+        api_key = getattr(settings, "CLAUDE_API_KEY", "")
+        if not api_key:
+            raise AIExtractionError(
+                "Anthropic Claude API key is not configured. Please set CLAUDE_API_KEY "
+                "in your .env file to enable AI bill extraction, or set AI_PROVIDER=mock for offline testing."
+            )
+        return ClaudeAIExtractor(api_key=api_key)
+
+    if active == "mock":
+        return MockAIExtractor()
+
     return MockAIExtractor()
 
 
@@ -160,7 +454,7 @@ def process_scan_job(job: ScanJob) -> Bill:
     job.save(update_fields=["status"])
 
     start_time = time.time()
-    extractor = get_ai_extractor()
+    extractor = get_ai_extractor(job.provider)
 
     try:
         files = list(job.files.all())
@@ -240,7 +534,7 @@ def process_scan_job(job: ScanJob) -> Bill:
         job.bill = bill
         job.status = ScanJob.Status.COMPLETED
         job.extracted_data = validated_data
-        job.token_count = 1250
+        job.token_count = getattr(extractor, "last_token_count", 1250) or 1250
         job.latency_ms = int((time.time() - start_time) * 1000)
         job.completed_at = timezone.now()
         job.save()

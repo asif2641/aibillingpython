@@ -6,6 +6,7 @@ Views for uploading documents, processing AI scans, and interactive split-screen
 import contextlib
 from decimal import Decimal, InvalidOperation
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
@@ -26,16 +27,44 @@ from scanning.services.image_processing import validate_and_preprocess_file
 @login_required
 def upload_view(request: HttpRequest) -> HttpResponse:
     """Upload bill files (single, multi-page image, or PDF) and initiate scan."""
+    active_provider = getattr(settings, "AI_PROVIDER", "gemini")
+    gemini_key = getattr(settings, "GEMINI_API_KEY", "")
+    claude_key = getattr(settings, "CLAUDE_API_KEY", "")
+
+    api_key_configured = True
+    if (
+        active_provider == "gemini"
+        and not gemini_key
+        or active_provider == "claude"
+        and not claude_key
+    ):
+        api_key_configured = False
+
+    context = {
+        "api_key_configured": api_key_configured,
+        "active_provider": active_provider,
+    }
+
     if request.method == "POST":
         files = request.FILES.getlist("files")
         if not files:
             messages.error(request, _("Please select at least one document or photo to scan."))
-            return render(request, "scanning/upload.html", status=400)
+            return render(request, "scanning/upload.html", context, status=400)
+
+        if not api_key_configured and active_provider != "mock":
+            error_msg = _(
+                "AI extraction requires a valid Gemini API key. Please add GEMINI_API_KEY to your .env file "
+                "(get a free key from https://aistudio.google.com), or set AI_PROVIDER=mock in .env for offline testing."
+            )
+            messages.error(request, error_msg)
+            return render(
+                request, "scanning/upload.html", {**context, "error": error_msg}, status=400
+            )
 
         try:
-            # Create ScanJob
+            # Create ScanJob using active configured provider
             job = ScanJob.objects.create(
-                provider="mock",
+                provider=active_provider,
                 status=ScanJob.Status.PENDING,
                 created_by=request.user,
             )
@@ -59,12 +88,16 @@ def upload_view(request: HttpRequest) -> HttpResponse:
         except (ValidationError, ScanQuotaExceededError) as err:
             error_msg = str(err.messages[0] if hasattr(err, "messages") else err)
             messages.error(request, error_msg)
-            return render(request, "scanning/upload.html", {"error": error_msg}, status=400)
+            return render(
+                request, "scanning/upload.html", {**context, "error": error_msg}, status=400
+            )
         except Exception as exc:
             messages.error(request, _("Scanning failed: %(err)s") % {"err": str(exc)})
-            return render(request, "scanning/upload.html", {"error": str(exc)}, status=400)
+            return render(
+                request, "scanning/upload.html", {**context, "error": str(exc)}, status=400
+            )
 
-    return render(request, "scanning/upload.html")
+    return render(request, "scanning/upload.html", context)
 
 
 @login_required

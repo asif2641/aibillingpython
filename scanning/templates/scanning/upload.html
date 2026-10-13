@@ -27,6 +27,13 @@
             </div>
         </div>
 
+        {% if not api_key_configured and active_provider != 'mock' %}
+        <div class="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-900 text-amber-800 dark:text-amber-300 text-xs font-medium" role="alert">
+            <p class="font-semibold mb-0.5">⚠️ {% trans "Google Gemini API Key Required" %}</p>
+            <p>{% trans "To extract bills from your uploaded photos or PDFs using AI vision, please add GEMINI_API_KEY in your .env file (get a free API key from" %} <a href="https://aistudio.google.com" target="_blank" rel="noopener noreferrer" class="underline font-bold">aistudio.google.com</a>). {% trans "Alternatively, set AI_PROVIDER=mock in .env for offline testing." %}</p>
+        </div>
+        {% endif %}
+
         {% if error %}
         <div class="p-4 rounded-2xl bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 text-red-800 dark:text-red-300 text-xs font-medium" role="alert">
             <p class="font-semibold mb-0.5">⚠️ {% trans "Upload Error" %}</p>

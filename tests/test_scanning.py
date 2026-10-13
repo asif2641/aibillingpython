@@ -497,9 +497,10 @@ class TestUploadAndReviewViews:
         assert "dropzone" in content.lower() or "upload" in content.lower()
 
     def test_upload_view_post_creates_job_and_redirects_to_review(
-        self, client, superadmin_user, sample_image
+        self, client, superadmin_user, sample_image, settings
     ):
         """POST upload creates ScanJob, processes mock scan, and redirects to review."""
+        settings.AI_PROVIDER = "mock"
         client.force_login(superadmin_user)
 
         response = client.post(
@@ -602,3 +603,222 @@ class TestScanningLocalizationAndUI:
         content = response.content.decode("utf-8")
         assert 'dir="rtl"' in content
         assert "dark:bg-slate-800" in content
+
+
+# ---------------------------------------------------------------------------
+# 8. AI Provider Resolution & Real Extractor Tests (Regression BUG-001)
+# ---------------------------------------------------------------------------
+@pytest.mark.django_db
+class TestAIExtractorProviderResolution:
+    """Regression tests for BUG-001: Ensure real AI extractor is invoked instead of static mock."""
+
+    def test_get_ai_extractor_gemini_missing_key_raises_error(self, settings):
+        """Root cause hypothesis: get_ai_extractor silently returned mock extractor when key was missing."""
+        from scanning.exceptions import AIExtractionError
+        from scanning.services.extraction import get_ai_extractor
+
+        settings.AI_PROVIDER = "gemini"
+        settings.GEMINI_API_KEY = ""
+
+        with pytest.raises(AIExtractionError) as exc_info:
+            get_ai_extractor("gemini")
+        assert "GEMINI_API_KEY" in str(exc_info.value)
+
+    def test_get_ai_extractor_returns_gemini_extractor_when_configured(self, settings):
+        """Configuring gemini with valid key returns GeminiAIExtractor instance."""
+        from scanning.services.extraction import GeminiAIExtractor, get_ai_extractor
+
+        settings.AI_PROVIDER = "gemini"
+        settings.GEMINI_API_KEY = "test_key_123"
+
+        extractor = get_ai_extractor("gemini")
+        assert isinstance(extractor, GeminiAIExtractor)
+        assert extractor.api_key == "test_key_123"
+
+    def test_upload_view_uses_configured_ai_provider(
+        self, client, superadmin_user, sample_image, settings
+    ):
+        """Upload view must create ScanJob using settings.AI_PROVIDER, not hardcoded 'mock'."""
+        client.force_login(superadmin_user)
+        settings.AI_PROVIDER = "mock"
+
+        response = client.post(
+            "/en/scanning/upload/",
+            {"files": [sample_image]},
+            follow=False,
+        )
+        assert response.status_code in (302, 200)
+        from scanning.models import ScanJob
+
+        job = ScanJob.objects.filter(created_by=superadmin_user).latest("id")
+        assert job.provider == "mock"
+
+    def test_upload_view_post_missing_key_returns_400_with_helpful_error(
+        self, client, superadmin_user, sample_image, settings
+    ):
+        """When GEMINI_API_KEY is empty and provider is gemini, POST returns 400 with helpful instructions."""
+        client.force_login(superadmin_user)
+        settings.AI_PROVIDER = "gemini"
+        settings.GEMINI_API_KEY = ""
+
+        response = client.post(
+            "/en/scanning/upload/",
+            {"files": [sample_image]},
+            follow=False,
+        )
+        assert response.status_code == 400
+        content = response.content.decode("utf-8")
+        assert "GEMINI_API_KEY" in content or "API key" in content
+
+    def test_upload_view_get_shows_key_warning_banner_when_key_missing(
+        self, client, superadmin_user, settings
+    ):
+        """When GEMINI_API_KEY is empty, upload page renders warning banner informing user."""
+        client.force_login(superadmin_user)
+        settings.AI_PROVIDER = "gemini"
+        settings.GEMINI_API_KEY = ""
+
+        response = client.get("/en/scanning/upload/")
+        assert response.status_code == 200
+        content = response.content.decode("utf-8")
+        assert "GEMINI_API_KEY" in content or "API Key Required" in content
+
+    def test_gemini_ai_extractor_extracts_and_parses_json(self, sample_image, monkeypatch):
+        """GeminiAIExtractor calls Google Gemini client and parses JSON response successfully."""
+        import json
+        from unittest.mock import MagicMock
+
+        from scanning.services.extraction import GeminiAIExtractor
+
+        mock_payload = {
+            "document_type": "printed",
+            "languages": ["en"],
+            "vendor": {
+                "name": "Test Superstore",
+                "phone": "03001234567",
+                "address": "Lahore",
+                "tax_no": None,
+            },
+            "customer": {"name": "Walk-in", "phone": None, "address": None},
+            "invoice_no": "INV-REAL-101",
+            "date": "2026-10-13",
+            "time": "12:00",
+            "currency": "PKR",
+            "items": [
+                {
+                    "serial_no": 1,
+                    "name": "Wheat Flour",
+                    "quantity": 1,
+                    "unit": "bag",
+                    "unit_price": 1500.0,
+                    "discount": 0.0,
+                    "tax": 0.0,
+                    "line_total": 1500.0,
+                    "confidence": 99,
+                }
+            ],
+            "subtotal": 1500.0,
+            "discount": 0.0,
+            "tax": 0.0,
+            "other_charges": 0.0,
+            "grand_total": 1500.0,
+            "paid_amount": 1500.0,
+            "balance_due": 0.0,
+            "payment_method": "cash",
+            "suggested_category": "Grocery",
+            "field_confidence": {"vendor_name": 99, "date": 95, "grand_total": 99},
+            "warnings": [],
+        }
+
+        mock_response = MagicMock()
+        mock_response.text = json.dumps(mock_payload)
+        mock_response.usage_metadata.total_token_count = 850
+
+        mock_client = MagicMock()
+        mock_client.models.generate_content.return_value = mock_response
+
+        # Monkeypatch genai.Client
+        import google.genai
+
+        monkeypatch.setattr(google.genai, "Client", lambda api_key: mock_client)
+
+        extractor = GeminiAIExtractor(api_key="valid_gemini_key")
+        result = extractor.extract(sample_image)
+
+        assert result["invoice_no"] == "INV-REAL-101"
+        assert result["vendor"]["name"] == "Test Superstore"
+        assert extractor.last_token_count == 850
+
+    def test_gemini_ai_extractor_handles_markdown_fences(self, sample_image, monkeypatch):
+        """GeminiAIExtractor cleanly strips ```json code fences returned by model."""
+        import json
+        from unittest.mock import MagicMock
+
+        from scanning.services.extraction import GeminiAIExtractor
+
+        mock_payload = {
+            "document_type": "printed",
+            "languages": ["en"],
+            "vendor": {"name": "Fenced Store"},
+            "customer": {"name": None},
+            "invoice_no": "INV-FENCE-99",
+            "items": [],
+            "grand_total": 100.0,
+        }
+
+        mock_response = MagicMock()
+        mock_response.text = f"```json\n{json.dumps(mock_payload)}\n```"
+        mock_response.usage_metadata = None
+
+        mock_client = MagicMock()
+        mock_client.models.generate_content.return_value = mock_response
+
+        import google.genai
+
+        monkeypatch.setattr(google.genai, "Client", lambda api_key: mock_client)
+
+        extractor = GeminiAIExtractor(api_key="valid_key")
+        result = extractor.extract(sample_image)
+        assert result["invoice_no"] == "INV-FENCE-99"
+
+    def test_gemini_ai_extractor_handles_malformed_json(self, sample_image, monkeypatch):
+        """When model output cannot be parsed as JSON, AIExtractionError is raised."""
+        from unittest.mock import MagicMock
+
+        from scanning.exceptions import AIExtractionError
+        from scanning.services.extraction import GeminiAIExtractor
+
+        mock_response = MagicMock()
+        mock_response.text = "This is not JSON at all."
+        mock_response.usage_metadata = None
+
+        mock_client = MagicMock()
+        mock_client.models.generate_content.return_value = mock_response
+
+        import google.genai
+
+        monkeypatch.setattr(google.genai, "Client", lambda api_key: mock_client)
+
+        extractor = GeminiAIExtractor(api_key="valid_key")
+        with pytest.raises(AIExtractionError) as exc_info:
+            extractor.extract(sample_image)
+        assert "JSON" in str(exc_info.value)
+
+    def test_gemini_ai_extractor_handles_api_exception(self, sample_image, monkeypatch):
+        """When Gemini client throws an exception, it is caught and wrapped in AIExtractionError."""
+        from unittest.mock import MagicMock
+
+        from scanning.exceptions import AIExtractionError
+        from scanning.services.extraction import GeminiAIExtractor
+
+        mock_client = MagicMock()
+        mock_client.models.generate_content.side_effect = RuntimeError("Quota limit reached")
+
+        import google.genai
+
+        monkeypatch.setattr(google.genai, "Client", lambda api_key: mock_client)
+
+        extractor = GeminiAIExtractor(api_key="valid_key")
+        with pytest.raises(AIExtractionError) as exc_info:
+            extractor.extract(sample_image)
+        assert "Quota limit reached" in str(exc_info.value)
