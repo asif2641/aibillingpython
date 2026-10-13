@@ -984,3 +984,57 @@ class TestBillViewsAndWorkflow:
 
         assert verified_bill.invoice_no in content
         assert unreviewed_bill.invoice_no in content
+
+    def test_bill_correct_discrepancy_view(self, staff_client, sample_party):
+        """POST /en/bills/<pk>/correct-discrepancy/ updates totals to line items and resolves discrepancy."""
+        bill = Bill.objects.create(
+            bill_type="purchase",
+            party=sample_party,
+            invoice_no="INV-DISC-01",
+            bill_date=timezone.now().date(),
+            subtotal=Decimal("2670.00"),
+            grand_total=Decimal("2670.00"),
+            original_slip_total=Decimal("2670.00"),
+            has_discrepancy=True,
+            discrepancy_reason="Paper slip 2670 vs items 2676",
+        )
+        BillItem.objects.create(
+            bill=bill,
+            serial_no=1,
+            item_name="Rice",
+            quantity=Decimal("2.000"),
+            unit="kg",
+            unit_price=Decimal("1338.00"),
+            line_total=Decimal("2676.00"),
+        )
+
+        resp = staff_client.post(reverse("bills:bill_correct_discrepancy", kwargs={"pk": bill.pk}))
+        assert resp.status_code == 302
+        assert resp.url == reverse("bills:bill_detail", kwargs={"pk": bill.pk})
+
+        bill.refresh_from_db()
+        assert bill.grand_total == Decimal("2676.00")
+        assert bill.has_discrepancy is False
+        assert bill.discrepancy_reason == ""
+        assert bill.status == Bill.Status.VERIFIED
+
+    def test_bill_detail_shows_discrepancy_banner_and_correct_button(
+        self, staff_client, sample_party
+    ):
+        """GET /en/bills/<pk>/ displays the discrepancy alert banner with quick correct button when has_discrepancy=True."""
+        bill = Bill.objects.create(
+            bill_type="purchase",
+            party=sample_party,
+            invoice_no="INV-DISC-BANNER",
+            bill_date=timezone.now().date(),
+            subtotal=Decimal("2670.00"),
+            grand_total=Decimal("2670.00"),
+            original_slip_total=Decimal("2670.00"),
+            has_discrepancy=True,
+            discrepancy_reason="Paper slip total mismatch",
+        )
+        resp = staff_client.get(reverse("bills:bill_detail", kwargs={"pk": bill.pk}))
+        assert resp.status_code == 200
+        content = resp.content.decode("utf-8")
+        assert "Incorrect / Discrepant Bill Recorded" in content
+        assert "Correct to Items Total" in content

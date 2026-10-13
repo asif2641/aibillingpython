@@ -7,6 +7,7 @@ from django.urls import path
 
 from bills.views import (
     bill_add_view,
+    bill_correct_discrepancy_view,
     bill_delete_view,
     bill_detail_view,
     bill_edit_view,
@@ -24,6 +25,11 @@ urlpatterns = [
     path("trash/", bill_trash_view, name="bill_trash"),
     path("<int:pk>/", bill_detail_view, name="bill_detail"),
     path("<int:pk>/edit/", bill_edit_view, name="bill_edit"),
+    path(
+        "<int:pk>/correct-discrepancy/",
+        bill_correct_discrepancy_view,
+        name="bill_correct_discrepancy",
+    ),
     path("<int:pk>/delete/", bill_delete_view, name="bill_delete"),
     path("<int:pk>/restore/", bill_restore_view, name="bill_restore"),
     path("<int:pk>/payment/", bill_payment_view, name="bill_payment"),

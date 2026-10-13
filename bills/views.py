@@ -5,6 +5,7 @@ Views for managing, creating, editing, and soft-deleting bills.
 
 from decimal import Decimal
 
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
@@ -12,6 +13,7 @@ from django.db.models import Q, Sum
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 from billing.utils import money_round
 from bills.forms import BillForm, BillItemFormSet
@@ -184,6 +186,19 @@ def bill_edit_view(request: HttpRequest, pk: int) -> HttpResponse:
             if formset:
                 formset.save()
             recalculate_bill_totals(bill)
+            if bill.has_discrepancy:
+                bill.has_discrepancy = False
+                bill.discrepancy_reason = ""
+                bill.save(update_fields=["has_discrepancy", "discrepancy_reason"])
+                bill.errors.filter(
+                    error_type__in=[
+                        "math_mismatch",
+                        "subtotal_mismatch",
+                        "grand_total_mismatch",
+                        "missing_field",
+                    ]
+                ).update(is_resolved=True)
+            messages.success(request, _("Bill updated and totals recalculated successfully!"))
             return redirect("bills:bill_detail", pk=bill.pk)
 
         return render(
@@ -204,6 +219,34 @@ def bill_edit_view(request: HttpRequest, pk: int) -> HttpResponse:
         "bills/bill_form.html",
         {"form": form, "formset": formset, "bill": bill},
     )
+
+
+@login_required
+def bill_correct_discrepancy_view(request: HttpRequest, pk: int) -> HttpResponse:
+    """Instantly correct a discrepant bill to match line items total and resolve discrepancies."""
+    bill = get_object_or_404(Bill.objects, pk=pk)
+    if request.method == "POST":
+        recalculate_bill_totals(bill)
+        bill.has_discrepancy = False
+        bill.discrepancy_reason = ""
+        bill.status = Bill.Status.VERIFIED
+        bill.save(update_fields=["has_discrepancy", "discrepancy_reason", "status"])
+        bill.errors.filter(
+            error_type__in=[
+                "math_mismatch",
+                "subtotal_mismatch",
+                "grand_total_mismatch",
+                "missing_field",
+            ]
+        ).update(is_resolved=True)
+        messages.success(
+            request,
+            _(
+                "Bill #%(inv)s has been corrected to PKR %(total)s and discrepancy resolved successfully!"
+            )
+            % {"inv": bill.invoice_no or bill.pk, "total": bill.grand_total},
+        )
+    return redirect("bills:bill_detail", pk=bill.pk)
 
 
 @login_required

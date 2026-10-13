@@ -38,6 +38,52 @@
             </div>
         </div>
 
+        {% if bill.has_discrepancy %}
+        <!-- Discrepant Bill Alert & Quick Correction Banner -->
+        <div class="bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/80 rounded-2xl p-5 shadow-sm space-y-3">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="flex items-start gap-3">
+                    <span class="text-2xl flex-shrink-0">⚠️</span>
+                    <div>
+                        <h3 class="text-sm font-bold text-amber-900 dark:text-amber-200">
+                            {% trans "Incorrect / Discrepant Bill Recorded" %}
+                        </h3>
+                        <p class="text-xs text-amber-800 dark:text-amber-300 mt-0.5">
+                            {{ bill.discrepancy_reason|default:_("This bill was recorded with a difference between paper slip and item line totals.") }}
+                        </p>
+                        {% if bill.original_slip_total %}
+                        <div class="flex flex-wrap items-center gap-3 text-xs font-mono mt-2 text-slate-700 dark:text-slate-300">
+                            <span class="bg-white dark:bg-slate-900 px-2.5 py-1 rounded-lg border border-amber-200 dark:border-amber-900">
+                                {% trans "Paper Slip Total:" %} <strong class="text-amber-900 dark:text-amber-300">PKR {{ bill.original_slip_total|floatformat:2 }}</strong>
+                            </span>
+                            <span class="bg-white dark:bg-slate-900 px-2.5 py-1 rounded-lg border border-amber-200 dark:border-amber-900">
+                                {% trans "Items Sum:" %} <strong class="text-slate-900 dark:text-white">PKR {{ bill.subtotal|floatformat:2 }}</strong>
+                            </span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    <form method="post" action="{% url 'bills:bill_correct_discrepancy' bill.pk %}" class="inline">
+                        {% csrf_token %}
+                        <button type="submit" 
+                                class="px-4 py-2 min-h-[40px] inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-colors focus:ring-2 focus:ring-emerald-500"
+                                onclick="return confirm('{% trans "Are you sure you want to update this bill total to match the line items sum and resolve the discrepancy?" %}');">
+                            <span>⚡</span>
+                            <span>{% trans "Correct to Items Total" %}</span>
+                        </button>
+                    </form>
+                    <a href="{% url 'bills:bill_edit' bill.pk %}" 
+                       class="px-3.5 py-2 min-h-[40px] inline-flex items-center gap-1.5 rounded-xl border border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-amber-100/60 dark:hover:bg-slate-700 text-xs font-semibold transition-colors">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        <span>{% trans "Edit Items" %}</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Receipt Card -->
         <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm p-6 sm:p-8 space-y-6">
             
