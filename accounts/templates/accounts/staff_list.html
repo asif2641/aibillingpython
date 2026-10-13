@@ -1,0 +1,141 @@
+{% extends "settings_app/settings_base.html" %}
+{% load i18n %}
+
+{% block settings_title %}{% trans "Staff Management" %}{% endblock %}
+
+{% block settings_header_actions %}
+<a href="{% url 'staff_add' %}" 
+   class="inline-flex items-center gap-2 px-4 py-2 min-h-[44px] rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs shadow-sm shadow-primary-500/25 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+    <span>{% trans "Add Staff Member" %}</span>
+</a>
+{% endblock %}
+
+{% block settings_content %}
+<div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm overflow-hidden">
+    <!-- Header -->
+    <div class="p-6 border-b border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <span>👥</span>
+                <span>{% trans "Staff Accounts & Permissions" %}</span>
+            </h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                {% trans "Manage team member access, grant individual permission checkboxes, or reset credentials." %}
+            </p>
+        </div>
+        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+            {{ staff_users|length }} {% trans "Staff Accounts" %}
+        </span>
+    </div>
+
+    <!-- Table -->
+    <div class="overflow-x-auto">
+        <table class="w-full text-left rtl:text-right border-collapse">
+            <thead>
+                <tr class="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold">
+                    <th scope="col" class="py-3.5 px-4 sm:px-6">{% trans "User" %}</th>
+                    <th scope="col" class="py-3.5 px-4">{% trans "Status" %}</th>
+                    <th scope="col" class="py-3.5 px-4">{% trans "Permissions Granted" %}</th>
+                    <th scope="col" class="py-3.5 px-4 text-right rtl:text-left">{% trans "Actions" %}</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 dark:divide-slate-700 text-xs text-slate-700 dark:text-slate-200">
+                {% for u in staff_users %}
+                <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors">
+                    <td class="py-3.5 px-4 sm:px-6">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold flex items-center justify-center text-xs">
+                                {{ u.username|make_list|first|upper }}
+                            </div>
+                            <div>
+                                <p class="font-semibold text-slate-900 dark:text-white">{{ u.get_full_name|default:u.username }}</p>
+                                <p class="text-[11px] text-slate-500 dark:text-slate-400">@{{ u.username }} {% if u.email %}• {{ u.email }}{% endif %}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="py-3.5 px-4">
+                        {% if u.is_active %}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                {% trans "Active" %}
+                            </span>
+                        {% else %}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                                <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                                {% trans "Disabled" %}
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td class="py-3.5 px-4">
+                        <div class="flex flex-wrap gap-1.5">
+                            {% if u.can_delete_records %}
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300">
+                                    {% trans "Delete Records" %}
+                                </span>
+                            {% endif %}
+                            {% if u.can_manage_shop %}
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300">
+                                    {% trans "Manage Shop" %}
+                                </span>
+                            {% endif %}
+                            {% if u.can_manage_categories %}
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+                                    {% trans "Manage Categories" %}
+                                </span>
+                            {% endif %}
+                            {% if not u.can_delete_records and not u.can_manage_shop and not u.can_manage_categories %}
+                                <span class="text-slate-400 text-[11px]">{% trans "Standard Entry" %}</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="py-3.5 px-4 text-right rtl:text-left">
+                        <div class="inline-flex items-center gap-1.5">
+                            <form method="post" action="{% url 'staff_toggle_status' u.pk %}" class="inline">
+                                {% csrf_token %}
+                                <button type="submit" 
+                                    class="px-2.5 py-1 min-h-[36px] rounded-lg text-xs font-semibold border {% if u.is_active %}border-amber-200 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-300 dark:hover:bg-amber-950/50{% else %}border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950/50{% endif %} transition-colors">
+                                    {% if u.is_active %}{% trans "Deactivate" %}{% else %}{% trans "Activate" %}{% endif %}
+                                </button>
+                            </form>
+                            <a href="{% url 'staff_permissions' u.pk %}" 
+                               class="px-2.5 py-1 min-h-[36px] inline-flex items-center rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                                {% trans "Permissions" %}
+                            </a>
+                            <a href="{% url 'staff_reset_password' u.pk %}" 
+                               class="px-2.5 py-1 min-h-[36px] inline-flex items-center rounded-lg text-xs font-semibold border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 transition-colors">
+                                {% trans "Reset Password" %}
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="py-12 text-center text-slate-500 dark:text-slate-400">
+                        <span class="text-3xl block mb-2">👥</span>
+                        {% trans "No staff accounts created yet." %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="p-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs text-slate-500">
+        <div>
+            {% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
+        </div>
+        <div class="flex items-center gap-2">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 font-medium">{% trans "Previous" %}</a>
+            {% endif %}
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 font-medium">{% trans "Next" %}</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

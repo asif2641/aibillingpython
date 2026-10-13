@@ -1,0 +1,96 @@
+{% extends "settings_app/settings_base.html" %}
+{% load i18n %}
+
+{% block settings_title %}{% trans "Units of Measurement" %}{% endblock %}
+
+{% block settings_header_actions %}
+<a href="{% url 'categories:unit_add' %}" 
+   class="inline-flex items-center gap-2 px-4 py-2 min-h-[44px] rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs shadow-sm shadow-primary-500/25 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+    <span>{% trans "Add Custom Unit" %}</span>
+</a>
+{% endblock %}
+
+{% block settings_content %}
+<div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm overflow-hidden">
+    <!-- Header -->
+    <div class="p-6 border-b border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <span>⚖️</span>
+                <span>{% trans "Measurement Units" %}</span>
+            </h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                {% trans "Standard units (kg, ltr, pcs, etc.) and custom units used across invoice line items." %}
+            </p>
+        </div>
+        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+            {{ units|length }} {% trans "Units" %}
+        </span>
+    </div>
+
+    <!-- Units Table -->
+    <div class="overflow-x-auto">
+        <table class="w-full text-left rtl:text-right border-collapse">
+            <thead>
+                <tr class="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold">
+                    <th scope="col" class="py-3.5 px-4 sm:px-6">{% trans "Unit Name" %}</th>
+                    <th scope="col" class="py-3.5 px-4">{% trans "Code" %}</th>
+                    <th scope="col" class="py-3.5 px-4">{% trans "Urdu Name" %}</th>
+                    <th scope="col" class="py-3.5 px-4">{% trans "Type" %}</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 dark:divide-slate-700 text-xs text-slate-700 dark:text-slate-200">
+                {% for unit in units %}
+                <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors">
+                    <td class="py-3.5 px-4 sm:px-6 font-semibold text-slate-900 dark:text-white">
+                        {{ unit.name }}
+                    </td>
+                    <td class="py-3.5 px-4 font-mono font-bold text-primary-600 dark:text-primary-400">
+                        {{ unit.code }}
+                    </td>
+                    <td class="py-3.5 px-4 font-urdu text-sm">
+                        {{ unit.urdu_name|default:"—" }}
+                    </td>
+                    <td class="py-3.5 px-4">
+                        {% if unit.is_system %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+                                {% trans "Standard" %}
+                            </span>
+                        {% else %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
+                                {% trans "Custom" %}
+                            </span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="py-12 text-center text-slate-500 dark:text-slate-400">
+                        <span class="text-3xl block mb-2">⚖️</span>
+                        {% trans "No measurement units configured." %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="p-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs text-slate-500">
+        <div>
+            {% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
+        </div>
+        <div class="flex items-center gap-2">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 font-medium">{% trans "Previous" %}</a>
+            {% endif %}
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 font-medium">{% trans "Next" %}</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

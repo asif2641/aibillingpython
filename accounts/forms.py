@@ -74,3 +74,93 @@ class CustomAuthenticationForm(AuthenticationForm):
         record_successful_login(self.user_cache)
 
         return self.cleaned_data
+
+
+class StaffCreationForm(forms.Form):
+    """Form for creating a new staff user with granular permissions."""
+
+    username = forms.CharField(
+        max_length=150,
+        required=True,
+        label=_("Username"),
+    )
+    email = forms.EmailField(
+        required=False,
+        label=_("Email"),
+    )
+    first_name = forms.CharField(
+        max_length=150,
+        required=False,
+        label=_("First name"),
+    )
+    last_name = forms.CharField(
+        max_length=150,
+        required=False,
+        label=_("Last name"),
+    )
+    password = forms.CharField(
+        widget=forms.PasswordInput,
+        required=True,
+        label=_("Password"),
+    )
+    password_confirm = forms.CharField(
+        widget=forms.PasswordInput,
+        required=True,
+        label=_("Confirm password"),
+    )
+    can_delete_records = forms.BooleanField(
+        required=False,
+        label=_("Can delete records"),
+    )
+    can_manage_shop = forms.BooleanField(
+        required=False,
+        label=_("Can manage shop"),
+    )
+    can_manage_categories = forms.BooleanField(
+        required=False,
+        label=_("Can manage categories"),
+    )
+
+    def clean_username(self):
+        username = self.cleaned_data.get("username", "").strip()
+        if not username:
+            raise forms.ValidationError(_("Username is required."))
+        User = get_user_model()
+        if User.objects.filter(username=username).exists():
+            raise forms.ValidationError(_("A user with that username already exists."))
+        return username
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get("password")
+        password_confirm = cleaned_data.get("password_confirm")
+
+        if password and password_confirm and password != password_confirm:
+            self.add_error("password_confirm", _("Passwords do not match."))
+
+        return cleaned_data
+
+
+class StaffPasswordResetForm(forms.Form):
+    """Form for superadmin resetting a staff member's password."""
+
+    new_password = forms.CharField(
+        widget=forms.PasswordInput,
+        required=True,
+        label=_("New password"),
+    )
+    new_password_confirm = forms.CharField(
+        widget=forms.PasswordInput,
+        required=True,
+        label=_("Confirm new password"),
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        new_password = cleaned_data.get("new_password")
+        new_password_confirm = cleaned_data.get("new_password_confirm")
+
+        if new_password and new_password_confirm and new_password != new_password_confirm:
+            self.add_error("new_password_confirm", _("Passwords do not match."))
+
+        return cleaned_data

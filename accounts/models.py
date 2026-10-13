@@ -70,6 +70,24 @@ class User(AbstractUser):
         help_text=_("Datetime (UTC) of the most recent login attempt, successful or not."),
     )
 
+    can_delete_records = models.BooleanField(
+        default=False,
+        verbose_name=_("can delete records"),
+        help_text=_("Staff member can delete bills and records."),
+    )
+
+    can_manage_shop = models.BooleanField(
+        default=False,
+        verbose_name=_("can manage shop"),
+        help_text=_("Staff member can update shop profile and settings."),
+    )
+
+    can_manage_categories = models.BooleanField(
+        default=False,
+        verbose_name=_("can manage categories"),
+        help_text=_("Staff member can create and modify product categories and units."),
+    )
+
     class Meta:
         verbose_name = _("user")
         verbose_name_plural = _("users")

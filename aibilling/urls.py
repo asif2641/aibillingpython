@@ -34,6 +34,10 @@ urlpatterns += i18n_patterns(
     path("admin/", admin.site.urls),
     # Accounts app (login, logout, password change, etc.)
     path("accounts/", include("accounts.urls", namespace="accounts")),
+    # Settings app (shop profile, staff management, units/categories under settings)
+    path("settings/", include("settings_app.urls")),
+    # Categories & units app
+    path("categories/", include("categories.urls", namespace="categories")),
     # Add more app URLs here as they are built:
     # path("", include("bills.urls", namespace="bills")),
     # path("parties/", include("parties.urls", namespace="parties")),

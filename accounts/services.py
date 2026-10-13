@@ -94,3 +94,70 @@ def record_successful_login(user: User) -> None:
             "last_login_attempt",
         ]
     )
+
+
+def create_staff_user(
+    username: str,
+    password: str,
+    email: str = "",
+    first_name: str = "",
+    last_name: str = "",
+    can_delete_records: bool = False,
+    can_manage_shop: bool = False,
+    can_manage_categories: bool = False,
+) -> User:
+    """Create and return a new staff member with role='staff' and granular permissions."""
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+    return User.objects.create_user(
+        username=username,
+        email=email,
+        password=password,
+        first_name=first_name,
+        last_name=last_name,
+        role=User.Role.STAFF,
+        can_delete_records=can_delete_records,
+        can_manage_shop=can_manage_shop,
+        can_manage_categories=can_manage_categories,
+    )
+
+
+def toggle_staff_status(target_user: User, actor_user: User) -> bool:
+    """Toggle the active status of target_user. Superadmins cannot deactivate themselves.
+
+    Returns True if toggled, False if rejected (e.g. self-deactivation).
+    """
+    if target_user.pk == actor_user.pk:
+        return False
+    target_user.is_active = not target_user.is_active
+    target_user.save(update_fields=["is_active"])
+    return True
+
+
+def update_staff_permissions(
+    target_user: User,
+    can_delete_records: bool = False,
+    can_manage_shop: bool = False,
+    can_manage_categories: bool = False,
+) -> User:
+    """Update granular permission flags for target_user."""
+    target_user.can_delete_records = can_delete_records
+    target_user.can_manage_shop = can_manage_shop
+    target_user.can_manage_categories = can_manage_categories
+    target_user.save(
+        update_fields=["can_delete_records", "can_manage_shop", "can_manage_categories"]
+    )
+    return target_user
+
+
+def reset_staff_password(target_user: User, new_password: str) -> User:
+    """Reset staff user password, clear lockout flags and reset failed attempts."""
+    target_user.set_password(new_password)
+    target_user.failed_login_attempts = 0
+    target_user.is_locked = False
+    target_user.locked_until = None
+    target_user.save(
+        update_fields=["password", "failed_login_attempts", "is_locked", "locked_until"]
+    )
+    return target_user

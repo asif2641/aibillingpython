@@ -81,14 +81,20 @@ def staff_user(db):
 
 
 @pytest.fixture
-def superadmin_client(client, superadmin_user):
+def superadmin_client(superadmin_user):
     """Return a test client already logged in as superadmin."""
-    client.force_login(superadmin_user)
-    return client
+    from django.test import Client
+
+    c = Client()
+    c.force_login(superadmin_user)
+    return c
 
 
 @pytest.fixture
-def staff_client(client, staff_user):
+def staff_client(staff_user):
     """Return a test client already logged in as a staff member."""
-    client.force_login(staff_user)
-    return client
+    from django.test import Client
+
+    c = Client()
+    c.force_login(staff_user)
+    return c
