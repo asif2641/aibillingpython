@@ -10,9 +10,10 @@ Every command below can be copied and pasted directly into your terminal, with a
 
 1. [Stage 1: Running on Your Local Computer](#stage-1-running-on-your-local-computer)
 2. [Stage 2: Deploying to a Free Cloud Server (Render + Neon PostgreSQL)](#stage-2-deploying-to-a-free-cloud-server-render--neon-postgresql)
-3. [Stage 3: Deploying to a Live Production Server (Ubuntu VPS)](#stage-3-deploying-to-a-live-production-server-ubuntu-vps)
-4. [Environment Variables Reference](#environment-variables-reference)
-5. [Troubleshooting Common Issues](#troubleshooting-common-issues)
+3. [Stage 3: Deploying to Vercel (Serverless Cloud)](#stage-3-deploying-to-vercel-serverless-cloud)
+4. [Stage 4: Deploying to a Live Production Server (Ubuntu VPS)](#stage-4-deploying-to-a-live-production-server-ubuntu-vps)
+5. [Environment Variables Reference](#environment-variables-reference)
+6. [Troubleshooting Common Issues](#troubleshooting-common-issues)
 
 ---
 
@@ -154,7 +155,72 @@ Once your service says **Live**, create your login account:
 
 ---
 
-## Stage 3: Deploying to a Live Production Server (Ubuntu VPS)
+## Stage 3: Deploying to Vercel (Serverless Cloud)
+
+Vercel allows you to host the AI Billing application as a serverless web application with zero server maintenance, automatic SSL, and instant global CDN delivery.
+
+> [!IMPORTANT]
+> **Vercel Ephemeral Filesystem & Database:**
+> Vercel functions run in a read-only, serverless environment. An external PostgreSQL database (e.g., [Neon](https://neon.tech) or [Supabase](https://supabase.com) — both offer free tiers) is required so your bills, parties, and ledger data are permanently saved. If `DATABASE_URL` is not set, the app temporarily uses `/tmp/db.sqlite3` which resets when serverless containers cycle.
+
+### Step 1: Push Code to GitHub
+
+Your code is already structured for Vercel with:
+- `vercel.json`: Directs incoming web requests to the Django WSGI application and static build outputs.
+- `build_files.sh`: Automatically runs `pip install` and `collectstatic` during Vercel's build step.
+- `api/index.py` & `aibilling/wsgi.py`: WSGI entrypoints configured for the Vercel Python runtime.
+
+Ensure your code is pushed to your GitHub repository:
+```bash
+git push origin main
+```
+
+### Step 2: Create a Free PostgreSQL Database on Neon (2 minutes)
+
+1. Go to **[neon.tech](https://neon.tech)** and sign up with GitHub.
+2. Click **Create Project**, name it `aibilling-db`, and choose your nearest region.
+3. On the project dashboard, copy the **Connection details** connection string (`postgres://...` or `postgresql://...`).
+
+### Step 3: Connect and Deploy on Vercel
+
+1. Log in to **[vercel.com](https://vercel.com)** using your GitHub account.
+2. On your Vercel Dashboard, click **Add New...** → **Project**.
+3. Locate `aibillingpython` (or `asif2641/aibillingpython`) in the list of repositories and click **Import**.
+4. In the project configuration:
+   - **Framework Preset**: Select **Other**.
+   - **Root Directory**: `./` (leave default).
+   - **Build and Output Settings**: Leave default (overridden by `vercel.json` and `build_files.sh`).
+5. Open the **Environment Variables** section and add the following keys:
+
+| Name | Example Value | Description |
+|------|---------------|-------------|
+| `DJANGO_SETTINGS_MODULE` | `aibilling.settings.production` | Enables production security & WhiteNoise |
+| `SECRET_KEY` | *(A long random 50-character string)* | Production cryptographic key |
+| `DEBUG` | `False` | Disables debug mode in production |
+| `BUILD_MODE` | `True` | Allows `collectstatic` to run safely during build |
+| `DATABASE_URL` | `postgresql://user:pass@ep-xyz.neon.tech/neondb?sslmode=require` | Your Neon PostgreSQL connection string |
+| `GEMINI_API_KEY` | `AIzaSy...` | Your Google Gemini API key for bill OCR |
+
+6. Click **Deploy**.
+7. Vercel will install dependencies, collect static files, and deploy your application. In ~1–2 minutes, you will receive a live URL:
+   `https://aibillingpython.vercel.app` (or similar).
+
+### Step 4: Run Initial Database Migrations & Create Super Admin
+
+Since Vercel runs serverless functions without an interactive shell, apply migrations to your cloud database from your computer:
+
+```powershell
+# In PowerShell:
+$env:DATABASE_URL="postgresql://user:pass@ep-xyz.neon.tech/neondb?sslmode=require"
+python manage.py migrate
+python manage.py create_superadmin
+```
+
+Your admin login (`admin` / `admin`) is now ready on your live Vercel URL!
+
+---
+
+## Stage 4: Deploying to a Live Production Server (Ubuntu VPS)
 
 When your shop grows and you want zero cold-starts, your own custom domain (e.g. `billing.yourshop.com`), local SSD storage for uploaded bill images, and automated daily backups, deploy to a low-cost Ubuntu 22.04 / 24.04 VPS (DigitalOcean, Hetzner, Linode, or AWS Lightsail — typically $4–$6/month).
 

@@ -267,3 +267,17 @@ class TestDeploymentArtifacts:
         assert "render" in content
         assert "vps" in content or "nginx" in content
         assert "gunicorn" in content
+
+    def test_vercel_configuration_exists_with_wsgi_and_static_routes(self):
+        """vercel.json and build_files.sh exist for Vercel deployment."""
+        vercel_json = BASE_DIR / "vercel.json"
+        assert vercel_json.is_file(), "vercel.json must exist at project root"
+        content = vercel_json.read_text(encoding="utf-8")
+        assert "aibilling/wsgi.py" in content
+        assert "@vercel/python" in content
+        assert "build_files.sh" in content
+
+        build_files_sh = BASE_DIR / "build_files.sh"
+        assert build_files_sh.is_file(), "build_files.sh must exist"
+        sh_content = build_files_sh.read_text(encoding="utf-8")
+        assert "collectstatic" in sh_content

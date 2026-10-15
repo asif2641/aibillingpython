@@ -63,6 +63,21 @@ def configure_production_settings(env: dict[str, str] | None = None) -> dict[str
         if render_origin not in csrf_trusted_origins:
             csrf_trusted_origins.append(render_origin)
 
+    # Vercel deployment support
+    vercel_url = environ.get("VERCEL_URL", "").strip()
+    if vercel_url:
+        if vercel_url not in allowed_hosts:
+            allowed_hosts.append(vercel_url)
+        vercel_origin = f"https://{vercel_url}"
+        if vercel_origin not in csrf_trusted_origins:
+            csrf_trusted_origins.append(vercel_origin)
+
+    if environ.get("VERCEL"):
+        if ".vercel.app" not in allowed_hosts:
+            allowed_hosts.append(".vercel.app")
+        if "https://*.vercel.app" not in csrf_trusted_origins:
+            csrf_trusted_origins.append("https://*.vercel.app")
+
     config: dict[str, Any] = {
         "DEBUG": False,
         "SECRET_KEY": secret_key,
@@ -85,6 +100,17 @@ def configure_production_settings(env: dict[str, str] | None = None) -> dict[str
     db_url = environ.get("DATABASE_URL", "").strip()
     if db_url.startswith(("postgres://", "postgresql://")):
         config["DATABASES"] = {"default": parse_database_url(db_url)}
+    elif environ.get("VERCEL"):
+        # On Vercel serverless without PostgreSQL, use temp directory for SQLite writeability
+        import tempfile
+        from pathlib import Path
+
+        config["DATABASES"] = {
+            "default": {
+                "ENGINE": "django.db.backends.sqlite3",
+                "NAME": Path(tempfile.gettempdir()) / "db.sqlite3",
+            }
+        }
 
     return config
 
