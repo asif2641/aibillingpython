@@ -4,7 +4,7 @@
 {% block title %}{% trans "Scan Bill — AI Extraction" %} — Bill Scanner & Ledger{% endblock %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto space-y-6" x-data="uploadManager()">
+<div class="max-w-3xl mx-auto space-y-6" x-data="uploadManager()" x-init="init()">
 
         <!-- Header -->
         <div class="flex items-center justify-between">
@@ -40,8 +40,36 @@
         </div>
         {% endif %}
 
+        {% if duplicate_detected and duplicate_bill %}
+        <div class="p-5 rounded-3xl bg-amber-50 dark:bg-amber-950/80 border-2 border-amber-400 dark:border-amber-500 shadow-lg text-amber-950 dark:text-amber-100 flex flex-col md:flex-row md:items-center justify-between gap-4" role="alert">
+            <div class="flex items-start gap-3.5">
+                <span class="text-3xl mt-0.5">⚠️</span>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h3 class="font-extrabold text-sm text-amber-900 dark:text-amber-200 uppercase tracking-wide">
+                            {% trans "Duplicate Bill Detected" %}
+                        </h3>
+                        <span class="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-100 border border-amber-300 dark:border-amber-700">
+                            {% trans "Already Exists" %}
+                        </span>
+                    </div>
+                    <p class="text-xs text-amber-800 dark:text-amber-300 mt-1 font-medium">
+                        {{ duplicate_message }}
+                    </p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2.5 shrink-0 self-end md:self-center">
+                <a href="{{ existing_review_url|default:existing_detail_url }}" 
+                   class="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-md transition-all flex items-center gap-1.5 whitespace-nowrap">
+                    <svg class="w-4 h-4 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                    <span>{% trans "View Existing Bill" %}</span>
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Upload Form -->
-        <form method="post" enctype="multipart/form-data" class="space-y-6" @submit="isUploading = true">
+        <form method="post" enctype="multipart/form-data" class="space-y-6" @submit="handleSubmit($event)">
             {% csrf_token %}
 
             <!-- Dropzone Card -->
@@ -66,41 +94,224 @@
                     </div>
 
                     <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
-                        <!-- Standard File Picker -->
-                        <label class="px-5 py-2.5 min-h-[44px] rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs shadow-sm shadow-primary-500/25 cursor-pointer inline-flex items-center gap-2 transition-colors">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                            <span>{% trans "Browse Files" %}</span>
-                            <input type="file" name="files" multiple accept="image/*,.pdf" class="hidden" @change="handleFileSelect($event)" id="file-input">
+                        <!-- Dedicated form submission input holding all combined files -->
+                        <input type="file" name="files" multiple class="hidden" id="file-input">
+
+                        <!-- Mobile / Direct Camera Capture Shortcut (high-visibility, touch-target min 48px, emerald accent) -->
+                        <label class="px-5 py-3 min-h-[48px] rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs shadow-md shadow-emerald-600/30 cursor-pointer inline-flex items-center gap-2.5 transition-all hover:scale-105 active:scale-95">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                            <span>
+                                {% if request.LANGUAGE_CODE == 'ur' %}
+                                کیمرہ سے تصویر لیں
+                                {% else %}
+                                {% trans "Take Photo" %}
+                                {% endif %}
+                            </span>
+                            <input type="file" id="camera-capture-input" capture="environment" accept="image/*" class="hidden" @change="handleFileSelect($event)">
                         </label>
 
-                        <!-- Mobile Camera Trigger -->
-                        <label class="px-4 py-2.5 min-h-[44px] rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold text-xs cursor-pointer inline-flex items-center gap-2 transition-colors sm:hidden">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                            <span>{% trans "Take Photo" %}</span>
-                            <input type="file" name="files" capture="environment" accept="image/*" class="hidden" @change="handleFileSelect($event)">
+                        <!-- Standard File / PDF Picker (Appends new files) -->
+                        <label class="px-5 py-3 min-h-[48px] rounded-2xl bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-bold text-xs shadow-md shadow-primary-500/25 cursor-pointer inline-flex items-center gap-2.5 transition-all hover:scale-105 active:scale-95">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                            <span>
+                                {% if request.LANGUAGE_CODE == 'ur' %}
+                                فائل یا پی ڈی ایف منتخب کریں
+                                {% else %}
+                                {% trans "Browse Files / PDF" %}
+                                {% endif %}
+                            </span>
+                            <input type="file" multiple accept="image/*,.pdf" class="hidden" @change="handleFileSelect($event)" id="browse-picker">
                         </label>
                     </div>
                 </div>
             </div>
 
             <!-- Multi-Page Selected Files Preview -->
-            <div x-show="selectedFiles.length > 0" class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-5 space-y-3" style="display: none;">
-                <h3 class="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                    {% trans "Selected Documents" %} (<span x-text="selectedFiles.length"></span>)
-                </h3>
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <template x-for="(file, idx) in selectedFiles" :key="idx">
-                        <div class="relative p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 flex flex-col items-center text-center"
-                             :class="isDuplicate ? 'border-amber-400 dark:border-amber-500 bg-amber-50/40 dark:bg-amber-950/20' : ''">
-                            <span class="text-2xl mb-1">📄</span>
-                            <p class="text-[11px] font-semibold text-slate-800 dark:text-slate-200 truncate w-full" x-text="file.name"></p>
-                            <span class="text-[10px] text-slate-400 mt-0.5" x-text="formatSize(file.size)"></span>
-                            <div class="flex items-center gap-1 mt-1">
-                                <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-primary-100 text-primary-700 dark:bg-primary-950 dark:text-primary-300" x-text="'Page ' + (idx + 1)"></span>
-                                <span x-show="isDuplicate" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-200 text-amber-900 dark:bg-amber-900 dark:text-amber-200">{% trans "Duplicate" %}</span>
+            <div x-show="selectedFiles.length > 0" class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700/80 p-5 sm:p-6 space-y-4 shadow-sm" style="display: none;">
+                <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/60 pb-3">
+                    <div class="flex items-center gap-2">
+                        <h3 class="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                            {% trans "Selected Documents" %}
+                        </h3>
+                        <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-primary-100 text-primary-700 dark:bg-primary-950 dark:text-primary-300" x-text="selectedFiles.length"></span>
+                    </div>
+                    <button type="button" @click="clearAllFiles()" class="text-xs text-rose-500 hover:text-rose-700 font-semibold hover:underline flex items-center gap-1 transition-colors">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        <span>{% trans "Clear all" %}</span>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5 pt-1">
+                    <template x-for="(item, idx) in selectedFiles" :key="item.id || idx">
+                        <div class="relative p-3 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 flex flex-col items-center text-center group transition-all hover:shadow-md hover:border-primary-400 dark:hover:border-primary-600"
+                             :class="item.qualityWarning ? 'border-rose-400 dark:border-rose-500 bg-rose-50/50 dark:bg-rose-950/20' : (isDuplicate ? 'border-amber-400 dark:border-amber-500 bg-amber-50/40 dark:bg-amber-950/20' : '')">
+                            
+                            <!-- Remove File Button (Red 'X') -->
+                            <button type="button" 
+                                    @click.stop="removeFile(idx)"
+                                    class="absolute -top-2.5 -right-2.5 rtl:-right-auto rtl:-left-2.5 w-7 h-7 rounded-full bg-rose-500 hover:bg-rose-600 text-white flex items-center justify-center text-xs shadow-md transition-all hover:scale-110 active:scale-95 focus:outline-none focus:ring-2 focus:ring-rose-400 z-10 cursor-pointer"
+                                    title="{% trans "Remove this document" %}">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+
+                            <!-- Document Thumbnail / Visual Preview -->
+                            <div class="w-16 h-20 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden flex items-center justify-center mb-2 shadow-inner">
+                                <template x-if="item.previewUrl">
+                                    <img :src="item.previewUrl" :alt="item.name" class="w-full h-full object-cover">
+                                </template>
+                                <template x-if="!item.previewUrl">
+                                    <span class="text-3xl">📄</span>
+                                </template>
+                            </div>
+
+                            <!-- Quality Warning Badge -->
+                            <template x-if="item.qualityWarning">
+                                <div class="mb-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 shadow-xs flex items-center gap-1 text-center"
+                                     :title="item.qualityWarning.message">
+                                    <span class="animate-pulse">⚠️</span>
+                                    <span x-text="item.qualityWarning.title"></span>
+                                </div>
+                            </template>
+
+                            <!-- Duplicate Document Badge -->
+                            <template x-if="isDuplicate">
+                                <div class="mb-1.5 px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-amber-200 text-amber-950 dark:bg-amber-900 dark:text-amber-100 border border-amber-400 dark:border-amber-600 shadow-xs flex items-center gap-1 text-center animate-pulse">
+                                    <span>⚠️</span>
+                                    <span>{% trans "Duplicate" %}</span>
+                                </div>
+                            </template>
+
+                            <!-- File Name & Size -->
+                            <p class="text-[11px] font-semibold text-slate-800 dark:text-slate-200 truncate w-full" :title="item.name" x-text="item.name"></p>
+                            <span class="text-[10px] text-slate-400 mt-0.5 font-mono" x-text="formatSize(item.size)"></span>
+
+                            <!-- Page Number Badge & Reorder Arrows -->
+                            <div class="flex items-center gap-1.5 mt-2.5">
+                                <button type="button" 
+                                        x-show="idx > 0" 
+                                        @click.stop="moveFile(idx, -1)" 
+                                        class="w-5 h-5 rounded flex items-center justify-center bg-slate-200 dark:bg-slate-700 hover:bg-primary-600 hover:text-white text-slate-700 dark:text-slate-200 text-[11px] font-bold transition-colors cursor-pointer"
+                                        title="{% trans "Move earlier (Page -" %}" + idx + ")">
+                                    &larr;
+                                </button>
+
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-primary-100 text-primary-700 dark:bg-primary-950 dark:text-primary-300 shadow-xs" x-text="'{% trans "Page" %} ' + (idx + 1)"></span>
+
+                                <button type="button" 
+                                        x-show="idx < selectedFiles.length - 1" 
+                                        @click.stop="moveFile(idx, 1)" 
+                                        class="w-5 h-5 rounded flex items-center justify-center bg-slate-200 dark:bg-slate-700 hover:bg-primary-600 hover:text-white text-slate-700 dark:text-slate-200 text-[11px] font-bold transition-colors cursor-pointer"
+                                        title="{% trans "Move later" %}">
+                                    &rarr;
+                                </button>
                             </div>
                         </div>
                     </template>
+
+                    <!-- Snap Next Page with Camera Tile -->
+                    <label class="p-3 rounded-2xl border-2 border-dashed border-emerald-300 dark:border-emerald-700/60 hover:border-emerald-500 hover:bg-emerald-50/20 dark:hover:bg-emerald-950/20 bg-white dark:bg-slate-800 flex flex-col items-center justify-center text-center cursor-pointer transition-all min-h-[140px] group">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl font-bold group-hover:scale-110 transition-transform mb-1 shadow-inner">
+                            📷
+                        </div>
+                        <span class="text-xs font-bold text-slate-800 dark:text-slate-200">
+                            {% if request.LANGUAGE_CODE == 'ur' %}
+                            کیمرہ سے اگلا صفحہ
+                            {% else %}
+                            {% trans "Camera" %}
+                            {% endif %}
+                        </span>
+                        <span class="text-[10px] text-slate-400 mt-0.5">
+                            {% if request.LANGUAGE_CODE == 'ur' %}
+                            کیمرہ سے تصویر لیں
+                            {% else %}
+                            {% trans "Snap next page" %}
+                            {% endif %}
+                        </span>
+                        <input type="file" capture="environment" accept="image/*" class="hidden" @change="handleFileSelect($event)">
+                    </label>
+
+                    <!-- Add More Pages Tile (Gallery / PDF) -->
+                    <label class="p-3 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-primary-500 hover:bg-primary-50/20 dark:hover:bg-primary-950/20 bg-white dark:bg-slate-800 flex flex-col items-center justify-center text-center cursor-pointer transition-all min-h-[140px] group">
+                        <div class="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center text-xl font-bold group-hover:scale-110 transition-transform mb-1 shadow-inner">
+                            +
+                        </div>
+                        <span class="text-xs font-bold text-slate-800 dark:text-slate-200">
+                            {% if request.LANGUAGE_CODE == 'ur' %}
+                            گیلری یا پی ڈی ایف
+                            {% else %}
+                            {% trans "Add More" %}
+                            {% endif %}
+                        </span>
+                        <span class="text-[10px] text-slate-400 mt-0.5">
+                            {% if request.LANGUAGE_CODE == 'ur' %}
+                            فائل منتخب کریں
+                            {% else %}
+                            {% trans "Next page / slip" %}
+                            {% endif %}
+                        </span>
+                        <input type="file" multiple accept="image/*,.pdf" class="hidden" @change="handleFileSelect($event)">
+                    </label>
+                </div>
+            </div>
+
+            <!-- Pre-AI Quality Warning Alert Banner -->
+            <div x-show="selectedFiles.some(f => f.qualityWarning)" x-transition
+                 class="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border-2 border-rose-300 dark:border-rose-800 text-rose-900 dark:text-rose-200 text-xs shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <span class="text-xl">⚠️</span>
+                    <div>
+                        <p class="font-bold">
+                            {% if request.LANGUAGE_CODE == 'ur' %}
+                            توجہ فرمائیں: منتخب کردہ تصاویر میں سے کچھ دھندلی، تاریک یا خالی معلوم ہو رہی ہیں۔
+                            {% else %}
+                            Quality Alert: One or more selected images appear blurry, too dark, or blank.
+                            {% endif %}
+                        </p>
+                        <p class="text-[11px] text-rose-700 dark:text-rose-300 mt-0.5">
+                            {% if request.LANGUAGE_CODE == 'ur' %}
+                            غیر ضروری فیلرز اور غلط اسکیننگ سے بچنے کے لیے واضح اور فوکسڈ تصویر اپلوڈ کریں۔
+                            {% else %}
+                            Please replace them with clear, well-lit, and focused documents to prevent scanning errors.
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Prominent Duplicate Alert Box (Client-Side) -->
+            <div x-show="isDuplicate" x-transition
+                 class="p-4 sm:p-5 rounded-2xl bg-amber-50 dark:bg-amber-950/80 border-2 border-amber-400 dark:border-amber-500 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 text-amber-950 dark:text-amber-100">
+                <div class="flex items-start gap-3">
+                    <span class="text-3xl mt-0.5 animate-bounce">⚠️</span>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h4 class="font-bold text-sm text-amber-900 dark:text-amber-200 uppercase tracking-wide">
+                                {% trans "Duplicate Bill Detected" %}
+                            </h4>
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-100 border border-amber-300 dark:border-amber-700">
+                                {% trans "Already Scanned" %}
+                            </span>
+                        </div>
+                        <p class="text-xs text-amber-800 dark:text-amber-300 mt-1 font-medium">
+                            {% trans "This document is an identical copy of" %} 
+                            <span class="font-bold font-mono text-amber-900 dark:text-amber-100" x-text="duplicateInfo?.invoice_no ? ('{% trans "Invoice #" %}' + duplicateInfo?.invoice_no) : ('{% trans "Bill #" %}' + duplicateInfo?.bill_id)"></span>
+                            (<span class="font-semibold" x-text="duplicateInfo?.party_name || '{% trans "Unknown" %}'"></span>, 
+                            <span class="font-bold">Rs. <span x-text="duplicateInfo?.grand_total || '0.00'"></span></span>)
+                            <template x-if="duplicateInfo?.bill_date">
+                                <span>{% trans "scanned on" %} <span x-text="duplicateInfo?.bill_date"></span></span>
+                            </template>.
+                        </p>
+                        <p class="text-[11px] text-amber-700 dark:text-amber-400 mt-0.5">
+                            {% trans "AI extraction is not needed for this bill since it has already been processed." %}
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                    <a :href="duplicateInfo?.review_url || duplicateInfo?.detail_url" 
+                       class="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-md transition-all flex items-center gap-1.5 whitespace-nowrap">
+                        <svg class="w-4 h-4 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                        <span>{% trans "View Existing Bill" %}</span>
+                    </a>
                 </div>
             </div>
 
@@ -111,27 +322,14 @@
                     <span>{% trans "AI extracts printed & handwritten Urdu/English bills" %}</span>
                 </div>
 
-                <!-- Highlighted Duplicate Bill Area -->
-                <div x-show="isDuplicate" x-transition 
-                     class="flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-amber-100 dark:bg-amber-950/80 border-2 border-amber-400 dark:border-amber-500 text-amber-950 dark:text-amber-200 text-xs font-semibold shadow-sm">
-                    <span class="text-base">⚠️</span>
-                    <span class="font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">{% trans "Duplicate Bill" %}</span>
-                    <span class="text-[11px] text-slate-700 dark:text-slate-300 font-normal">
-                        (<span x-text="duplicateInfo?.party_name || ''"></span> - Rs. <span x-text="duplicateInfo?.grand_total || ''"></span>)
-                    </span>
-                    <a :href="duplicateInfo?.review_url || duplicateInfo?.detail_url" 
-                       class="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-bold shadow-sm transition-colors ml-1 whitespace-nowrap">
-                        <span>{% trans "Open Existing Bill" %}</span>
-                        <svg class="w-3 h-3 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                    </a>
-                </div>
+                <input type="hidden" name="force_rescan" :value="isDuplicate ? '1' : '0'">
 
                 <button type="submit" 
                         class="px-8 py-3 min-h-[44px] inline-flex items-center gap-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs shadow-md shadow-primary-500/25 transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
-                        :disabled="isUploading">
+                        :disabled="isUploading || selectedFiles.length === 0">
                     <template x-if="!isUploading">
                         <span class="flex items-center gap-2">
-                            <span>{% trans "Extract Bill Data" %}</span>
+                            <span x-text="isDuplicate ? '{% trans "Scan Anyway as New Bill" %}' : '{% trans "Extract Bill Data" %}'"></span>
                             <svg class="w-4 h-4 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
                         </span>
                     </template>
@@ -154,6 +352,203 @@ function uploadManager() {
         isDuplicate: false,
         duplicateInfo: null,
         selectedFiles: [],
+        isUrdu: {% if request.LANGUAGE_CODE == 'ur' %}true{% else %}false{% endif %},
+        init() {
+            // Auto-trigger mobile camera if URL includes ?camera=1 or #camera
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('camera') === '1' || window.location.hash === '#camera') {
+                setTimeout(() => {
+                    const camInput = document.getElementById('camera-capture-input');
+                    if (camInput) camInput.click();
+                }, 350);
+            }
+        },
+        addFiles(files) {
+            if (!files || files.length === 0) return;
+            for (const f of files) {
+                // Avoid identical duplicate file additions (matching name, size, lastModified)
+                const exists = this.selectedFiles.some(
+                    e => e.name === f.name && e.size === f.size && e.lastModified === f.lastModified
+                );
+                if (!exists) {
+                    const item = {
+                        id: Math.random().toString(36).substring(2, 9),
+                        file: f,
+                        name: f.name,
+                        size: f.size,
+                        lastModified: f.lastModified,
+                        previewUrl: f.type && f.type.startsWith('image/') ? URL.createObjectURL(f) : null,
+                        qualityWarning: null,
+                    };
+                    this.selectedFiles.push(item);
+                    if (item.previewUrl) {
+                        this.inspectImageQuality(item);
+                    }
+                }
+            }
+            this.syncInputFiles();
+            this.checkDuplicateFile(this.selectedFiles.map(i => i.file));
+        },
+        inspectImageQuality(item) {
+            const img = new Image();
+            img.src = item.previewUrl;
+            img.onload = () => {
+                const w = img.naturalWidth || img.width;
+                const h = img.naturalHeight || img.height;
+                if (w < 100 || h < 100) {
+                    item.qualityWarning = {
+                        code: 'too_small',
+                        title: this.isUrdu ? 'چھوٹا سائز (<100px)' : 'Too Small (< 100px)',
+                        message: this.isUrdu ? 'تصویر کا سائز 100 پکسل سے کم ہے' : 'Image is under 100px and unreadable',
+                    };
+                    return;
+                }
+
+                try {
+                    const canvas = document.createElement('canvas');
+                    const targetW = 200;
+                    const targetH = Math.max(10, Math.round((h / w) * targetW));
+                    canvas.width = targetW;
+                    canvas.height = targetH;
+                    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                    ctx.drawImage(img, 0, 0, targetW, targetH);
+                    const imgData = ctx.getImageData(0, 0, targetW, targetH);
+                    const d = imgData.data;
+
+                    const totalPixels = targetW * targetH;
+                    let sum = 0;
+                    let sumSq = 0;
+                    const gray = new Float32Array(totalPixels);
+
+                    for (let i = 0; i < totalPixels; i++) {
+                        const val = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2];
+                        gray[i] = val;
+                        sum += val;
+                        sumSq += val * val;
+                    }
+
+                    const mean = sum / totalPixels;
+                    const variance = Math.max(0, (sumSq / totalPixels) - (mean * mean));
+                    const stddev = Math.sqrt(variance);
+
+                    if (mean < 35.0) {
+                        item.qualityWarning = {
+                            code: 'too_dark',
+                            title: this.isUrdu ? 'بہت اندھیرا' : 'Too Dark',
+                            message: this.isUrdu ? 'روشنی بہت کم ہے، واضح روشنی میں دوبارہ تصویر بنائیں' : 'Image is too dark to read',
+                        };
+                        return;
+                    }
+
+                    if (stddev < 3.5) {
+                        item.qualityWarning = {
+                            code: 'blank_page',
+                            title: this.isUrdu ? 'خالی صفحہ' : 'Blank Page',
+                            message: this.isUrdu ? 'خالی صفحہ یا کوئی تحریر نہ ہونے کا شبہ ہے' : 'Empty page with no text detected',
+                        };
+                        return;
+                    }
+
+                    // Discrete Laplacian Edge Variance for focus / blur detection
+                    let edgeSum = 0;
+                    let edgeSumSq = 0;
+                    let count = 0;
+                    for (let y = 1; y < targetH - 1; y++) {
+                        for (let x = 1; x < targetW - 1; x++) {
+                            const idx = y * targetW + x;
+                            const lap = Math.abs(
+                                4 * gray[idx] - gray[idx - 1] - gray[idx + 1] - gray[idx - targetW] - gray[idx + targetW]
+                            );
+                            edgeSum += lap;
+                            edgeSumSq += lap * lap;
+                            count++;
+                        }
+                    }
+
+                    if (count > 0) {
+                        const lapMean = edgeSum / count;
+                        const lapVar = (edgeSumSq / count) - (lapMean * lapMean);
+                        const ratio = lapVar / (stddev + 0.1);
+                        if (lapVar < 5.0 && ratio < 1.0) {
+                            item.qualityWarning = {
+                                code: 'blurry',
+                                title: this.isUrdu ? 'دھندلی تصویر' : 'Blurry Image',
+                                message: this.isUrdu ? 'تصویر دھندلی ہے، کیمرہ فوکس کر کے دوبارہ بنائیں' : 'Image is blurry and out of focus',
+                            };
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Canvas quality check skipped:', e);
+                }
+            };
+        },
+        handleSubmit(event) {
+            const hasIssue = this.selectedFiles.some(f => f.qualityWarning);
+            if (hasIssue) {
+                const msg = this.isUrdu 
+                    ? '⚠️ الرٹ: منتخب کردہ تصاویر میں دھندلی، تاریک یا خالی تصویر موجود ہے۔ کیا آپ پھر بھی آگے بڑھنا چاہتے ہیں؟'
+                    : '⚠️ Quality Alert: One or more selected images are blurry, too dark, or blank. Are you sure you want to proceed?';
+                if (!confirm(msg)) {
+                    event.preventDefault();
+                    this.isUploading = false;
+                    return false;
+                }
+            }
+            this.isUploading = true;
+        },
+        removeFile(idx) {
+            const removed = this.selectedFiles.splice(idx, 1)[0];
+            if (removed && removed.previewUrl) {
+                URL.revokeObjectURL(removed.previewUrl);
+            }
+            this.syncInputFiles();
+            this.checkDuplicateFile(this.selectedFiles.map(i => i.file));
+        },
+        moveFile(idx, dir) {
+            const targetIdx = idx + dir;
+            if (targetIdx < 0 || targetIdx >= this.selectedFiles.length) return;
+            const item = this.selectedFiles.splice(idx, 1)[0];
+            this.selectedFiles.splice(targetIdx, 0, item);
+            this.syncInputFiles();
+        },
+        clearAllFiles() {
+            for (const item of this.selectedFiles) {
+                if (item.previewUrl) {
+                    URL.revokeObjectURL(item.previewUrl);
+                }
+            }
+            this.selectedFiles = [];
+            this.syncInputFiles();
+            this.isDuplicate = false;
+            this.duplicateInfo = null;
+        },
+        syncInputFiles() {
+            try {
+                const dt = new DataTransfer();
+                for (const item of this.selectedFiles) {
+                    dt.items.add(item.file);
+                }
+                const input = document.getElementById('file-input');
+                if (input) {
+                    input.files = dt.files;
+                }
+            } catch (err) {
+                console.warn('Could not sync DataTransfer to input.files:', err);
+            }
+        },
+        handleFileSelect(event) {
+            const files = Array.from(event.target.files);
+            this.addFiles(files);
+            event.target.value = '';
+        },
+        handleDrop(event) {
+            this.isDragging = false;
+            const dt = event.dataTransfer;
+            if (dt && dt.files) {
+                const files = Array.from(dt.files);
+                this.addFiles(files);
+            }
+        },
         async checkDuplicateFile(files) {
             this.isDuplicate = false;
             this.duplicateInfo = null;
@@ -165,7 +560,9 @@ function uploadManager() {
                 const hashArray = Array.from(new Uint8Array(hashBuffer));
                 const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
-                const resp = await fetch(`/en/scanning/check-duplicate/?hash=${hashHex}`);
+                const checkUrl = "{% url 'scanning:check_duplicate' %}";
+                const query = `hash=${encodeURIComponent(hashHex)}&name=${encodeURIComponent(file.name || '')}&size=${file.size || 0}`;
+                const resp = await fetch(`${checkUrl}?${query}`);
                 if (resp.ok) {
                     const data = await resp.json();
                     if (data.is_duplicate) {
@@ -176,22 +573,6 @@ function uploadManager() {
             } catch (err) {
                 console.warn('Duplicate check could not complete:', err);
             }
-        },
-        handleFileSelect(event) {
-            const files = Array.from(event.target.files);
-            this.selectedFiles = files;
-            this.checkDuplicateFile(files);
-        },
-        handleDrop(event) {
-            this.isDragging = false;
-            const dt = event.dataTransfer;
-            const files = Array.from(dt.files);
-            this.selectedFiles = files;
-            const input = document.getElementById('file-input');
-            if (input) {
-                input.files = dt.files;
-            }
-            this.checkDuplicateFile(files);
         },
         formatSize(bytes) {
             if (!bytes) return '0 B';

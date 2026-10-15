@@ -58,8 +58,19 @@ class BillFile(models.Model):
         max_length=64,
         blank=True,
         default="",
+        db_index=True,
         verbose_name=_("SHA-256 hash"),
         help_text=_("Hex digest of file contents for duplicate detection."),
+    )
+    raw_hash = models.CharField(
+        max_length=64,
+        blank=True,
+        default="",
+        db_index=True,
+        verbose_name=_("raw SHA-256 hash"),
+        help_text=_(
+            "Hex digest of original uncompressed file contents for client-side duplicate detection."
+        ),
     )
     created_at = models.DateTimeField(
         auto_now_add=True,
@@ -76,7 +87,7 @@ class BillFile(models.Model):
 
     def save(self, *args, **kwargs) -> None:
         """Compute SHA-256 hash and record size if file is provided and hash is unset."""
-        if self.file and not self.file_hash:
+        if self.file and (not self.file_hash or not self.raw_hash):
             with contextlib.suppress(OSError, ValueError, AttributeError):
                 hasher = hashlib.sha256()
                 if hasattr(self.file, "chunks"):
@@ -87,7 +98,11 @@ class BillFile(models.Model):
                     self.file.seek(0)
                     hasher.update(self.file.read())
                     self.file.seek(pos)
-                self.file_hash = hasher.hexdigest()
+                digest = hasher.hexdigest()
+                if not self.file_hash:
+                    self.file_hash = digest
+                if not self.raw_hash:
+                    self.raw_hash = digest
                 self.file_size = self.file.size
         super().save(*args, **kwargs)
 

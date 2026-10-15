@@ -12,7 +12,7 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
-from PIL import Image
+from PIL import Image, ImageDraw
 
 from bills.models import Bill
 from parties.models import Party
@@ -36,8 +36,11 @@ def superadmin_user(db):
 
 @pytest.fixture
 def sample_image():
-    """Create a dummy in-memory JPEG image."""
+    """Create a dummy in-memory JPEG bill image with readable content."""
     img = Image.new("RGB", (800, 1000), color=(255, 255, 255))
+    draw = ImageDraw.Draw(img)
+    for y in range(80, 920, 50):
+        draw.text((60, y), f"Sample Bill Line Item #{y} Qty 2 Price 450 Total 900", fill=(0, 0, 0))
     buf = io.BytesIO()
     img.save(buf, format="JPEG")
     buf.seek(0)
@@ -181,7 +184,12 @@ class TestImagePreprocessingService:
         """High-resolution images are scaled down to maximum 2048px bounding box."""
         from scanning.services.image_processing import validate_and_preprocess_file
 
-        huge_img = Image.new("RGB", (3000, 4000), color=(240, 240, 240))
+        huge_img = Image.new("RGB", (3000, 4000), color=(255, 255, 255))
+        draw = ImageDraw.Draw(huge_img)
+        for y in range(200, 3800, 200):
+            draw.text(
+                (200, y), f"Huge Bill Line Item #{y} Qty 1 Price 500 Total 500", fill=(0, 0, 0)
+            )
         buf = io.BytesIO()
         huge_img.save(buf, format="JPEG")
         buf.seek(0)
@@ -193,6 +201,186 @@ class TestImagePreprocessingService:
         assert processed_img.height <= 2048
         assert file_type == "image"
         assert len(file_hash) == 64
+
+
+class TestImageQualityAssessment:
+    """Tests for pre-AI document quality checks: blurry, too dark, blank page, and under-100px."""
+
+    def _create_image_file(self, img: Image.Image, name: str = "doc.jpg") -> SimpleUploadedFile:
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG")
+        buf.seek(0)
+        return SimpleUploadedFile(name=name, content=buf.read(), content_type="image/jpeg")
+
+    def test_valid_sharp_bill_passes_quality_assessment(self):
+        """A normal, sharp, well-lit bill passes quality assessment cleanly."""
+        from scanning.services.image_processing import (
+            assess_image_quality,
+            validate_and_preprocess_file,
+        )
+
+        img = Image.new("RGB", (800, 1000), color=(255, 255, 255))
+        draw = ImageDraw.Draw(img)
+        for y in range(80, 920, 50):
+            draw.text(
+                (60, y), f"Al-Madina Store Item #{y} Qty 2 Rate 450 Total 900", fill=(0, 0, 0)
+            )
+
+        report = assess_image_quality(img)
+        assert report.is_valid is True
+        assert report.issue_code is None
+        assert report.error_message == ""
+        assert report.metrics["width"] == 800
+        assert report.metrics["height"] == 1000
+
+        uploaded = self._create_image_file(img)
+        processed_bytes, file_type, _ = validate_and_preprocess_file(uploaded)
+        assert file_type == "image"
+        assert len(processed_bytes) > 0
+
+    def test_too_small_image_rejected(self):
+        """Images under 100px in either dimension are rejected with too_small error."""
+        from scanning.services.image_processing import (
+            assess_image_quality,
+            validate_and_preprocess_file,
+        )
+
+        small_img = Image.new("RGB", (80, 120), color=(255, 255, 255))
+        draw = ImageDraw.Draw(small_img)
+        draw.text((10, 10), "Tiny", fill=(0, 0, 0))
+
+        report = assess_image_quality(small_img)
+        assert report.is_valid is False
+        assert report.issue_code == "too_small"
+        assert "100px" in report.error_message or "small" in report.error_message.lower()
+
+        uploaded = self._create_image_file(small_img)
+        with pytest.raises(ValidationError) as exc:
+            validate_and_preprocess_file(uploaded)
+        assert "100px" in str(exc.value) or "small" in str(exc.value).lower()
+
+    def test_too_dark_low_light_image_rejected(self):
+        """Images with mean luminance below 35 are rejected as too dark."""
+        from scanning.services.image_processing import (
+            assess_image_quality,
+            validate_and_preprocess_file,
+        )
+
+        dark_img = Image.new("RGB", (800, 1000), color=(18, 18, 18))
+        draw = ImageDraw.Draw(dark_img)
+        draw.text((60, 100), "Dim unreadable text in darkness", fill=(30, 30, 30))
+
+        report = assess_image_quality(dark_img)
+        assert report.is_valid is False
+        assert report.issue_code == "too_dark"
+        assert "dark" in report.error_message.lower() or "lighting" in report.error_message.lower()
+
+        uploaded = self._create_image_file(dark_img)
+        with pytest.raises(ValidationError) as exc:
+            validate_and_preprocess_file(uploaded)
+        assert "dark" in str(exc.value).lower() or "lighting" in str(exc.value).lower()
+
+    def test_blank_page_image_rejected(self):
+        """Images with uniform blank background and zero/low contrast are rejected as blank_page."""
+        from scanning.services.image_processing import (
+            assess_image_quality,
+            validate_and_preprocess_file,
+        )
+
+        blank_img = Image.new("RGB", (800, 1000), color=(250, 250, 250))
+
+        report = assess_image_quality(blank_img)
+        assert report.is_valid is False
+        assert report.issue_code == "blank_page"
+        assert "blank" in report.error_message.lower()
+
+        uploaded = self._create_image_file(blank_img)
+        with pytest.raises(ValidationError) as exc:
+            validate_and_preprocess_file(uploaded)
+        assert "blank" in str(exc.value).lower()
+
+    def test_blurry_image_rejected(self):
+        """Images blurred by camera defocus/shake are rejected with blurry error."""
+        from PIL import ImageFilter
+
+        from scanning.services.image_processing import (
+            assess_image_quality,
+            validate_and_preprocess_file,
+        )
+
+        sharp_img = Image.new("RGB", (800, 1000), color=(255, 255, 255))
+        draw = ImageDraw.Draw(sharp_img)
+        for y in range(80, 920, 50):
+            draw.text(
+                (60, y), f"Al-Madina Store Item #{y} Qty 2 Rate 450 Total 900", fill=(0, 0, 0)
+            )
+
+        blurry_img = sharp_img.filter(ImageFilter.GaussianBlur(radius=5))
+
+        report = assess_image_quality(blurry_img)
+        assert report.is_valid is False
+        assert report.issue_code == "blurry"
+        assert "blurry" in report.error_message.lower()
+
+        uploaded = self._create_image_file(blurry_img)
+        with pytest.raises(ValidationError) as exc:
+            validate_and_preprocess_file(uploaded)
+        assert "blurry" in str(exc.value).lower()
+
+    def test_pdf_document_ignores_image_blur_check(self):
+        """PDF documents pass through without image blur inspection."""
+        from scanning.services.image_processing import validate_and_preprocess_file
+
+        pdf_payload = b"%PDF-1.4 sample pdf content for multi-page invoices"
+        uploaded_pdf = SimpleUploadedFile(
+            "invoice.pdf", pdf_payload, content_type="application/pdf"
+        )
+
+        processed_bytes, file_type, file_hash = validate_and_preprocess_file(uploaded_pdf)
+        assert file_type == "pdf"
+        assert processed_bytes == pdf_payload
+        assert len(file_hash) == 64
+
+    def test_urdu_quality_error_messages(self):
+        """When active language is Urdu, quality messages return friendly Urdu text."""
+        from django.utils import translation
+
+        from scanning.services.image_processing import get_quality_error_message
+
+        with translation.override("ur"):
+            assert "100 پکسل" in get_quality_error_message("too_small")
+            assert "اندھیرا" in get_quality_error_message("too_dark")
+            assert "خالی صفحہ" in get_quality_error_message("blank_page")
+            assert "دھندلی" in get_quality_error_message("blurry")
+
+    @pytest.mark.django_db
+    def test_upload_view_rejects_blurry_image_before_ai_job(self, client, superadmin_user):
+        """Upload view returns HTTP 400 and prevents ScanJob creation when image is blurry."""
+        from django.urls import reverse
+        from PIL import ImageFilter
+
+        from scanning.models import ScanJob
+
+        sharp_img = Image.new("RGB", (800, 1000), color=(255, 255, 255))
+        draw = ImageDraw.Draw(sharp_img)
+        for y in range(80, 920, 50):
+            draw.text((60, y), f"Receipt Item #{y} Description 500", fill=(0, 0, 0))
+        blurry_file = self._create_image_file(sharp_img.filter(ImageFilter.GaussianBlur(5)))
+
+        client.force_login(superadmin_user)
+        initial_job_count = ScanJob.objects.count()
+
+        response = client.post(
+            reverse("scanning:upload"),
+            {"files": [blurry_file]},
+            follow=True,
+        )
+
+        assert response.status_code == 400
+        # No ScanJob created
+        assert ScanJob.objects.count() == initial_job_count
+        content = response.content.decode("utf-8")
+        assert "blurry" in content.lower() or "دھندلی" in content
 
 
 # ---------------------------------------------------------------------------
@@ -964,6 +1152,123 @@ class TestAIExtractorProviderResolution:
         assert data["bill_id"] == sample_bill.pk
         assert data["party_name"] == sample_bill.party.name
 
+    def test_client_raw_file_hash_matches_preprocessed_file_duplicate_check(
+        self, client, superadmin_user, sample_image
+    ):
+        """BUG-006: Verify that the raw client-side file hash matches the server's duplicate detection,
+        preventing missed duplicate detection caused by Pillow JPEG recompression hash mismatch.
+        """
+        import hashlib
+
+        from bills.models import Bill
+        from parties.models import Party
+        from scanning.models import BillFile, ScanJob
+        from scanning.services.image_processing import validate_and_preprocess_file
+
+        client.force_login(superadmin_user)
+
+        # 1. Compute raw client SHA-256 (what browser crypto.subtle calculates)
+        sample_image.seek(0)
+        raw_bytes = sample_image.read()
+        sample_image.seek(0)
+        client_raw_hash = hashlib.sha256(raw_bytes).hexdigest()
+
+        # 2. Server preprocesses and validates
+        processed_bytes, file_type, file_hash = validate_and_preprocess_file(sample_image)
+        # file_hash must equal client_raw_hash so the pre-scan duplicate check matches!
+        assert file_hash == client_raw_hash
+
+        # 3. Simulate existing scanned bill with this file
+        party = Party.objects.create(name="Al-Madina Traders", party_type="vendor")
+        existing_bill = Bill.objects.create(
+            party=party,
+            invoice_no="INV-1234",
+            bill_date="2026-10-15",
+            grand_total=Decimal("3500.00"),
+        )
+        job = ScanJob.objects.create(
+            provider="mock", bill=existing_bill, status=ScanJob.Status.COMPLETED
+        )
+        BillFile.objects.create(
+            scan_job=job,
+            bill=existing_bill,
+            file=sample_image,
+            file_hash=file_hash,
+            raw_hash=client_raw_hash,
+        )
+
+        # 4. Client sends its raw hash to check-duplicate endpoint
+        resp = client.get(
+            f"/en/scanning/check-duplicate/?hash={client_raw_hash}&name=test_bill.jpg&size={len(raw_bytes)}"
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["is_duplicate"] is True
+        assert data["bill_id"] == existing_bill.pk
+        assert data["invoice_no"] == "INV-1234"
+        assert data["party_name"] == "Al-Madina Traders"
+        assert data["grand_total"] == "3500.00"
+
+    def test_upload_post_pre_scan_duplicate_gate_blocks_redundant_scan(
+        self, client, superadmin_user, sample_image
+    ):
+        """BUG-006: Uploading a duplicate file via POST is caught before running AI/ScanJob,
+        displaying an actionable duplicate warning with a link to the existing bill.
+        """
+        import hashlib
+
+        from bills.models import Bill
+        from parties.models import Party
+        from scanning.models import BillFile, ScanJob
+
+        client.force_login(superadmin_user)
+
+        sample_image.seek(0)
+        raw_bytes = sample_image.read()
+        sample_image.seek(0)
+        raw_hash = hashlib.sha256(raw_bytes).hexdigest()
+
+        party = Party.objects.create(name="Apex Supplies", party_type="vendor")
+        existing_bill = Bill.objects.create(
+            party=party,
+            invoice_no="INV-PRESCAN",
+            bill_date="2026-10-15",
+            grand_total=Decimal("2900.00"),
+        )
+        job = ScanJob.objects.create(
+            provider="mock", bill=existing_bill, status=ScanJob.Status.COMPLETED
+        )
+        BillFile.objects.create(
+            scan_job=job,
+            bill=existing_bill,
+            file=sample_image,
+            file_hash=raw_hash,
+            raw_hash=raw_hash,
+        )
+
+        initial_bill_count = Bill.objects.count()
+        initial_job_count = ScanJob.objects.count()
+
+        # Upload duplicate without force_rescan
+        sample_image.seek(0)
+        resp = client.post("/en/scanning/upload/", {"files": [sample_image]})
+        assert resp.status_code == 200
+        assert resp.context["duplicate_detected"] is True
+        assert resp.context["duplicate_bill"].pk == existing_bill.pk
+        assert "Duplicate Bill Detected" in resp.content.decode("utf-8")
+
+        # Verify NO new bill or ScanJob was created (zero AI waste)
+        assert Bill.objects.count() == initial_bill_count
+        assert ScanJob.objects.count() == initial_job_count
+
+        # Upload WITH force_rescan=1 allows user to intentionally create second copy
+        sample_image.seek(0)
+        resp_forced = client.post(
+            "/en/scanning/upload/", {"files": [sample_image], "force_rescan": "1"}
+        )
+        assert resp_forced.status_code == 302
+        assert Bill.objects.count() == initial_bill_count + 1
+
     def test_process_scan_job_fast_tracks_duplicate_document(
         self, superadmin_user, sample_image, monkeypatch
     ):
@@ -1082,6 +1387,174 @@ class TestAIExtractorProviderResolution:
         new_bill = process_scan_job(new_job)
         assert new_bill is not None
         assert not new_bill.errors.filter(error_type=BillError.ErrorType.DUPLICATE_SUSPECT).exists()
+
+    def test_newly_scanned_bill_not_flagged_as_duplicate_of_itself(
+        self, superadmin_user, sample_image
+    ):
+        """A freshly uploaded bill with an invoice_no and grand_total must NOT flag duplicate_suspect against itself."""
+        from scanning.models import BillError, BillFile, ScanJob
+        from scanning.services.extraction import process_scan_job
+
+        job = ScanJob.objects.create(
+            provider="mock",
+            created_by=superadmin_user,
+            extracted_data={
+                "document_type": "printed",
+                "vendor": {"name": "First Time Vendor"},
+                "invoice_no": "UNIQUE-INV-101",
+                "date": "2026-10-14",
+                "subtotal": 1000.0,
+                "grand_total": 1000.0,
+                "items": [
+                    {
+                        "name": "Widget A",
+                        "quantity": 1,
+                        "unit_price": 1000.0,
+                        "line_total": 1000.0,
+                    }
+                ],
+            },
+        )
+        BillFile.objects.create(
+            scan_job=job,
+            file=sample_image,
+            page_number=1,
+            file_hash="unique_hash_101",
+        )
+
+        bill = process_scan_job(job)
+        assert bill is not None
+        dup_errors = bill.errors.filter(error_type=BillError.ErrorType.DUPLICATE_SUSPECT)
+        assert (
+            not dup_errors.exists()
+        ), f"Bill was falsely flagged as duplicate of itself: {[e.message for e in dup_errors]}"
+
+    def test_customer_profile_auto_created_from_scan(
+        self, monkeypatch, superadmin_user, sample_image
+    ):
+        """When an extracted bill contains customer details, a Customer Party profile is auto-created."""
+        from parties.models import Party
+        from scanning.models import BillFile, ScanJob
+        from scanning.services.extraction import process_scan_job
+
+        custom_data = {
+            "document_type": "printed",
+            "vendor": {"name": "Test Diagnostic Lab", "phone": "0300-1111111"},
+            "customer": {"name": "Zainab Bibi", "phone": "0321-9998887"},
+            "invoice_no": "LAB-7788",
+            "date": "2026-10-14",
+            "subtotal": 1500.0,
+            "grand_total": 1500.0,
+            "items": [
+                {
+                    "name": "Blood Complete Picture",
+                    "quantity": 1,
+                    "unit_price": 1500.0,
+                    "line_total": 1500.0,
+                }
+            ],
+        }
+
+        class MockCustomerExtractor:
+            last_token_count = 100
+
+            def extract(self, *files):
+                return custom_data
+
+        monkeypatch.setattr(
+            "scanning.services.extraction.get_ai_extractor",
+            lambda *args, **kwargs: MockCustomerExtractor(),
+        )
+
+        job = ScanJob.objects.create(
+            provider="mock",
+            created_by=superadmin_user,
+        )
+        BillFile.objects.create(
+            scan_job=job,
+            file=sample_image,
+            page_number=1,
+            file_hash="lab_hash_7788",
+        )
+
+        bill = process_scan_job(job)
+        assert bill is not None
+
+        # 1. Customer profile must be auto-created in Party table
+        customer_party = Party.objects.filter(name="Zainab Bibi", party_type="customer").first()
+        assert customer_party is not None, "Customer Party profile was not auto-created!"
+        assert customer_party.phone == "0321-9998887"
+
+        # 2. Bill notes must record customer information
+        assert "Zainab Bibi" in bill.notes
+
+    def test_review_view_supports_customer_and_sale_toggle(
+        self, monkeypatch, client, superadmin_user, sample_image
+    ):
+        """Review screen displays extracted customer details and supports setting bill_type to Sale with customer party."""
+        from parties.models import Party
+        from scanning.models import BillFile, ScanJob
+        from scanning.services.extraction import process_scan_job
+
+        custom_data = {
+            "document_type": "printed",
+            "vendor": {"name": "Alpha Clinic", "phone": "0300-2223334"},
+            "customer": {"name": "Tariq Mahmood", "phone": "0333-5556667"},
+            "invoice_no": "INV-CLINIC-1",
+            "date": "2026-10-14",
+            "subtotal": 800.0,
+            "grand_total": 800.0,
+            "items": [{"name": "Checkup", "quantity": 1, "unit_price": 800.0, "line_total": 800.0}],
+        }
+
+        class MockCustomerExtractor:
+            last_token_count = 100
+
+            def extract(self, *files):
+                return custom_data
+
+        monkeypatch.setattr(
+            "scanning.services.extraction.get_ai_extractor",
+            lambda *args, **kwargs: MockCustomerExtractor(),
+        )
+
+        job = ScanJob.objects.create(
+            provider="mock",
+            created_by=superadmin_user,
+        )
+        BillFile.objects.create(
+            scan_job=job,
+            file=sample_image,
+            page_number=1,
+            file_hash="clinic_hash_1",
+        )
+        bill = process_scan_job(job)
+
+        client.force_login(superadmin_user)
+        # GET review view must pass extracted customer details
+        get_resp = client.get(f"/en/scanning/review/{job.pk}/")
+        assert get_resp.status_code == 200
+        assert "Tariq Mahmood" in get_resp.context["extracted_customer_name"]
+
+        # POST review view with bill_type='sale'
+        cust_party = Party.objects.filter(name="Tariq Mahmood", party_type="customer").first()
+        assert cust_party is not None
+        post_resp = client.post(
+            f"/en/scanning/review/{job.pk}/",
+            {
+                "action": "verify",
+                "bill_type": "sale",
+                "party": cust_party.pk,
+                "customer_name": "Tariq Mahmood",
+                "customer_phone": "0333-5556667",
+                "invoice_no": "INV-CLINIC-1",
+                "bill_date": "2026-10-14",
+            },
+        )
+        assert post_resp.status_code == 302
+        bill.refresh_from_db()
+        assert bill.bill_type == "sale"
+        assert bill.party == cust_party
 
     def test_missing_item_price_detected_as_error(self):
         """Line item with missing or 0.00 unit price and line total is flagged as error."""
@@ -1331,3 +1804,250 @@ class TestAIExtractorProviderResolution:
         assert bill.has_discrepancy is True
         assert "Paper slip total was PKR 2670.00" in bill.discrepancy_reason
         assert bill.status == Bill.Status.VERIFIED
+
+    def test_review_page_multi_page_viewer(self, client, superadmin_user):
+        """Review page renders interactive multi-page viewer and thumbnail switchers for all pages."""
+        from bills.models import Bill
+        from parties.models import Party
+        from scanning.models import BillFile, ScanJob
+
+        party = Party.objects.create(name="Multi Page Vendor", party_type=Party.PartyType.VENDOR)
+        bill = Bill.objects.create(
+            party=party,
+            invoice_no="INV-MULTI-PAGE",
+            bill_date=timezone.now().date(),
+            grand_total=Decimal("1000.00"),
+            status=Bill.Status.NEEDS_REVIEW,
+        )
+        job = ScanJob.objects.create(bill=bill, provider="mock", status=ScanJob.Status.COMPLETED)
+
+        # Create 2 uploaded bill files (pages)
+        BillFile.objects.create(
+            scan_job=job,
+            bill=bill,
+            file="bills/page1.jpg",
+            page_number=1,
+            file_type=BillFile.FileType.IMAGE,
+        )
+        BillFile.objects.create(
+            scan_job=job,
+            bill=bill,
+            file="bills/page2.jpg",
+            page_number=2,
+            file_type=BillFile.FileType.IMAGE,
+        )
+
+        client.force_login(superadmin_user)
+        response = client.get(f"/en/scanning/review/{job.pk}/")
+        assert response.status_code == 200
+        content = response.content.decode("utf-8")
+
+        # Both pages should be rendered with index switches
+        assert "Page 1" in content
+        assert "Page 2" in content
+        assert "currentIndex = 0" in content
+        assert "currentIndex = 1" in content
+        assert "page1.jpg" in content
+        assert "page2.jpg" in content
+        assert "Click to view page" in content
+
+    def test_file_preview_view_renders_preview(self, client, superadmin_user, sample_image):
+        """file_preview_view returns HTTP 200 with image content and SAMEORIGIN frame options."""
+        from bills.models import Bill
+        from parties.models import Party
+        from scanning.models import BillFile, ScanJob
+
+        party = Party.objects.create(name="Preview Vendor", party_type=Party.PartyType.VENDOR)
+        bill = Bill.objects.create(party=party, invoice_no="INV-PREVIEW-01")
+        job = ScanJob.objects.create(bill=bill, status=ScanJob.Status.COMPLETED)
+        bf = BillFile.objects.create(
+            scan_job=job,
+            bill=bill,
+            file=sample_image,
+            page_number=1,
+            file_type=BillFile.FileType.IMAGE,
+        )
+
+        client.force_login(superadmin_user)
+        response = client.get(f"/en/scanning/file-preview/{bf.pk}/")
+        assert response.status_code == 200
+        assert "image/" in response.headers.get("Content-Type", "")
+        assert response.headers.get("X-Frame-Options") == "SAMEORIGIN"
+
+    def test_retail_savings_and_fbr_service_fee_normalization(self):
+        """Verify retail POS saving amount adds to item price, deducts at end as discount, and adds FBR Service Fee."""
+        from scanning.services.extraction import validate_extraction_schema
+
+        raw_data = {
+            "document_type": "printed",
+            "vendor": {"name": "Euro Store"},
+            "items": [
+                {
+                    "name": "BUNNYS MILKY BREAD LARGE",
+                    "quantity": 1,
+                    "unit_price": 190.0,
+                    "line_total": 190.0,
+                    "discount": 40.0,
+                },
+                {
+                    "name": "EURO EGG 6 PCS",
+                    "quantity": 1,
+                    "unit_price": 132.0,
+                    "line_total": 132.0,
+                    "discount": 0.0,
+                },
+                {
+                    "name": "BAG SMALL",
+                    "quantity": 1,
+                    "unit_price": 10.0,
+                    "line_total": 10.0,
+                    "discount": 0.0,
+                },
+            ],
+            "subtotal": 333.0,
+            "discount": 40.0,
+            "tax": 0.0,
+            "grand_total": 333.0,
+        }
+
+        normalized = validate_extraction_schema(raw_data)
+        # FBR Service Fee (1.00 PKR) auto-detected
+        assert normalized["tax"] == 1.0
+        # Saving (40.00) added to item price (190 + 40 = 230)
+        assert normalized["items"][0]["unit_price"] == 230.0
+        assert normalized["items"][0]["line_total"] == 230.0
+        # Subtotal equals pre-discount actual sum (230 + 132 + 10 = 372)
+        assert normalized["subtotal"] == 372.0
+        # Discount deducted at end
+        assert normalized["discount"] == 40.0
+        # Grand total reconciles: 372 - 40 + 1 = 333
+        assert (
+            normalized["subtotal"] - normalized["discount"] + normalized["tax"]
+            == normalized["grand_total"]
+        )
+
+    def test_zero_price_items_not_treated_as_missing_when_total_matches(
+        self, client, superadmin_user
+    ):
+        """Zero-priced items (e.g. waived fees, free items) on balanced bills are not treated as missing price."""
+        from decimal import Decimal
+
+        from bills.models import Bill, BillItem
+        from parties.models import Party
+        from scanning.models import ScanJob
+        from scanning.services.validation import detect_bill_errors
+
+        # 1. Validation service check
+        extracted_data = {
+            "document_type": "fee_challan",
+            "subtotal": 3500.0,
+            "grand_total": 3500.0,
+            "items": [
+                {"name": "Tuition fee", "quantity": 1, "unit_price": 3250.0, "line_total": 3250.0},
+                {"name": "Registration fee", "quantity": 1, "unit_price": 0.0, "line_total": 0.0},
+                {"name": "Generator fee", "quantity": 1, "unit_price": 0.0, "line_total": 0.0},
+                {"name": "Others", "quantity": 1, "unit_price": 200.0, "line_total": 200.0},
+                {"name": "Arrears", "quantity": 1, "unit_price": 50.0, "line_total": 50.0},
+            ],
+        }
+        errors = detect_bill_errors(extracted_data)
+        missing_price_errs = [e for e in errors if e.get("field_name") == "unit_price"]
+        assert (
+            len(missing_price_errs) == 0
+        ), f"Expected 0 missing price errors, got {missing_price_errs}"
+
+        # 2. Model property check
+        party = Party.objects.create(name="School System", party_type=Party.PartyType.VENDOR)
+        bill = Bill.objects.create(
+            party=party,
+            invoice_no="CHALLAN-001",
+            bill_date=timezone.now().date(),
+            subtotal=Decimal("3500.00"),
+            grand_total=Decimal("3500.00"),
+            status=Bill.Status.NEEDS_REVIEW,
+        )
+        for it in extracted_data["items"]:
+            BillItem.objects.create(
+                bill=bill,
+                item_name=it["name"],
+                quantity=Decimal(str(it["quantity"])),
+                unit_price=Decimal(str(it["unit_price"])),
+                line_total=Decimal(str(it["line_total"])),
+            )
+
+        assert not bill.has_missing_price
+        assert not bill.is_total_invalid
+
+        # 3. Review view check
+        job = ScanJob.objects.create(
+            bill=bill,
+            provider="mock",
+            status=ScanJob.Status.COMPLETED,
+            extracted_data=extracted_data,
+        )
+        client.force_login(superadmin_user)
+        response = client.get(f"/en/scanning/review/{job.pk}/")
+        assert response.status_code == 200
+        assert response.context["has_missing_price"] is False
+        assert response.context["is_total_invalid"] is False
+        content = response.content.decode("utf-8")
+        assert '<span id="total-badge"' not in content
+
+    def test_fee_challan_blank_arrears_row_not_assigned_grand_total(self):
+        """When an arrears/arreras row is physically adjacent to Grand Total on a fee challan and blank on the slip,
+        it must not inherit the Grand Total when the bill items already balance."""
+        from scanning.services.extraction import validate_extraction_schema
+
+        raw_data = {
+            "document_type": "fee_challan",
+            "vendor": {"name": "The Smart School"},
+            "invoice_no": "1707",
+            "date": "2026-10-14",
+            "items": [
+                {"name": "Registration fee", "line_total": 0.0, "unit_price": 0.0, "quantity": 1},
+                {"name": "Admission fee", "line_total": 0.0, "unit_price": 0.0, "quantity": 1},
+                {"name": "Tuition fee", "line_total": 0.0, "unit_price": 0.0, "quantity": 1},
+                {"name": "Generator fee", "line_total": 0.0, "unit_price": 0.0, "quantity": 1},
+                {"name": "Annual funds", "line_total": 5000.0, "unit_price": 5000.0, "quantity": 1},
+                {"name": "Others", "line_total": 0.0, "unit_price": 0.0, "quantity": 1},
+                {"name": "Arreras", "line_total": 5000.0, "unit_price": 5000.0, "quantity": 1},
+            ],
+            "subtotal": 10000.0,
+            "discount": 0.0,
+            "tax": 0.0,
+            "grand_total": 5000.0,
+        }
+
+        validated = validate_extraction_schema(raw_data)
+        arreras_item = next(it for it in validated["items"] if "arrer" in it["name"].lower())
+        assert arreras_item["line_total"] == 0.0
+        assert arreras_item["unit_price"] == 0.0
+        assert validated["subtotal"] == 5000.0
+        assert validated["grand_total"] == 5000.0
+
+    def test_upload_view_renders_direct_camera_capture_input(self, client, superadmin_user):
+        """Upload view includes direct camera capture attribute and camera trigger."""
+        client.force_login(superadmin_user)
+        response = client.get("/en/scanning/upload/")
+        assert response.status_code == 200
+        content = response.content.decode("utf-8")
+        assert 'capture="environment"' in content
+        assert 'id="camera-capture-input"' in content
+        assert "Take Photo" in content
+
+    def test_upload_view_renders_urdu_camera_label(self, client, superadmin_user):
+        """When viewing in Urdu, upload screen displays Urdu camera shortcut labels."""
+        client.force_login(superadmin_user)
+        response = client.get("/ur/scanning/upload/")
+        assert response.status_code == 200
+        content = response.content.decode("utf-8")
+        assert 'capture="environment"' in content
+        assert "کیمرہ سے تصویر لیں" in content
+
+    def test_dashboard_renders_direct_camera_shortcut_link(self, client, superadmin_user):
+        """Dashboard renders direct camera shortcut link with ?camera=1."""
+        client.force_login(superadmin_user)
+        response = client.get("/en/")
+        assert response.status_code == 200
+        content = response.content.decode("utf-8")
+        assert "upload/?camera=1" in content

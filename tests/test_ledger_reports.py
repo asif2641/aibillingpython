@@ -8,6 +8,7 @@ from decimal import Decimal
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.urls import reverse
 from django.utils import timezone
 
 from bills.models import Bill, BillItem
@@ -659,32 +660,74 @@ class TestIncorrectBillsReport:
             line_total=Decimal("550.00"),
         )
 
-        # Test all parties
-        all_rep = get_incorrect_bills_report(party_type="all")
-        assert all_rep["total_count"] == 2
-        assert all_rep["vendor_count"] == 1
+        # 4. Corrected/Resolved bill (previously had discrepancy, now corrected)
+        b_resolved = Bill.objects.create(
+            party=vendor_party,
+            invoice_no="INV-RESOLVED-01",
+            subtotal=Decimal("1500.00"),
+            grand_total=Decimal("1500.00"),
+            original_slip_total=Decimal("1400.00"),
+            has_discrepancy=False,
+            had_discrepancy=True,
+            discrepancy_resolved=True,
+            discrepancy_resolved_at=timezone.now(),
+            discrepancy_reason="Corrected on 2026-10-14: Previously recorded with paper slip PKR 1400.00. Corrected to actual items sum PKR 1500.00.",
+            created_by=superadmin_user,
+        )
+        BillItem.objects.create(
+            bill=b_resolved,
+            serial_no=1,
+            item_name="Sugar",
+            quantity=Decimal("10.000"),
+            unit="kg",
+            unit_price=Decimal("150.00"),
+            line_total=Decimal("1500.00"),
+        )
+
+        # Test all parties (includes both unresolved and resolved)
+        all_rep = get_incorrect_bills_report(party_type="all", resolution_status="all")
+        assert all_rep["total_count"] == 3
+        assert all_rep["unresolved_count"] == 2
+        assert all_rep["resolved_count"] == 1
+        assert all_rep["vendor_count"] == 2
         assert all_rep["customer_count"] == 1
-        assert all_rep["total_slip_amount"] == Decimal("3170.00")
-        assert all_rep["total_computed_amount"] == Decimal("3226.00")
+
+        # Test resolution_status="unresolved"
+        unresolved_rep = get_incorrect_bills_report(
+            party_type="all", resolution_status="unresolved"
+        )
+        assert unresolved_rep["total_count"] == 2
+        invoices_unresolved = [r["invoice_no"] for r in unresolved_rep["records"]]
+        assert "INV-ERR-VEND" in invoices_unresolved
+        assert "INV-ERR-CUST" in invoices_unresolved
+        assert "INV-RESOLVED-01" not in invoices_unresolved
+
+        # Test resolution_status="resolved"
+        resolved_rep = get_incorrect_bills_report(party_type="all", resolution_status="resolved")
+        assert resolved_rep["total_count"] == 1
+        assert resolved_rep["records"][0]["invoice_no"] == "INV-RESOLVED-01"
+        assert resolved_rep["records"][0]["discrepancy_resolved"] is True
 
         # Test vendor filter
-        vend_rep = get_incorrect_bills_report(party_type="vendor")
-        assert vend_rep["total_count"] == 1
-        assert vend_rep["records"][0]["invoice_no"] == "INV-ERR-VEND"
+        vend_rep = get_incorrect_bills_report(party_type="vendor", resolution_status="all")
+        assert vend_rep["total_count"] == 2
 
         # Test customer filter
-        cust_rep = get_incorrect_bills_report(party_type="customer")
+        cust_rep = get_incorrect_bills_report(party_type="customer", resolution_status="all")
         assert cust_rep["total_count"] == 1
         assert cust_rep["records"][0]["invoice_no"] == "INV-ERR-CUST"
 
         # Test party_id filter
-        specific_rep = get_incorrect_bills_report(party_id=vendor_party.pk)
-        assert specific_rep["total_count"] == 1
+        specific_rep = get_incorrect_bills_report(party_id=vendor_party.pk, resolution_status="all")
+        assert specific_rep["total_count"] == 2
 
         # Test CSV export
-        csv_out = generate_incorrect_bills_csv(party_type="all")
+        csv_out = generate_incorrect_bills_csv(party_type="all", resolution_status="all")
         assert "INV-ERR-VEND" in csv_out
         assert "INV-ERR-CUST" in csv_out
+        assert "INV-RESOLVED-01" in csv_out
+        assert "Corrected" in csv_out
+        assert "Unresolved" in csv_out
         assert "INV-OK-01" not in csv_out
 
     def test_incorrect_bills_views(self, client, db, superadmin_user, vendor_party):
@@ -692,7 +735,7 @@ class TestIncorrectBillsReport:
 
         client.force_login(superadmin_user)
 
-        # Create discrepant bill
+        # Create active discrepant bill
         Bill.objects.create(
             party=vendor_party,
             invoice_no="INV-VIEW-01",
@@ -704,24 +747,102 @@ class TestIncorrectBillsReport:
             created_by=superadmin_user,
         )
 
-        # Report view
+        # Create resolved bill
+        Bill.objects.create(
+            party=vendor_party,
+            invoice_no="INV-VIEW-RESOLVED",
+            subtotal=Decimal("1200.00"),
+            grand_total=Decimal("1200.00"),
+            original_slip_total=Decimal("1100.00"),
+            has_discrepancy=False,
+            had_discrepancy=True,
+            discrepancy_resolved=True,
+            discrepancy_resolved_at=timezone.now(),
+            discrepancy_reason="Corrected to actual items sum",
+            created_by=superadmin_user,
+        )
+
+        # Report view - default (all)
         resp = client.get(reverse("reports:incorrect_bills"))
         assert resp.status_code == 200
-        assert "INV-VIEW-01" in resp.content.decode("utf-8")
-        assert "Discrepant Bills" in resp.content.decode("utf-8")
+        content = resp.content.decode("utf-8")
+        assert "INV-VIEW-01" in content
+        assert "INV-VIEW-RESOLVED" in content
+        assert "Discrepant Bills" in content
 
-        # Filter by vendor
-        resp_vend = client.get(reverse("reports:incorrect_bills") + "?party_type=vendor")
-        assert resp_vend.status_code == 200
-        assert "INV-VIEW-01" in resp_vend.content.decode("utf-8")
+        # Filter by resolution=unresolved
+        resp_unresolved = client.get(reverse("reports:incorrect_bills") + "?resolution=unresolved")
+        assert resp_unresolved.status_code == 200
+        content_unres = resp_unresolved.content.decode("utf-8")
+        assert "INV-VIEW-01" in content_unres
+        assert "INV-VIEW-RESOLVED" not in content_unres
+
+        # Filter by resolution=resolved
+        resp_res = client.get(reverse("reports:incorrect_bills") + "?resolution=resolved")
+        assert resp_res.status_code == 200
+        content_res = resp_res.content.decode("utf-8")
+        assert "INV-VIEW-RESOLVED" in content_res
+        assert "INV-VIEW-01" not in content_res
 
         # Filter by customer (empty result)
         resp_cust = client.get(reverse("reports:incorrect_bills") + "?party_type=customer")
         assert resp_cust.status_code == 200
         assert "No Incorrect or Discrepant Bills Found" in resp_cust.content.decode("utf-8")
 
-        # CSV export
-        resp_csv = client.get(reverse("reports:incorrect_bills_csv"))
+        # CSV export with resolution filter
+        resp_csv = client.get(reverse("reports:incorrect_bills_csv") + "?resolution=resolved")
         assert resp_csv.status_code == 200
         assert resp_csv["Content-Type"].startswith("text/csv")
-        assert "INV-VIEW-01" in resp_csv.content.decode("utf-8")
+        csv_body = resp_csv.content.decode("utf-8")
+        assert "INV-VIEW-RESOLVED" in csv_body
+        assert "INV-VIEW-01" not in csv_body
+
+    def test_ledger_dashboard_view(self, client, superadmin_user, vendor_party, customer_party):
+        """Test ledger general dashboard renders with metrics and filters."""
+        client.force_login(superadmin_user)
+
+        # Create active bills for vendor and customer
+        bill_v = Bill.objects.create(
+            party=vendor_party,
+            invoice_no="INV-VEND-1",
+            grand_total=Decimal("5000.00"),
+            payment_status=Bill.PaymentStatus.PARTIALLY_PAID,
+            created_by=superadmin_user,
+        )
+        Payment.objects.create(
+            party=vendor_party,
+            bill=bill_v,
+            amount=Decimal("2000.00"),
+            payment_method=Payment.PaymentMethod.CASH,
+            created_by=superadmin_user,
+        )
+        Bill.objects.create(
+            party=customer_party,
+            invoice_no="INV-CUST-1",
+            grand_total=Decimal("3000.00"),
+            payment_status=Bill.PaymentStatus.UNPAID,
+            created_by=superadmin_user,
+        )
+
+        resp = client.get(reverse("ledger:ledger_dashboard"))
+        assert resp.status_code == 200
+        content = resp.content.decode("utf-8")
+        assert "General Ledger" in content
+        assert "Lahore Wholesale Corp" in content
+        assert "Tariq Electronics" in content
+        assert "Total Receivable" in content
+        assert "Total Payable" in content
+
+        # Test filter by vendor
+        resp_vendor = client.get(reverse("ledger:ledger_dashboard") + "?type=vendor")
+        assert resp_vendor.status_code == 200
+        content_vendor = resp_vendor.content.decode("utf-8")
+        assert "Lahore Wholesale Corp" in content_vendor
+        assert "Tariq Electronics" not in content_vendor
+
+        # Test filter by customer
+        resp_cust = client.get(reverse("ledger:ledger_dashboard") + "?type=customer")
+        assert resp_cust.status_code == 200
+        content_cust = resp_cust.content.decode("utf-8")
+        assert "Tariq Electronics" in content_cust
+        assert "Lahore Wholesale Corp" not in content_cust

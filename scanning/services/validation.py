@@ -7,7 +7,7 @@ import contextlib
 from datetime import datetime
 from datetime import timezone as dt_timezone
 from decimal import Decimal, InvalidOperation
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
@@ -16,7 +16,10 @@ from billing.utils import money_round
 from bills.models import Bill
 
 
-def detect_bill_errors(extracted_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+def detect_bill_errors(
+    extracted_data: Dict[str, Any],
+    exclude_bill_id: Optional[int] = None,
+) -> List[Dict[str, Any]]:
     """Scan extracted document data against accounting integrity rules.
 
     Returns a list of error dictionaries containing:
@@ -31,16 +34,40 @@ def detect_bill_errors(extracted_data: Dict[str, Any]) -> List[Dict[str, Any]]:
     # 1. Math Checks on Line Items
     items = extracted_data.get("items") or []
     item_totals_sum = Decimal("0.00")
+    for item in items:
+        with contextlib.suppress(ValueError, TypeError, InvalidOperation):
+            item_totals_sum += Decimal(str(item.get("line_total") or 0))
+
+    target_subtotal = Decimal("0.00")
+    with contextlib.suppress(ValueError, TypeError, InvalidOperation):
+        target_subtotal = Decimal(
+            str(extracted_data.get("subtotal") or extracted_data.get("grand_total") or 0)
+        )
+    has_shortfall = target_subtotal > Decimal("0.00") and (
+        target_subtotal - item_totals_sum > Decimal("0.05")
+    )
 
     for item in items:
         with contextlib.suppress(ValueError, TypeError, InvalidOperation):
             qty = Decimal(str(item.get("quantity") or 0))
-            price = Decimal(str(item.get("unit_price") or 0))
-            line_total = Decimal(str(item.get("line_total") or 0))
-            item_totals_sum += line_total
+            price_raw = item.get("unit_price")
+            line_total_raw = item.get("line_total")
+            price = Decimal(str(price_raw or 0))
+            line_total = Decimal(str(line_total_raw or 0))
 
             item_name = item.get("name") or item.get("item_name") or "Item"
-            if price <= Decimal("0.00") and line_total <= Decimal("0.00"):
+            item_name_lower = str(item_name).lower()
+            is_explicit_missing = (
+                (price_raw is None and line_total_raw is None)
+                or "missing" in item_name_lower
+                or "without price" in item_name_lower
+            )
+
+            if (
+                (is_explicit_missing or has_shortfall)
+                and price <= Decimal("0.00")
+                and line_total <= Decimal("0.00")
+            ):
                 errors.append(
                     {
                         "error_type": "missing_field",
@@ -169,11 +196,17 @@ def detect_bill_errors(extracted_data: Dict[str, Any]) -> List[Dict[str, Any]]:
     invoice_no = extracted_data.get("invoice_no")
     if invoice_no and grand_total_raw is not None and date_val:
         with contextlib.suppress(ValueError, TypeError, InvalidOperation, ObjectDoesNotExist):
-            existing = Bill.objects.filter(
+            query = Bill.objects.filter(
                 invoice_no__iexact=str(invoice_no).strip(),
                 grand_total=money_round(Decimal(str(grand_total_raw))),
                 is_deleted=False,
-            ).first()
+            )
+            target_exclude_id = (
+                exclude_bill_id or extracted_data.get("bill_id") or extracted_data.get("id")
+            )
+            if target_exclude_id:
+                query = query.exclude(pk=target_exclude_id)
+            existing = query.first()
             if existing:
                 errors.append(
                     {

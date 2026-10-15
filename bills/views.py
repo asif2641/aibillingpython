@@ -186,10 +186,30 @@ def bill_edit_view(request: HttpRequest, pk: int) -> HttpResponse:
             if formset:
                 formset.save()
             recalculate_bill_totals(bill)
-            if bill.has_discrepancy:
+            if bill.has_discrepancy or bill.had_discrepancy:
+                orig_slip = (
+                    bill.original_slip_total
+                    if bill.original_slip_total is not None
+                    else bill.grand_total
+                )
                 bill.has_discrepancy = False
-                bill.discrepancy_reason = ""
-                bill.save(update_fields=["has_discrepancy", "discrepancy_reason"])
+                bill.had_discrepancy = True
+                bill.discrepancy_resolved = True
+                bill.discrepancy_resolved_at = timezone.now()
+                date_str = timezone.now().strftime("%Y-%m-%d")
+                bill.discrepancy_reason = (
+                    f"Corrected on {date_str}: Previously recorded with paper slip PKR {orig_slip}. "
+                    f"Corrected to actual items sum PKR {bill.grand_total}."
+                )
+                bill.save(
+                    update_fields=[
+                        "has_discrepancy",
+                        "had_discrepancy",
+                        "discrepancy_resolved",
+                        "discrepancy_resolved_at",
+                        "discrepancy_reason",
+                    ]
+                )
                 bill.errors.filter(
                     error_type__in=[
                         "math_mismatch",
@@ -226,11 +246,30 @@ def bill_correct_discrepancy_view(request: HttpRequest, pk: int) -> HttpResponse
     """Instantly correct a discrepant bill to match line items total and resolve discrepancies."""
     bill = get_object_or_404(Bill.objects, pk=pk)
     if request.method == "POST":
+        orig_slip = (
+            bill.original_slip_total if bill.original_slip_total is not None else bill.grand_total
+        )
         recalculate_bill_totals(bill)
         bill.has_discrepancy = False
-        bill.discrepancy_reason = ""
+        bill.had_discrepancy = True
+        bill.discrepancy_resolved = True
+        bill.discrepancy_resolved_at = timezone.now()
+        date_str = timezone.now().strftime("%Y-%m-%d")
+        bill.discrepancy_reason = (
+            f"Corrected on {date_str}: Previously recorded with paper slip PKR {orig_slip}. "
+            f"Corrected to actual items sum PKR {bill.grand_total}."
+        )
         bill.status = Bill.Status.VERIFIED
-        bill.save(update_fields=["has_discrepancy", "discrepancy_reason", "status"])
+        bill.save(
+            update_fields=[
+                "has_discrepancy",
+                "had_discrepancy",
+                "discrepancy_resolved",
+                "discrepancy_resolved_at",
+                "discrepancy_reason",
+                "status",
+            ]
+        )
         bill.errors.filter(
             error_type__in=[
                 "math_mismatch",
@@ -259,6 +298,23 @@ def bill_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
         bill.is_deleted = True
         bill.deleted_at = timezone.now()
         bill.save(update_fields=["is_deleted", "deleted_at"])
+
+        # Also soft-delete payments directly attached to this bill
+        bill.payments.filter(is_deleted=False).update(is_deleted=True, deleted_at=timezone.now())
+
+        # If the party has no other active bills and no active payments, deactivate the party
+        if bill.party:
+            party = bill.party
+            has_other_bills = party.bills.filter(is_deleted=False).exclude(pk=bill.pk).exists()
+            has_payments = party.payments.filter(is_deleted=False).exists()
+            if not has_other_bills and not has_payments:
+                party.is_active = False
+                party.save(update_fields=["is_active"])
+
+        messages.success(
+            request,
+            _("Bill #%(inv)s deleted successfully.") % {"inv": bill.invoice_no or bill.pk},
+        )
         return redirect("bills:bill_list")
 
     return render(request, "bills/bill_confirm_delete.html", {"bill": bill})
@@ -294,6 +350,19 @@ def bill_restore_view(request: HttpRequest, pk: int) -> HttpResponse:
         bill.is_deleted = False
         bill.deleted_at = None
         bill.save(update_fields=["is_deleted", "deleted_at"])
+
+        # Restore associated payments
+        bill.payments.filter(is_deleted=True).update(is_deleted=False, deleted_at=None)
+
+        # Reactivate party if it was deactivated
+        if bill.party and not bill.party.is_active:
+            bill.party.is_active = True
+            bill.party.save(update_fields=["is_active"])
+
+        messages.success(
+            request,
+            _("Bill #%(inv)s restored successfully.") % {"inv": bill.invoice_no or bill.pk},
+        )
         return redirect("bills:bill_trash")
 
     return render(request, "bills/bill_confirm_restore.html", {"bill": bill})

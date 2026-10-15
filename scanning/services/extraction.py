@@ -11,6 +11,7 @@ from typing import Any, Dict
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.db import close_old_connections
 from django.utils import timezone
 
 from billing.utils import money_round
@@ -79,6 +80,147 @@ def validate_extraction_schema(data: Any) -> Dict[str, Any]:
     data.setdefault("field_confidence", {})
     data.setdefault("warnings", [])
 
+    # Filter out or sanitize invalid negative line items (e.g. hallucinated "off" / negative discounts)
+    clean_items = []
+    for it in data.get("items", []):
+        try:
+            raw_price = float(it.get("unit_price") or 0)
+            raw_total = float(it.get("line_total") or 0)
+        except (ValueError, TypeError):
+            raw_price = 0.0
+            raw_total = 0.0
+        name = str(it.get("name") or "").strip().lower()
+        if (raw_price < 0 or raw_total < 0) and name in ("off", "discount", "-"):
+            if float(data.get("discount") or 0) == 0.0:
+                data["discount"] = abs(raw_total if raw_total != 0 else raw_price)
+            continue
+        clean_items.append(it)
+
+    # Sanitize and correct single-column line totals and common Urdu item names
+    for it in clean_items:
+        try:
+            raw_price = float(it.get("unit_price") or 0)
+            raw_total = float(it.get("line_total") or 0)
+            raw_qty = float(it.get("quantity") or 1)
+        except (ValueError, TypeError):
+            continue
+
+        # Single-column kachi parchi fix:
+        # If quantity > 1 and unit_price equals line_total (or does not multiply to line_total),
+        # the number written on the slip was the line total, not unit price!
+        if (
+            raw_qty > 1.0
+            and raw_total > 0
+            and (
+                abs(raw_price - raw_total) <= 0.01 or abs((raw_qty * raw_price) - raw_total) > 0.05
+            )
+        ):
+            it["unit_price"] = round(raw_total / raw_qty, 2)
+            if abs(raw_total - round(raw_total)) <= 0.05:
+                it["line_total"] = float(round(raw_total))
+        elif raw_qty > 1.0 and raw_price > 0:
+            raw_lt = raw_qty * raw_price
+            int_cand = round(raw_lt)
+            if abs(raw_lt - int_cand) <= 0.05 and round(int_cand / raw_qty, 2) == round(
+                raw_price, 2
+            ):
+                it["line_total"] = float(int_cand)
+
+        # Urdu item naming correction for common kitchen items
+        urdu_name = str(it.get("urdu_name") or "").strip()
+        name_lower = str(it.get("name") or "").strip().lower()
+        if "اچار" in urdu_name or "achar" in name_lower:
+            it["name"] = "Achar (Pickles)"
+            it["urdu_name"] = "اچار"
+
+    # -------------------------------------------------------------------------
+    # Rule 15: Retail / POS Receipts with Savings / Discount & FBR Service Fee
+    # (e.g. Euro Store, Supermarket POS receipts with "Saving" / "MKT Price" vs "Sale Price")
+    # -------------------------------------------------------------------------
+    total_disc = float(data.get("discount") or 0.0)
+    tax_val = float(data.get("tax") or 0.0)
+    gt_val = float(data.get("grand_total") or 0.0)
+
+    # 1. FBR Service Fee detection (e.g. 1.00 PKR on Pakistani POS receipts)
+    if tax_val == 0.0 and gt_val > 0:
+        current_sub = float(data.get("subtotal") or 0.0)
+        items_st = sum(float(it.get("line_total") or 0.0) for it in clean_items)
+        if (
+            abs((current_sub - total_disc + 1.0) - gt_val) <= 0.05
+            or abs((items_st - total_disc + 1.0) - gt_val) <= 0.05
+            or abs((items_st + 1.0) - gt_val) <= 0.05
+        ):
+            data["tax"] = 1.0
+            tax_val = 1.0
+
+    # 2. Saving amount reconciliation:
+    # If saving amount was not added to item prices (items extracted at net sale prices),
+    # add saving amount to item price/amount and minus at the end from grand total as discount.
+    items_sum = sum(float(it.get("line_total") or 0.0) for it in clean_items)
+    if total_disc > 0.0 and gt_val > 0.0:
+        needs_saving_added = False
+        if (
+            abs((items_sum + tax_val) - gt_val) <= 0.05
+            and abs((items_sum - total_disc + tax_val) - gt_val) > 0.05
+            or any(float(it.get("discount") or 0.0) > 0 for it in clean_items)
+            and abs((items_sum - total_disc + tax_val) - gt_val) > 0.05
+        ):
+            needs_saving_added = True
+
+        if needs_saving_added:
+            items_with_disc = [it for it in clean_items if float(it.get("discount") or 0.0) > 0]
+            if items_with_disc:
+                for it in items_with_disc:
+                    d_amt = float(it.get("discount") or 0.0)
+                    qty = float(it.get("quantity") or 1.0) or 1.0
+                    it["line_total"] = round(float(it.get("line_total") or 0.0) + d_amt, 2)
+                    it["unit_price"] = round(it["line_total"] / qty, 2)
+            elif len(clean_items) == 1:
+                it = clean_items[0]
+                qty = float(it.get("quantity") or 1.0) or 1.0
+                it["line_total"] = round(float(it.get("line_total") or 0.0) + total_disc, 2)
+                it["unit_price"] = round(it["line_total"] / qty, 2)
+                it["discount"] = total_disc
+
+            new_subtotal = round(sum(float(it.get("line_total") or 0.0) for it in clean_items), 2)
+            data["subtotal"] = new_subtotal
+
+    # -------------------------------------------------------------------------
+    # Rule 16: Fee Challans & Pre-Printed Forms with Blank Rows Mistaken for Grand Total
+    # (e.g. "Arreras" / "Arrears" / "Others" row right above Grand Total receiving
+    # the Grand Total amount when the slip cell was actually blank)
+    # -------------------------------------------------------------------------
+    if gt_val > 0.0 and len(clean_items) > 1:
+        current_items_sum = sum(float(it.get("line_total") or 0.0) for it in clean_items)
+        diff = round(current_items_sum - total_disc + tax_val - gt_val, 2)
+        if diff > 0.05:
+            for it in reversed(clean_items):
+                it_name = str(it.get("name") or "").strip().lower()
+                it_lt = float(it.get("line_total") or 0.0)
+                rem_sum = round(current_items_sum - it_lt - total_disc + tax_val, 2)
+                if abs(rem_sum - gt_val) <= 0.05 and (
+                    abs(it_lt - gt_val) <= 0.05 or abs(it_lt - diff) <= 0.05
+                ):
+                    is_candidate = (
+                        "arrer" in it_name
+                        or "arrear" in it_name
+                        or "other" in it_name
+                        or "late" in it_name
+                        or it == clean_items[-1]
+                    )
+                    if is_candidate:
+                        it["unit_price"] = 0.0
+                        it["line_total"] = 0.0
+                        it["discount"] = 0.0
+                        it["tax"] = 0.0
+                        new_subtotal = round(
+                            sum(float(x.get("line_total") or 0.0) for x in clean_items), 2
+                        )
+                        data["subtotal"] = new_subtotal
+                        break
+
+    data["items"] = clean_items
+
     return data
 
 
@@ -86,12 +228,22 @@ EXTRACTION_SYSTEM_PROMPT = """You are an expert AI bill, receipt, and invoice sc
 Extract all details from the provided document image(s) or PDF according to the schema below.
 Follow these critical rules:
 1. Return ONLY a single valid JSON object matching the schema. No markdown code blocks, no explanation text outside JSON.
-2. HANDWRITTEN CORRECTIONS AND STRIKETHROUGHS (CRITICAL):
-   In handwritten bills and receipts, prices, quantities, item names, or totals are frequently crossed out (kaatna / خط کھینچنا / strikethrough / circle over old number / scribble) and replaced with a corrected new number written adjacent, above, or below.
-   - If ANY number or text has a strikethrough line, slash, circle, or cross-out over it (e.g. '350' is crossed out or encircled and '450' is written next to it):
-     * NEVER use the crossed-out / struck-through number ('350' is void/canceled).
-     * ALWAYS USE the newly written replacement number ('450' is the active, intended price/quantity/total).
-   - Base all calculations (line total, subtotal, grand total) on the corrected final numbers, NEVER the struck-through numbers.
+2. HANDWRITTEN CORRECTIONS, CUTTING, AND STRIKETHROUGHS (CRITICAL / کٹنگ اور کاٹے ہوئے نمبر):
+   In handwritten bills and receipts (کچی پرچی / ہاتھ سے لکھا بل), shopkeepers frequently correct prices or quantities by crossing them out, encircling them, scribbling over them, or cutting them (کٹنگ / kaatna / خط کھینچنا / گول دائرہ لگانا).
+   - RULE ON CIRCLED / STRUCK NUMBERS:
+     * ANY number with a circle/oval around it, slash through it, strikethrough, or cross-out is the VOID, REJECTED, OLD value ("cutting wali value" / کٹنگ والی رقم).
+     * NEVER, UNDER ANY CIRCUMSTANCES, extract or use the circled or struck-through number!
+     * ALWAYS extract the CLEAN, UN-CIRCLED, UN-STRUCK replacement number written next to it, above it, or below it.
+     * EXAMPLE FROM REAL DOCUMENT:
+       If next to "1- چکن 1 کلو" you see "450" and a circled "350":
+       -> "350" is the circled / cutting value (MUST BE IGNORED AND REJECTED).
+       -> "450" is the active, valid replacement price (MUST BE EXTRACTED).
+       -> Therefore unit_price = 450, line_total = 450.
+   - MATHEMATICAL RECONCILIATION AGAINST SLIP GRAND TOTAL:
+     * In handwritten slips, the shopkeeper writes the grand total at the bottom (e.g. "ٹوٹل 2670").
+     * Always cross-check your line items sum against the slip's handwritten grand total!
+     * If one candidate price (e.g. 450) produces a total matching or closest to the handwritten slip total (2670), while the other (e.g. 350) is off by 100, that mathematically proves 450 is the correct active number and 350 was the canceled cutting!
+   - Base all calculations (line total, subtotal, grand total) on the corrected final numbers, NEVER the struck-through / cutting numbers.
 3. Read handwritten and printed bills in English, Urdu, and mixed text. For vendor and item names: provide the standard English / Roman transliterated name in 'name' (e.g. 'Arif Chicken Center') AND provide the Urdu text in 'urdu_name' (e.g. 'عارف چکن سنٹر') if written in Urdu script. If only English is present, put it in 'name'.
 4. Always extract any phone or mobile number (e.g. '0300-1234567', 'Mob:', 'Ph:', 'Tel:') for the vendor and customer into vendor.phone or customer.phone whenever visible on the document.
 5. If a field is not present or cannot be read with confidence, set it to null. NEVER invent or guess data.
@@ -107,6 +259,51 @@ Follow these critical rules:
     - Example: 130 total for 6 eggs -> 130 / 6 = 21.666... -> MUST be rounded to 21.67 (NOT 21.66).
     - Example: 100 / 3 = 33.333... -> 33.33.
     - Example: 35 / 3 = 11.666... -> 11.67.
+12. RULES ON DISCOUNTS VS ADDITIONAL PAYMENTS / INSTALLMENTS:
+    - In South Asian / Pakistani slips and cash memos (کچی پرچی / کیش میمو), handwritten notes below the main items (such as "Cash dp", "adv", "c/o", "مزید", "وصول", "جمع", or scribbles with amounts like 500) represent cash deposits, installment payments, or extra items/charges.
+    - NEVER interpret cursive scribbles or subsequent payments as discounts or "off" (do NOT extract "off -200" or similar negative items).
+    - NEVER produce line items with negative unit_price or negative line_total! All items MUST have positive or zero prices.
+    - ONLY extract a discount if the document explicitly and clearly writes "Discount", "رعایت", or "چھوٹ". Otherwise, discount must be 0.
+13. SINGLE-COLUMN NUMBER SLIPS (KACHI PARCHI / کچی پرچی):
+    - When a handwritten slip only has ONE column of numbers written for items (e.g., "5 - انڈے 6 عدد ... 130", "11 - دودھ 2 کلو ... 440", "7 - مارکر 2 عدد ... 40"):
+    - That highlighted number on the left/right is ALWAYS the LINE TOTAL (line_total), NOT the unit price! The shopkeeper only wrote the total amount for that line.
+    - You MUST set:
+      * line_total = the written amount (e.g. 130 for 6 eggs; 440 for 2 kg milk; 40 for 2 markers).
+      * unit_price = line_total / quantity, rounded half-up to 2 decimals (e.g. 130 / 6 = 21.67; 440 / 2 = 220.0; 40 / 2 = 20.0).
+      * NEVER put the line total into unit_price when quantity > 1!
+14. COMMON URDU VOCABULARY & FOOD ITEMS:
+    - "اچار" = Achar (Pickles / Pickling). NEVER confuse or translate "اچار" as "Tea" / "چائے"!
+    - "چائے" = Tea
+    - "زردہ رنگ" = Food Color (Zarda Rang)
+    - "چاول" = Rice
+    - "چکن" = Chicken
+    - "دال چنا" = Daal Chana
+    - "دال ماش" = Daal Mash
+    - "گھی" = Ghee
+    - "دودھ" = Milk
+    - Always verify every handwritten line number against the handwritten grand total (ٹوٹل 2670) at the bottom.
+15. RETAIL / POS RECEIPTS WITH SAVING & FBR SERVICE FEE (e.g. Euro Store, Supermarkets):
+    - SAVING / MKT PRICE:
+      When a receipt shows a "Saving" column, "Amount Saving", or "MKT Price" vs "Sale Price" (e.g. Bunny's Milky Bread: Sale Price 190, Saving 40, MKT Price 230):
+      * Always add the saving amount into the item's unit_price and line_total so that each line item reflects its full pre-discount amount (e.g. unit_price = 230.0, line_total = 230.0).
+      * The sum of all item line totals will then equal the pre-discount total ("ACTUAL PRICE", e.g. 372.0).
+      * Record this pre-discount total in "subtotal" (e.g. 372.0).
+      * Put the total savings into "discount" (e.g. 40.0) so it is deducted at the end from grand total.
+    - FBR SERVICE FEE / POS FEE:
+      * On Pakistani POS receipts, always check for "FBR Service Fee", "POS Fee", or "FBR Fee" (typically 1.00 PKR).
+      * ALWAYS extract this fee into "tax" (e.g. tax = 1.0).
+    - FORMULA VERIFICATION:
+      * Subtotal (372.0) - Discount (40.0) + Tax / FBR Fee (1.0) = Grand Total (333.0).
+      * This ensures the line items, subtotal, discount, FBR fee, and grand total all reconcile perfectly.
+16. PRE-PRINTED FORMS, FEE CHALLANS & BLANK CELLS VS GRAND TOTAL (خالی خانے اور گرینڈ ٹوٹل):
+    - On school fee challans, admission forms, or slips with printed fee categories (e.g. 'Registration fee', 'Admission fee', 'Tuition fee', 'Generator fee', 'Annual funds', 'Others', 'Arrears' / 'Arreras', 'Grand Total'):
+    - Look carefully at each row. If a cell or row is BLANK / EMPTY (no amount written in that specific row's box), set unit_price = 0 and line_total = 0.
+    - NEVER confuse or assign the 'Grand Total' amount to the row right above it (such as 'Arrears' or 'Others')!
+    - For example, if 'Annual funds' is 5000 and the bottom 'Grand Total' box is 5000, and 'Arrears' is blank:
+      * Annual funds = 5000.
+      * Arrears = 0 (do NOT extract 5000 for Arrears!).
+      * Grand Total = 5000.
+      * The sum of fee items MUST reconcile with Grand Total (5000 = 5000).
 
 Schema to return:
 {
@@ -245,7 +442,8 @@ class GeminiAIExtractor:
         contents.append(EXTRACTION_SYSTEM_PROMPT)
 
         config = types.GenerateContentConfig(
-            temperature=0.1,
+            system_instruction=EXTRACTION_SYSTEM_PROMPT,
+            temperature=0.0,
             response_mime_type="application/json",
         )
 
@@ -467,6 +665,7 @@ def get_ai_extractor(provider: str | None = None):
 
 def process_scan_job(job: ScanJob) -> Bill:
     """Execute end-to-end scanning pipeline for a ScanJob."""
+    close_old_connections()
     check_scan_quota_available()
 
     job.status = ScanJob.Status.PROCESSING
@@ -507,9 +706,24 @@ def process_scan_job(job: ScanJob) -> Bill:
             prev_bill = None
             token_count_val = getattr(extractor, "last_token_count", 1250) or 1250
 
-        # 1. Resolve Party (Vendor or Customer)
+        # 1. Resolve Party (Vendor and Customer)
         vendor_data = validated_data.get("vendor") or {}
         party, _ = resolve_scan_party(vendor_data, party_type=Party.PartyType.VENDOR)
+
+        # Auto-create or match Customer profile if customer details were extracted
+        customer_data = validated_data.get("customer") or {}
+        customer_party = None
+        cust_name = str(customer_data.get("name") or "").strip()
+        if cust_name and cust_name.lower() not in (
+            "null",
+            "none",
+            "n/a",
+            "unknown",
+            "walk-in customer",
+        ):
+            customer_party, _ = resolve_scan_party(
+                customer_data, party_type=Party.PartyType.CUSTOMER
+            )
 
         # 2. Resolve Category
         suggested_cat_name = validated_data.get("suggested_category", "")
@@ -527,6 +741,12 @@ def process_scan_job(job: ScanJob) -> Bill:
         except Exception:
             bill_date = timezone.now().date()
 
+        notes_content = ""
+        if customer_party:
+            notes_content = f"Client / Customer: {customer_party.name}"
+            if customer_party.phone:
+                notes_content += f" ({customer_party.phone})"
+
         bill = Bill.objects.create(
             party=party,
             category=category,
@@ -541,6 +761,7 @@ def process_scan_job(job: ScanJob) -> Bill:
             grand_total=grand_total_val,
             payment_status=Bill.PaymentStatus.UNPAID,
             amount_paid=Decimal("0.00"),
+            notes=notes_content,
             created_by=job.created_by,
         )
 
@@ -552,7 +773,11 @@ def process_scan_job(job: ScanJob) -> Bill:
 
             if qty > Decimal("0.00") and lt > Decimal("0.00"):
                 computed_price = money_round(lt / qty)
-                if raw_price == Decimal("0.00"):
+                if (
+                    raw_price == Decimal("0.00")
+                    or (qty > Decimal("1.00") and abs(raw_price - lt) <= Decimal("0.01"))
+                    or abs(money_round(qty * raw_price) - lt) > Decimal("0.05")
+                ):
                     price = computed_price
                 else:
                     price = money_round(raw_price)
@@ -563,8 +788,17 @@ def process_scan_job(job: ScanJob) -> Bill:
             else:
                 price = money_round(raw_price)
 
-            if lt == Decimal("0.00"):
-                lt = money_round(qty * price)
+            raw_lt = qty * price
+            integer_cand = Decimal(str(round(float(raw_lt))))
+            max_diff = max(Decimal("0.05"), money_round(qty * Decimal("0.0055")))
+            if (
+                qty > Decimal("1.00")
+                and abs(raw_lt - integer_cand) <= max_diff
+                and money_round(integer_cand / qty) == price
+            ):
+                lt = integer_cand
+            elif lt == Decimal("0.00"):
+                lt = money_round(raw_lt)
 
             # Keep validated_data in sync for detect_bill_errors
             it["unit_price"] = float(price)
@@ -586,7 +820,7 @@ def process_scan_job(job: ScanJob) -> Bill:
             )
 
         # 5. Detect and attach errors
-        discrepancies = detect_bill_errors(validated_data)
+        discrepancies = detect_bill_errors(validated_data, exclude_bill_id=bill.pk)
         if is_fast_duplicate and prev_bill and not prev_bill.is_deleted:
             discrepancies.append(
                 {
@@ -627,3 +861,5 @@ def process_scan_job(job: ScanJob) -> Bill:
         if isinstance(exc, (ScanQuotaExceededError, ValidationError)):
             raise
         raise AIExtractionError(f"Scanning failed: {exc}") from exc
+    finally:
+        close_old_connections()

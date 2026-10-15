@@ -186,3 +186,62 @@ def generate_ledger_csv(party: Party) -> str:
         )
 
     return output.getvalue()
+
+
+def get_all_parties_ledger_summary(
+    party_type_filter: str = "all", search_query: str = ""
+) -> Dict[str, Any]:
+    """Calculate aggregated ledger balances (receivables, payables) across active parties."""
+    parties_qs = Party.objects.filter(is_active=True).order_by("name")
+
+    total_receivable = Decimal("0.00")
+    total_payable = Decimal("0.00")
+    party_summaries = []
+
+    for party in parties_qs:
+        stmt = get_party_ledger_statement(party)
+        bal = stmt["net_balance"]
+        b_type = stmt["balance_type"]
+
+        # Track global accounting totals
+        if b_type == "receivable":
+            total_receivable += bal
+        elif b_type == "payable":
+            total_payable += bal
+
+        # Filter for display
+        if party_type_filter == "vendor" and party.party_type not in ("vendor", "both"):
+            continue
+        if party_type_filter == "customer" and party.party_type not in ("customer", "both"):
+            continue
+
+        if search_query:
+            q_lower = search_query.lower()
+            match = (
+                q_lower in party.name.lower()
+                or (party.urdu_name and q_lower in party.urdu_name.lower())
+                or (party.phone and q_lower in party.phone.lower())
+            )
+            if not match:
+                continue
+
+        party_summaries.append(
+            {
+                "party": party,
+                "statement": stmt,
+                "total_billed": stmt["total_billed"],
+                "total_paid": stmt["total_paid"],
+                "net_balance": bal,
+                "balance_type": b_type,
+                "balance_label": stmt["balance_label"],
+                "entries_count": len(stmt["entries"]),
+            }
+        )
+
+    return {
+        "party_summaries": party_summaries,
+        "total_receivable": money_round(total_receivable),
+        "total_payable": money_round(total_payable),
+        "net_balance": money_round(total_receivable - total_payable),
+        "total_accounts_count": len(party_summaries),
+    }

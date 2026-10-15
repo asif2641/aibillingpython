@@ -1,0 +1,8 @@
+# 2. Virtual environment activate karein
+.\venv\Scripts\activate
+
+# 3. FastAPI server start karein
+uvicorn app.main:app --reload --port 8000
+
+
+npm run dev

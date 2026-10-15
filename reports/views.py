@@ -96,6 +96,7 @@ def incorrect_bills_report_view(request: HttpRequest) -> HttpResponse:
     party_type = request.GET.get("party_type", "all").strip().lower()
     party_id = request.GET.get("party") or request.GET.get("party_id")
     query = request.GET.get("q", "").strip()
+    resolution_status = request.GET.get("resolution", "all").strip().lower()
 
     start, end = get_date_range(range_key, start_date, end_date)
 
@@ -105,6 +106,7 @@ def incorrect_bills_report_view(request: HttpRequest) -> HttpResponse:
         party_type=party_type,
         party_id=party_id,
         query=query,
+        resolution_status=resolution_status,
     )
 
     parties_qs = Party.objects.filter(is_active=True)
@@ -128,6 +130,7 @@ def incorrect_bills_report_view(request: HttpRequest) -> HttpResponse:
         "selected_party": selected_party,
         "parties": parties,
         "query": query,
+        "resolution_status": resolution_status,
         "report": report_data,
         "records": report_data["records"],
     }
@@ -143,6 +146,7 @@ def export_incorrect_bills_csv_view(request: HttpRequest) -> HttpResponse:
     party_type = request.GET.get("party_type", "all").strip().lower()
     party_id = request.GET.get("party") or request.GET.get("party_id")
     query = request.GET.get("q", "").strip()
+    resolution_status = request.GET.get("resolution", "all").strip().lower()
 
     start, end = get_date_range(range_key, start_date, end_date)
     csv_content = generate_incorrect_bills_csv(
@@ -151,6 +155,7 @@ def export_incorrect_bills_csv_view(request: HttpRequest) -> HttpResponse:
         party_type=party_type,
         party_id=party_id,
         query=query,
+        resolution_status=resolution_status,
     )
 
     today_str = timezone.now().date().strftime("%Y-%m-%d")

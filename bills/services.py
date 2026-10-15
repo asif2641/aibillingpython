@@ -31,7 +31,20 @@ def recalculate_bill_totals(bill: Bill) -> Bill:
     subtotal = Decimal("0.00")
 
     for item in bill.items.all():
-        line_total = money_round(item.quantity * item.unit_price)
+        raw_lt = item.quantity * item.unit_price
+        integer_cand = Decimal(str(round(float(raw_lt))))
+        # If bill total has no decimal (integer) but multiplying qty * rounded unit_price
+        # produces a rounding artifact (e.g. 6 * 21.67 = 130.02), ignore decimal and round to integer
+        max_diff = max(Decimal("0.05"), money_round(item.quantity * Decimal("0.0055")))
+        if (
+            item.quantity > Decimal("1.00")
+            and abs(raw_lt - integer_cand) <= max_diff
+            and money_round(integer_cand / item.quantity) == item.unit_price
+        ):
+            line_total = integer_cand
+        else:
+            line_total = money_round(raw_lt)
+
         if item.line_total != line_total:
             item.line_total = line_total
             item.save(update_fields=["line_total"])

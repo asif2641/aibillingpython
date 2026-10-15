@@ -649,6 +649,27 @@ class TestBillSoftDeleteAndTrash:
         sample_bill.refresh_from_db()
         assert sample_bill.is_deleted is False
 
+    def test_delete_bill_cleans_up_orphaned_party(self, superadmin_client, sample_bill):
+        """When a bill is soft-deleted and the party has no other active bills or payments, the party is deactivated."""
+        party = sample_bill.party
+        assert party.is_active is True
+
+        delete_url = self._delete_url(sample_bill.pk)
+        del_resp = superadmin_client.post(delete_url)
+        assert del_resp.status_code == 302
+
+        sample_bill.refresh_from_db()
+        party.refresh_from_db()
+        assert sample_bill.is_deleted is True
+        assert party.is_active is False
+
+        # Restoring bill reactivates party
+        restore_url = self._restore_url(sample_bill.pk)
+        restore_resp = superadmin_client.post(restore_url)
+        assert restore_resp.status_code == 302
+        party.refresh_from_db()
+        assert party.is_active is True
+
 
 # ==============================================================================
 # 4. Bill Views & Workflow Tests
@@ -1015,7 +1036,10 @@ class TestBillViewsAndWorkflow:
         bill.refresh_from_db()
         assert bill.grand_total == Decimal("2676.00")
         assert bill.has_discrepancy is False
-        assert bill.discrepancy_reason == ""
+        assert bill.had_discrepancy is True
+        assert bill.discrepancy_resolved is True
+        assert bill.discrepancy_resolved_at is not None
+        assert "Previously recorded with paper slip" in bill.discrepancy_reason
         assert bill.status == Bill.Status.VERIFIED
 
     def test_bill_detail_shows_discrepancy_banner_and_correct_button(
@@ -1038,3 +1062,76 @@ class TestBillViewsAndWorkflow:
         content = resp.content.decode("utf-8")
         assert "Incorrect / Discrepant Bill Recorded" in content
         assert "Correct to Items Total" in content
+
+    def test_bill_detail_shows_resolved_banner(self, staff_client, sample_party):
+        """GET /en/bills/<pk>/ displays green audit badge when discrepancy was previously corrected."""
+        bill = Bill.objects.create(
+            bill_type="purchase",
+            party=sample_party,
+            invoice_no="INV-DISC-RESOLVED",
+            bill_date=timezone.now().date(),
+            subtotal=Decimal("2676.00"),
+            grand_total=Decimal("2676.00"),
+            original_slip_total=Decimal("2670.00"),
+            has_discrepancy=False,
+            had_discrepancy=True,
+            discrepancy_resolved=True,
+            discrepancy_resolved_at=timezone.now(),
+            discrepancy_reason="Corrected on 2026-10-14: Previously recorded with paper slip PKR 2670.00. Corrected to actual items sum PKR 2676.00.",
+        )
+        resp = staff_client.get(reverse("bills:bill_detail", kwargs={"pk": bill.pk}))
+        assert resp.status_code == 200
+        content = resp.content.decode("utf-8")
+        assert "Discrepancy Corrected & Resolved" in content
+        assert "Previously recorded with paper slip" in content
+
+    def test_integer_line_total_rounding_no_decimals(self, sample_party):
+        """When total has no decimals on bill (e.g. 6 eggs total 130), ignore rounding artifact (.02) and round to integer."""
+        from bills.services import recalculate_bill_totals
+
+        bill = Bill.objects.create(
+            party=sample_party,
+            invoice_no="INV-EGG-INTEGER",
+            bill_date=timezone.now().date(),
+        )
+        # 6 eggs @ 21.67 (130 / 6 = 21.6666...) -> 6 * 21.67 = 130.02, but line total must be integer 130.00
+        BillItem.objects.create(
+            bill=bill,
+            item_name="Eggs",
+            quantity=Decimal("6"),
+            unit_price=Decimal("21.67"),
+        )
+        recalculate_bill_totals(bill)
+        bill.refresh_from_db()
+        item = bill.items.first()
+        assert item.line_total == Decimal("130.00")
+        assert bill.subtotal == Decimal("130.00")
+        assert bill.grand_total == Decimal("130.00")
+
+    def test_pharmacy_bill_preserves_decimals(self, sample_party):
+        """When bill items have genuine decimals (like pharmacy receipts), count decimals and include in grand total."""
+        from bills.services import recalculate_bill_totals
+
+        bill = Bill.objects.create(
+            party=sample_party,
+            invoice_no="INV-PHARMACY-DECIMAL",
+            bill_date=timezone.now().date(),
+        )
+        BillItem.objects.create(
+            bill=bill,
+            item_name="Panadol Syrup",
+            quantity=Decimal("1"),
+            unit_price=Decimal("152.75"),
+        )
+        BillItem.objects.create(
+            bill=bill,
+            item_name="Disprin",
+            quantity=Decimal("3"),
+            unit_price=Decimal("10.25"),
+        )
+        recalculate_bill_totals(bill)
+        bill.refresh_from_db()
+        assert bill.items.first().line_total == Decimal("152.75")
+        assert bill.items.last().line_total == Decimal("30.75")
+        assert bill.subtotal == Decimal("183.50")
+        assert bill.grand_total == Decimal("183.50")

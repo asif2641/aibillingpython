@@ -3,6 +3,8 @@
 Project-level views for the aibilling application: dashboard, global search, and PWA endpoints.
 """
 
+from decimal import Decimal
+
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
@@ -19,6 +21,7 @@ from reports.services import (
     get_spending_over_time,
     get_spending_summary,
 )
+from settings_app.models import ActivityLog
 from settings_app.signals import DASHBOARD_CACHE_KEY
 
 
@@ -56,6 +59,14 @@ def dashboard_view(request):
         chart_data = cached_data["chart_data"]
         category_breakdown = cached_data["category_breakdown"]
 
+    recent_bills = (
+        Bill.objects.filter(is_deleted=False)
+        .select_related("party", "category")
+        .prefetch_related("scan_jobs")
+        .order_by("-created_at")[:5]
+    )
+    recent_activities = ActivityLog.objects.select_related("user").order_by("-created_at")[:6]
+
     context = {
         "title": "Dashboard",
         "total_spend": f"{summary['total_spend']:,.2f}",
@@ -63,8 +74,12 @@ def dashboard_view(request):
         "outstanding_credit": f"{summary['outstanding_credit']:,.2f}",
         "average_bill": f"{summary['average_bill']:,.2f}",
         "top_vendor": summary.get("top_vendor", ""),
+        "pending_count": summary.get("pending_count", 0),
+        "pending_amount": f"{summary.get('pending_amount', Decimal('0.00')):,.2f}",
         "chart_data": chart_data,
         "category_breakdown": category_breakdown,
+        "recent_bills": recent_bills,
+        "recent_activities": recent_activities,
     }
     return render(request, "dashboard/index.html", context)
 

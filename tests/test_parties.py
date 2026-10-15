@@ -497,3 +497,15 @@ class TestPartyViewsAndAccessControl:
         assert response.status_code == 200
         edit_resp = superadmin_client.get(self._edit_url(sample_vendor.pk))
         assert edit_resp.status_code == 200
+
+    def test_delete_party_deactivates_and_redirects(self, staff_client, sample_vendor):
+        """POSTing to party delete route deactivates the party and removes from active vendor list."""
+        delete_url = reverse("parties:party_delete", kwargs={"pk": sample_vendor.pk})
+        resp = staff_client.post(delete_url)
+        assert resp.status_code == 302
+        sample_vendor.refresh_from_db()
+        assert sample_vendor.is_active is False
+
+        # Inactive party should not appear in active vendor list
+        list_resp = staff_client.get(self._vendors_url())
+        assert sample_vendor not in list_resp.context["parties"].object_list

@@ -5,13 +5,44 @@ Views for recording payments and managing ledger transactions.
 
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
+from django.core.paginator import Paginator
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from ledger.forms import PaymentForm
-from ledger.services import generate_ledger_csv, get_party_ledger_statement, record_payment
+from ledger.services import (
+    generate_ledger_csv,
+    get_all_parties_ledger_summary,
+    get_party_ledger_statement,
+    record_payment,
+)
 from parties.models import Party
+
+
+@login_required
+def ledger_dashboard_view(request: HttpRequest) -> HttpResponse:
+    """General Ledger overview dashboard showing all party Khatas and balance summaries."""
+    party_type = request.GET.get("type", "all")
+    query = request.GET.get("q", "").strip()
+
+    summary_data = get_all_parties_ledger_summary(party_type_filter=party_type, search_query=query)
+
+    paginator = Paginator(summary_data["party_summaries"], 25)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        "page_obj": page_obj,
+        "party_summaries": page_obj.object_list,
+        "total_receivable": summary_data["total_receivable"],
+        "total_payable": summary_data["total_payable"],
+        "net_balance": summary_data["net_balance"],
+        "total_accounts_count": summary_data["total_accounts_count"],
+        "party_type": party_type,
+        "query": query,
+    }
+    return render(request, "ledger/ledger_dashboard.html", context)
 
 
 @login_required
@@ -33,13 +64,17 @@ def payment_add_view(request: HttpRequest) -> HttpResponse:
                 )
                 if payment.bill:
                     return redirect("bills:bill_detail", pk=payment.bill.pk)
-                return redirect("ledger:payment_add")
+                return redirect("ledger:party_ledger", party_id=payment.party.pk)
             except ValidationError as err:
                 form.add_error(None, err)
                 return render(request, "ledger/payment_form.html", {"form": form}, status=400)
         return render(request, "ledger/payment_form.html", {"form": form}, status=400)
 
-    form = PaymentForm()
+    party_id = request.GET.get("party")
+    initial = {}
+    if party_id:
+        initial["party"] = party_id
+    form = PaymentForm(initial=initial)
     return render(request, "ledger/payment_form.html", {"form": form})
 
 

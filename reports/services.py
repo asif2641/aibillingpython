@@ -71,7 +71,11 @@ def get_spending_summary(
     """Calculate high-level spending KPIs for purchase bills."""
     start_date, end_date = get_date_range(date_range_key, custom_start, custom_end)
 
-    bills = Bill.objects.filter(is_deleted=False, bill_type=Bill.BillType.PURCHASE)
+    bills = Bill.objects.filter(
+        is_deleted=False,
+        bill_type=Bill.BillType.PURCHASE,
+        status=Bill.Status.VERIFIED,
+    )
     if start_date:
         bills = bills.filter(bill_date__gte=start_date)
     if end_date:
@@ -105,18 +109,39 @@ def get_spending_summary(
     )
     top_vendor = top_vendor_row["party__name"] if top_vendor_row else ""
 
+    # Pending review / unverified bills (separate metrics)
+    pending_bills = Bill.objects.filter(
+        is_deleted=False,
+        status__in=[Bill.Status.NEEDS_REVIEW, Bill.Status.DRAFT],
+    )
+    if start_date:
+        pending_bills = pending_bills.filter(bill_date__gte=start_date)
+    if end_date:
+        pending_bills = pending_bills.filter(bill_date__lte=end_date)
+
+    pending_agg = pending_bills.aggregate(
+        count=Count("id"),
+        total=Coalesce(Sum("grand_total"), Decimal("0.00")),
+    )
+
     return {
         "total_spend": total_spend,
         "purchase_bills_count": purchase_bills_count,
         "average_bill": average_bill,
         "outstanding_credit": outstanding_credit,
         "top_vendor": top_vendor,
+        "pending_count": pending_agg["count"],
+        "pending_amount": money_round(pending_agg["total"]),
     }
 
 
 def get_spending_by_category(start_date=None, end_date=None) -> List[Dict[str, Any]]:
-    """Aggregate spending by expense category with percentages."""
-    bills = Bill.objects.filter(is_deleted=False, bill_type=Bill.BillType.PURCHASE)
+    """Aggregate spending by expense category with percentages for verified bills."""
+    bills = Bill.objects.filter(
+        is_deleted=False,
+        bill_type=Bill.BillType.PURCHASE,
+        status=Bill.Status.VERIFIED,
+    )
     if start_date:
         bills = bills.filter(bill_date__gte=start_date)
     if end_date:
@@ -161,9 +186,12 @@ def get_top_vendors(
     start_date=None,
     end_date=None,
 ) -> List[Dict[str, Any]]:
-    """Aggregate purchase bills by vendor and rank by total spent."""
+    """Aggregate purchase bills by vendor and rank by total spent for verified bills."""
     bills = Bill.objects.filter(
-        is_deleted=False, bill_type=Bill.BillType.PURCHASE, party__isnull=False
+        is_deleted=False,
+        bill_type=Bill.BillType.PURCHASE,
+        party__isnull=False,
+        status=Bill.Status.VERIFIED,
     )
     if start_date:
         bills = bills.filter(bill_date__gte=start_date)
@@ -200,8 +228,12 @@ def get_spending_over_time(
     start_date=None,
     end_date=None,
 ) -> Dict[str, Any]:
-    """Format chronological interval data for Chart.js."""
-    bills = Bill.objects.filter(is_deleted=False, bill_type=Bill.BillType.PURCHASE)
+    """Format chronological interval data for Chart.js for verified bills."""
+    bills = Bill.objects.filter(
+        is_deleted=False,
+        bill_type=Bill.BillType.PURCHASE,
+        status=Bill.Status.VERIFIED,
+    )
     if start_date:
         bills = bills.filter(bill_date__gte=start_date)
     if end_date:
@@ -342,7 +374,11 @@ def get_all_items_price_summary() -> List[Dict[str, Any]]:
 def generate_spending_csv(start_date=None, end_date=None) -> str:
     """Export purchase bills to RFC-compliant CSV string."""
     bills = (
-        Bill.objects.filter(is_deleted=False, bill_type=Bill.BillType.PURCHASE)
+        Bill.objects.filter(
+            is_deleted=False,
+            bill_type=Bill.BillType.PURCHASE,
+            status=Bill.Status.VERIFIED,
+        )
         .select_related("party", "category")
         .order_by("-bill_date", "-id")
     )
@@ -394,15 +430,20 @@ def get_incorrect_bills_report(
     party_type: str = "all",
     party_id: int | str | None = None,
     query: str | None = None,
+    resolution_status: str = "all",
 ) -> Dict[str, Any]:
     """Retrieve and aggregate records of all bills with calculation discrepancies or missing prices.
 
-    Filters date-wise, customer-wise, and vendor-wise.
+    Preserves full audit history even after a bill has been corrected.
+    Filters date-wise, customer-wise, vendor-wise, and by resolution status (all/unresolved/resolved).
     """
     qs = (
         Bill.objects.filter(is_deleted=False)
         .filter(
             Q(has_discrepancy=True)
+            | Q(had_discrepancy=True)
+            | Q(discrepancy_resolved=True)
+            | Q(original_slip_total__isnull=False)
             | Q(
                 errors__error_type__in=[
                     "math_mismatch",
@@ -442,12 +483,21 @@ def get_incorrect_bills_report(
             | Q(party__phone__icontains=q_clean)
         )
 
+    if resolution_status == "unresolved":
+        qs = qs.filter(Q(has_discrepancy=True) | Q(discrepancy_resolved=False)).filter(
+            discrepancy_resolved=False
+        )
+    elif resolution_status == "resolved":
+        qs = qs.filter(discrepancy_resolved=True)
+
     records = []
     total_slip_amount = Decimal("0.00")
     total_computed_amount = Decimal("0.00")
     total_difference = Decimal("0.00")
     vendor_count = 0
     customer_count = 0
+    unresolved_count = 0
+    resolved_count = 0
 
     for bill in qs:
         items = list(bill.items.all())
@@ -481,6 +531,11 @@ def get_incorrect_bills_report(
         if p_type in ("customer", "both"):
             customer_count += 1
 
+        if bill.discrepancy_resolved:
+            resolved_count += 1
+        else:
+            unresolved_count += 1
+
         total_slip_amount += slip_total
         total_computed_amount += computed_total
         total_difference += abs(diff)
@@ -498,6 +553,8 @@ def get_incorrect_bills_report(
                 "reason": reason,
                 "has_missing_price": bill.has_missing_price,
                 "has_discrepancy": bill.has_discrepancy,
+                "discrepancy_resolved": bill.discrepancy_resolved,
+                "discrepancy_resolved_at": bill.discrepancy_resolved_at,
                 "status": bill.status,
             }
         )
@@ -505,6 +562,8 @@ def get_incorrect_bills_report(
     return {
         "records": records,
         "total_count": len(records),
+        "unresolved_count": unresolved_count,
+        "resolved_count": resolved_count,
         "total_slip_amount": money_round(total_slip_amount),
         "total_computed_amount": money_round(total_computed_amount),
         "total_difference": money_round(total_difference),
@@ -519,6 +578,7 @@ def generate_incorrect_bills_csv(
     party_type: str = "all",
     party_id: int | str | None = None,
     query: str | None = None,
+    resolution_status: str = "all",
 ) -> str:
     """Generate RFC-compliant CSV content of incorrect / discrepant bills."""
     data = get_incorrect_bills_report(
@@ -527,6 +587,7 @@ def generate_incorrect_bills_csv(
         party_type=party_type,
         party_id=party_id,
         query=query,
+        resolution_status=resolution_status,
     )
     output = io.StringIO()
     writer = csv.writer(output)
@@ -539,6 +600,7 @@ def generate_incorrect_bills_csv(
             "Paper Slip Total",
             "Computed Items Total",
             "Difference",
+            "Discrepancy Status",
             "Discrepancy Details",
             "Status",
         ]
@@ -553,6 +615,7 @@ def generate_incorrect_bills_csv(
                 str(r["slip_total"]),
                 str(r["computed_total"]),
                 str(r["difference"]),
+                "Corrected / Resolved" if r["discrepancy_resolved"] else "Unresolved / Discrepant",
                 r["reason"],
                 r["status"],
             ]

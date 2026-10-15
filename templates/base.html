@@ -125,6 +125,12 @@
         html {
             scroll-behavior: smooth;
         }
+
+        /* Prevent accidental horizontal page overflow on mobile viewports */
+        html, body {
+            max-width: 100%;
+            overflow-x: hidden;
+        }
         
         /* Loading indicator for HTMX */
         .htmx-indicator {
@@ -139,12 +145,12 @@
     {% block extra_head %}{% endblock %}
 </head>
 <body 
-    class="h-full bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 antialiased transition-colors duration-200"
+    class="h-full bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 antialiased transition-colors duration-200 overflow-x-hidden max-w-full"
     x-data="baseApp()"
     hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
 
     {% block layout %}
-        <div class="min-h-screen flex flex-col md:flex-row bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100">
+        <div class="min-h-screen flex flex-col md:flex-row bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 w-full max-w-full overflow-x-hidden">
 
             <!-- MOBILE SIDEBAR BACKDROP & DRAWER -->
             <div 
@@ -232,7 +238,7 @@
                             <svg class="w-5 h-5 flex-shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                             <span>{% trans "Incorrect Bills" %}</span>
                         </a>
-                        <a href="{% url 'parties:vendor_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                        <a href="{% url 'ledger:ledger_dashboard' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium {% if 'ledger' in request.path %}bg-primary-50 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400 border border-primary-100 dark:border-primary-900/50{% else %}text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors{% endif %}">
                             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                             <span>{% trans "Ledger" %}</span>
                         </a>
@@ -245,6 +251,33 @@
                             <span>{% trans "Settings" %}</span>
                         </a>
                     </nav>
+
+                    <!-- Mobile Drawer Footer: User Profile & Sign Out -->
+                    <div class="p-3.5 border-t border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-900/40 flex items-center justify-between">
+                        <div class="flex items-center gap-2.5 overflow-hidden">
+                            <div class="w-8 h-8 rounded-full bg-primary-600 text-white font-semibold flex items-center justify-center text-xs shrink-0 shadow-sm">
+                                {{ request.user.username|make_list|first|upper }}
+                            </div>
+                            <div class="flex flex-col min-w-0">
+                                <span class="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
+                                    {{ request.user.first_name|default:request.user.username }}
+                                </span>
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold w-fit {% if request.user.is_superadmin %}bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300{% else %}bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300{% endif %}">
+                                    {{ request.user.get_role_display|default:"Staff" }}
+                                </span>
+                            </div>
+                        </div>
+                        <form action="{% url 'accounts:logout' %}" method="post" class="inline">
+                            {% csrf_token %}
+                            <button 
+                                type="submit" 
+                                class="p-2 min-w-[36px] min-h-[36px] flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-colors" 
+                                title="{% trans 'Sign out' %}" 
+                                aria-label="{% trans 'Sign out' %}">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
 
@@ -315,7 +348,7 @@
                         <svg class="w-5 h-5 flex-shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                         <span x-show="!sidebarCollapsed" class="whitespace-nowrap">{% trans "Incorrect Bills" %}</span>
                     </a>
-                    <a href="{% url 'parties:vendor_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60" title="{% trans "Ledger" %}">
+                    <a href="{% url 'ledger:ledger_dashboard' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors {% if 'ledger' in request.path %}bg-primary-50 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400 border border-primary-100 dark:border-primary-900/50{% else %}text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60{% endif %}" title="{% trans "Ledger" %}">
                         <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         <span x-show="!sidebarCollapsed" class="whitespace-nowrap">{% trans "Ledger" %}</span>
                     </a>
@@ -331,20 +364,25 @@
             </aside>
 
             <!-- MAIN WORKSPACE & TOP BAR -->
-            <div class="flex-1 flex flex-col min-w-0 pb-20 md:pb-8">
+            <div class="flex-1 flex flex-col min-w-0 pb-20 md:pb-8 w-full max-w-full overflow-x-hidden">
 
                 <!-- TOP BAR -->
-                <header class="h-16 flex-shrink-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 flex items-center justify-between gap-3 sticky top-0 z-20">
+                <header class="h-16 flex-shrink-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-3 sm:px-6 flex items-center justify-between gap-2 sm:gap-3 sticky top-0 z-20 w-full max-w-full">
                     
                     <!-- Left: Mobile menu button & breadcrumbs/title -->
-                    <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-2 sm:gap-3 shrink-0">
                         <button 
                             @click="sidebarOpen = true" 
                             type="button" 
-                            class="md:hidden p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700" 
+                            class="md:hidden p-2 min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700" 
                             aria-label="Open sidebar menu">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                         </button>
+                        <!-- Mobile Brand Logo -->
+                        <a href="{% url 'dashboard' %}" class="flex sm:hidden items-center gap-1.5 font-bold text-base text-slate-900 dark:text-white">
+                            <span class="text-xl">🧾</span>
+                            <span class="tracking-tight">aibilling</span>
+                        </a>
                         <div class="hidden sm:flex flex-col">
                             <h1 class="text-base font-semibold text-slate-900 dark:text-white leading-tight">
                                 {% block page_title %}{% trans "Dashboard" %}{% endblock %}
@@ -355,8 +393,8 @@
                         </div>
                     </div>
 
-                    <!-- Center: Compact Global Search Bar -->
-                    <form action="{% url 'global_search' %}" method="get" class="flex-1 max-w-xs sm:max-w-sm mx-2" role="search">
+                    <!-- Center: Desktop Global Search Bar -->
+                    <form action="{% url 'global_search' %}" method="get" class="hidden sm:block flex-1 max-w-xs sm:max-w-sm mx-2" role="search">
                         <label for="base-global-search" class="sr-only">{% trans "Global Search" %}</label>
                         <div class="relative flex items-center">
                             <svg class="w-4 h-4 text-slate-400 absolute ltr:left-3 rtl:right-3 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -371,8 +409,20 @@
                         </div>
                     </form>
 
-                    <!-- Right: Language Switcher, Theme Toggle, User Profile -->
-                    <div class="flex items-center gap-2 sm:gap-3">
+                    <!-- Right: Mobile Search Toggle, Language Switcher, Theme Toggle, User Profile -->
+                    <div class="flex items-center gap-1.5 sm:gap-3 shrink-0">
+
+                        <!-- Mobile Search Toggle Button -->
+                        <button 
+                            @click="mobileSearchOpen = !mobileSearchOpen" 
+                            type="button" 
+                            class="sm:hidden p-2 min-w-[38px] min-h-[38px] flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" 
+                            title="{% trans 'Search' %}" 
+                            aria-label="{% trans 'Toggle search' %}">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                        </button>
 
                         <!-- Language Switcher Form -->
                         <form action="{% url 'set_language' %}" method="post" class="inline-flex items-center">
@@ -383,24 +433,24 @@
                                     type="submit" 
                                     name="language" 
                                     value="en" 
-                                    class="inline-flex items-center gap-1 px-2.5 py-1.5 min-h-[44px] text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-primary-500" 
+                                    class="inline-flex items-center justify-center px-2 sm:px-2.5 py-1.5 min-h-[38px] text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-primary-500" 
                                     title="Switch to English" 
                                     aria-label="Switch to English language">
                                     <span>EN</span>
-                                    <span class="text-slate-400">|</span>
-                                    <span class="text-xs">English</span>
+                                    <span class="hidden sm:inline text-slate-400 mx-1">|</span>
+                                    <span class="hidden sm:inline text-xs">English</span>
                                 </button>
                             {% else %}
                                 <button 
                                     type="submit" 
                                     name="language" 
                                     value="ur" 
-                                    class="inline-flex items-center gap-1 px-2.5 py-1.5 min-h-[44px] text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-primary-500" 
+                                    class="inline-flex items-center justify-center px-2 sm:px-2.5 py-1.5 min-h-[38px] text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-primary-500" 
                                     title="اردو میں تبدیل کریں" 
                                     aria-label="Switch to Urdu language">
                                     <span>اردو</span>
-                                    <span class="text-slate-400">|</span>
-                                    <span class="text-xs">Urdu</span>
+                                    <span class="hidden sm:inline text-slate-400 mx-1">|</span>
+                                    <span class="hidden sm:inline text-xs">Urdu</span>
                                 </button>
                             {% endif %}
                         </form>
@@ -409,7 +459,7 @@
                         <button 
                             @click="toggleTheme()" 
                             type="button" 
-                            class="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500" 
+                            class="p-2 min-w-[38px] min-h-[38px] flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500" 
                             title="Toggle light and dark theme mode" 
                             aria-label="Theme toggle switch between light and dark mode">
                             <svg x-show="darkMode" x-cloak class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -423,8 +473,8 @@
                         <div class="h-6 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
 
                         <!-- User Profile & Role Badge in Top Bar -->
-                        <div class="flex items-center gap-2.5">
-                            <div class="w-8 h-8 rounded-full bg-primary-600 text-white font-semibold flex items-center justify-center text-xs shadow-sm ring-2 ring-white dark:ring-slate-800">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-full bg-primary-600 text-white font-semibold flex items-center justify-center text-xs shadow-sm ring-2 ring-white dark:ring-slate-800 shrink-0" title="{{ request.user.get_full_name|default:request.user.username }}">
                                 {{ request.user.username|make_list|first|upper }}
                             </div>
                             <div class="hidden sm:flex flex-col text-left">
@@ -436,23 +486,49 @@
                                 </span>
                             </div>
 
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold {% if request.user.is_superadmin %}bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800{% else %}bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800{% endif %}">
+                            <!-- Role badge hidden on small screens (< md), shown in drawer on mobile -->
+                            <span class="hidden md:inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold {% if request.user.is_superadmin %}bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800{% else %}bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800{% endif %}">
                                 {{ request.user.get_role_display|default:"Staff" }}
                             </span>
 
-                            <form action="{% url 'accounts:logout' %}" method="post" class="inline">
+                            <form action="{% url 'accounts:logout' %}" method="post" class="hidden sm:inline">
                                 {% csrf_token %}
                                 <button 
                                     type="submit" 
-                                    class="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500" 
-                                    title="Sign out of account" 
-                                    aria-label="Sign out">
+                                    class="p-2 min-w-[38px] min-h-[38px] flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500" 
+                                    title="{% trans 'Sign out' %}" 
+                                    aria-label="{% trans 'Sign out' %}">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
                                 </button>
                             </form>
                         </div>
                     </div>
                 </header>
+
+                <!-- Expandable Mobile Search Dropdown -->
+                <div 
+                    x-show="mobileSearchOpen" 
+                    x-cloak 
+                    x-transition:enter="transition ease-out duration-150"
+                    x-transition:enter-start="opacity-0 -translate-y-2"
+                    x-transition:enter-end="opacity-100 translate-y-0"
+                    x-transition:leave="transition ease-in duration-100"
+                    x-transition:leave-start="opacity-100 translate-y-0"
+                    x-transition:leave-end="opacity-0 -translate-y-2"
+                    class="sm:hidden px-4 py-2.5 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 shadow-sm sticky top-16 z-19">
+                    <form action="{% url 'global_search' %}" method="get" class="relative flex items-center" role="search">
+                        <label for="mobile-global-search" class="sr-only">{% trans "Global Search" %}</label>
+                        <svg class="w-4 h-4 text-slate-400 absolute ltr:left-3 rtl:right-3 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                        <input
+                            id="mobile-global-search"
+                            type="search"
+                            name="q"
+                            placeholder="{% trans 'Search bills, parties, items...' %}"
+                            class="w-full min-h-[40px] ltr:pl-9 ltr:pr-3 rtl:pr-9 rtl:pl-3 py-2 text-xs bg-slate-100 dark:bg-slate-700/70 text-slate-900 dark:text-slate-100 placeholder-slate-400 rounded-xl border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    </form>
+                </div>
 
                 <!-- MAIN CONTENT AREA -->
                 <main class="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
@@ -473,25 +549,25 @@
             </div>
 
             <!-- MOBILE BOTTOM NAVIGATION -->
-            <nav class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 dark:bg-slate-800/95 backdrop-blur border-t border-slate-200 dark:border-slate-700 px-3 py-2" aria-label="Mobile Bottom Navigation">
+            <nav class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 dark:bg-slate-800/95 backdrop-blur border-t border-slate-200 dark:border-slate-700 px-2 py-1.5 w-full max-w-full" aria-label="Mobile Bottom Navigation">
                 <div class="flex items-center justify-around max-w-md mx-auto">
-                    <a href="{% url 'dashboard' %}" class="flex flex-col items-center justify-center min-w-[48px] min-h-[48px] text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 focus:outline-none">
+                    <a href="{% url 'dashboard' %}" class="flex flex-col items-center justify-center min-w-[40px] min-h-[44px] text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 focus:outline-none">
                         <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
                         <span class="text-[10px]">{% trans "Dashboard" %}</span>
                     </a>
-                    <a href="{% url 'bills:bill_list' %}" class="flex flex-col items-center justify-center min-w-[48px] min-h-[48px] text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 focus:outline-none">
+                    <a href="{% url 'bills:bill_list' %}" class="flex flex-col items-center justify-center min-w-[40px] min-h-[44px] text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 focus:outline-none">
                         <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                         <span class="text-[10px]">{% trans "Bills" %}</span>
                     </a>
-                    <a href="{% url 'scanning:upload' %}" class="flex flex-col items-center justify-center -mt-5 min-w-[56px] min-h-[56px] w-14 h-14 bg-primary-600 hover:bg-primary-700 text-white rounded-full shadow-lg shadow-primary-500/40 ring-4 ring-white dark:ring-slate-900 focus:outline-none focus:ring-primary-500 transition-transform active:scale-95">
+                    <a href="{% url 'scanning:upload' %}?camera=1" class="flex flex-col items-center justify-center -mt-5 min-w-[52px] min-h-[52px] w-13 h-13 bg-primary-600 hover:bg-primary-700 text-white rounded-full shadow-lg shadow-primary-500/40 ring-4 ring-white dark:ring-slate-900 focus:outline-none focus:ring-primary-500 transition-transform active:scale-95" title="{% trans "Take Photo / Scan Bill" %}">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                         <span class="sr-only">{% trans "Scan Bill" %}</span>
                     </a>
-                    <a href="{% url 'bills:bill_add' %}" class="flex flex-col items-center justify-center min-w-[48px] min-h-[48px] text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 focus:outline-none">
+                    <a href="{% url 'bills:bill_add' %}" class="flex flex-col items-center justify-center min-w-[40px] min-h-[44px] text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 focus:outline-none">
                         <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                         <span class="text-[10px]">{% trans "Add Bill" %}</span>
                     </a>
-                    <button @click="sidebarOpen = true" type="button" class="flex flex-col items-center justify-center min-w-[48px] min-h-[48px] text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 focus:outline-none">
+                    <button @click="sidebarOpen = true" type="button" class="flex flex-col items-center justify-center min-w-[40px] min-h-[44px] text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 focus:outline-none">
                         <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                         <span class="text-[10px]">{% trans "Menu" %}</span>
                     </button>
@@ -506,6 +582,7 @@
                 darkMode: document.documentElement.classList.contains('dark'),
                 sidebarOpen: false,
                 sidebarCollapsed: false,
+                mobileSearchOpen: false,
                 toggleTheme() {
                     this.darkMode = !this.darkMode;
                     if (this.darkMode) {

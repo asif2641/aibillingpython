@@ -59,23 +59,68 @@
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
             <!-- Left Column: Document Viewer (5 cols) -->
-            <div class="lg:col-span-5 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm p-4 space-y-4 lg:sticky lg:top-6">
+            <div class="lg:col-span-5 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm p-4 space-y-4 lg:sticky lg:top-6"
+                 x-data="{ currentIndex: 0 }">
                 <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/60 pb-3">
                     <h2 class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
                         <span>📄</span>
                         <span>{% trans "Original Document" %}</span>
                     </h2>
-                    <span class="text-[11px] text-slate-400">
-                        {{ files.count }} {% trans "page(s)" %}
-                    </span>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                            {{ files.count }} {% trans "page(s)" %}
+                        </span>
+                        {% for f in files %}
+                        <a href="{{ f.file.url }}" target="_blank" 
+                           x-show="currentIndex === {{ forloop.counter0 }}"
+                           {% if not forloop.first %}x-cloak style="display: none;"{% endif %}
+                           class="p-1 text-slate-500 hover:text-primary-600 dark:hover:text-primary-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors inline-flex items-center gap-1 text-[11px]"
+                           title="{% trans "Open full size in new tab" %}">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                            <span class="hidden sm:inline">{% trans "Full size" %}</span>
+                        </a>
+                        {% endfor %}
+                    </div>
                 </div>
 
+                <!-- Main Preview Display -->
                 <div class="bg-slate-100 dark:bg-slate-900 rounded-xl overflow-hidden min-h-[420px] max-h-[650px] flex items-center justify-center p-2 relative group">
-                    {% if files.first %}
-                        {% if files.first.file_type == 'image' %}
-                            <img src="{{ files.first.file.url }}" alt="{% trans "Scanned bill document" %}" class="max-h-[620px] w-auto mx-auto object-contain rounded shadow-sm">
-                        {% else %}
-                            <iframe src="{{ files.first.file.url }}" class="w-full h-[600px] border-none rounded"></iframe>
+                    {% if files %}
+                        {% for f in files %}
+                        <div x-show="currentIndex === {{ forloop.counter0 }}" 
+                             {% if not forloop.first %}x-cloak style="display: none;"{% endif %}
+                             class="w-full h-full flex items-center justify-center">
+                            <img src="{% url 'scanning:file_preview' f.pk %}" 
+                                 alt="Page {{ f.page_number }}" 
+                                 class="max-h-[620px] w-auto mx-auto object-contain rounded shadow-sm transition-all duration-150"
+                                 loading="eager">
+                        </div>
+                        {% endfor %}
+
+                        {% if files.count > 1 %}
+                        <!-- Active Page Badge Overlay -->
+                        <div class="absolute top-3 left-3 rtl:left-auto rtl:right-3 bg-slate-900/80 backdrop-blur text-white px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 shadow z-10">
+                            <span>📄</span>
+                            <span>{% trans "Page" %} <span x-text="currentIndex + 1">1</span> / {{ files.count }}</span>
+                        </div>
+
+                        <!-- Previous / Next Navigation Arrows Overlay -->
+                        <div class="absolute inset-x-2 top-1/2 -translate-y-1/2 flex justify-between pointer-events-none z-10">
+                            <button type="button" 
+                                    @click="if (currentIndex > 0) currentIndex--" 
+                                    :disabled="currentIndex === 0"
+                                    class="pointer-events-auto p-2 rounded-full bg-slate-900/60 hover:bg-slate-900/90 text-white shadow backdrop-blur disabled:opacity-0 disabled:pointer-events-none transition-all focus:outline-none"
+                                    title="{% trans "Previous page" %}">
+                                <svg class="w-5 h-5 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+                            </button>
+                            <button type="button" 
+                                    @click="if (currentIndex < {{ files.count }} - 1) currentIndex++" 
+                                    :disabled="currentIndex === {{ files.count }} - 1"
+                                    class="pointer-events-auto p-2 rounded-full bg-slate-900/60 hover:bg-slate-900/90 text-white shadow backdrop-blur disabled:opacity-0 disabled:pointer-events-none transition-all focus:outline-none"
+                                    title="{% trans "Next page" %}">
+                                <svg class="w-5 h-5 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+                            </button>
+                        </div>
                         {% endif %}
                     {% else %}
                         <div class="text-center text-slate-400 p-8">
@@ -85,32 +130,126 @@
                     {% endif %}
                 </div>
 
+                <!-- Page Thumbnails Selector (Interactive) -->
                 {% if files.count > 1 %}
-                <div class="flex gap-2 overflow-x-auto pb-2">
-                    {% for f in files %}
-                    <div class="w-16 h-20 flex-shrink-0 rounded-lg border-2 border-slate-200 dark:border-slate-700 overflow-hidden bg-slate-100 text-center flex flex-col items-center justify-center text-[10px]">
-                        <span>Page {{ f.page_number }}</span>
+                <div class="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-700/60">
+                    <div class="flex items-center justify-between text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                        <span>{% trans "Click to view page" %}:</span>
+                        <span class="text-xs text-primary-600 dark:text-primary-400">
+                            {% trans "Viewing Page" %} <span x-text="currentIndex + 1">1</span>/{{ files.count }}
+                        </span>
                     </div>
-                    {% endfor %}
+                    <div class="flex gap-3 overflow-x-auto p-1.5 -mx-1.5">
+                        {% for f in files %}
+                        <button type="button"
+                                @click="currentIndex = {{ forloop.counter0 }}"
+                                class="w-20 h-24 flex-shrink-0 rounded-xl border-2 overflow-hidden text-center flex flex-col items-center justify-between p-1 transition-all focus:outline-none cursor-pointer group"
+                                :class="currentIndex === {{ forloop.counter0 }} ? 'border-primary-600 ring-2 ring-primary-500/50 bg-primary-50/80 dark:bg-primary-950/60 shadow-md' : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 opacity-70 hover:opacity-100'">
+                            <div class="w-full flex-1 overflow-hidden rounded bg-slate-200 dark:bg-slate-900 flex items-center justify-center">
+                                <img src="{% url 'scanning:file_preview' f.pk %}" alt="Page {{ f.page_number }}" class="h-full w-full object-cover">
+                            </div>
+                            <div class="w-full text-center py-0.5">
+                                <span class="text-[11px] font-bold block" 
+                                      :class="currentIndex === {{ forloop.counter0 }} ? 'text-primary-700 dark:text-primary-300 font-extrabold' : 'text-slate-600 dark:text-slate-400'">
+                                    {% trans "Page" %} {{ f.page_number }}
+                                </span>
+                            </div>
+                        </button>
+                        {% endfor %}
+                    </div>
                 </div>
                 {% endif %}
             </div>
 
             <!-- Right Column: Editable Invoice Form (7 cols) -->
-            <form method="post" class="lg:col-span-7 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm p-6 sm:p-8 space-y-6">
+            <form method="post" x-data="{ billType: '{{ bill.bill_type|default:'purchase' }}' }" class="lg:col-span-7 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm p-6 sm:p-8 space-y-6">
                 {% csrf_token %}
 
                 <!-- Invoice Header Details -->
                 <div class="space-y-4">
-                    <h2 class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 border-b border-slate-100 dark:border-slate-700/60 pb-2">
-                        {% trans "Invoice Details" %}
-                    </h2>
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-700/60 pb-3">
+                        <div>
+                            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                                {% trans "Invoice Details" %}
+                            </h2>
+                            <p class="text-[11px] text-slate-500 dark:text-slate-400">
+                                {% trans "Review vendor, customer, invoice number and date." %}
+                            </p>
+                        </div>
+
+                        <!-- Bill Type Toggle (Purchase vs Sale) -->
+                        <div class="inline-flex rounded-xl border border-slate-200 dark:border-slate-700 p-1 bg-slate-50 dark:bg-slate-900 shadow-sm">
+                            <label class="cursor-pointer text-xs font-semibold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5"
+                                   :class="billType === 'purchase' ? 'bg-white dark:bg-slate-800 text-primary-600 dark:text-primary-400 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'">
+                                <input type="radio" name="bill_type" value="purchase" class="sr-only" x-model="billType">
+                                <span>🛍️</span>
+                                <span>{% trans "Purchase" %}</span>
+                            </label>
+                            <label class="cursor-pointer text-xs font-semibold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5"
+                                   :class="billType === 'sale' ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'">
+                                <input type="radio" name="bill_type" value="sale" class="sr-only" x-model="billType">
+                                <span>👤</span>
+                                <span>{% trans "Sale (Customer)" %}</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Customer / Client Card (Only displayed for Sale bills or when a customer was detected by AI) -->
+                    <div class="p-3.5 rounded-xl border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/50 dark:bg-emerald-950/20 space-y-3"
+                         x-show="billType === 'sale' || '{{ extracted_customer_name }}' !== ''"
+                         {% if not extracted_customer_name and bill.bill_type != 'sale' %}x-cloak style="display: none;"{% endif %}>
+                        <div class="flex items-center justify-between">
+                            <label class="text-xs font-bold text-emerald-900 dark:text-emerald-200 flex items-center gap-1.5">
+                                <span>👤</span>
+                                <span>{% trans "Customer / Client (گاہک / مریض / کلائنٹ)" %}</span>
+                            </label>
+                            {% if extracted_customer_name %}
+                            <span class="text-[10px] bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 rounded-full font-medium inline-flex items-center gap-1">
+                                <svg class="w-3 h-3 text-emerald-600 dark:text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                {% trans "Extracted by AI" %}
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label for="id_customer_name" class="block text-[11px] font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                    {% trans "Customer Name (کلائنٹ کا نام)" %}
+                                </label>
+                                <input type="text" name="customer_name" id="id_customer_name" 
+                                       value="{{ extracted_customer_name }}" placeholder="{% trans "e.g. Noreen Kouser" %}"
+                                       class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-emerald-500">
+                            </div>
+                            <div>
+                                <label for="id_customer_phone" class="block text-[11px] font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                    {% trans "Customer Phone (فون نمبر)" %}
+                                </label>
+                                <input type="text" name="customer_phone" id="id_customer_phone" 
+                                       value="{{ extracted_customer_phone }}" placeholder="{% trans "e.g. 0300-1234567" %}"
+                                       class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-mono focus:ring-2 focus:ring-emerald-500">
+                            </div>
+                        </div>
+
+                        {% if extracted_customer_name %}
+                        <div class="flex items-center justify-between text-[11px] pt-1.5 border-t border-emerald-200/60 dark:border-emerald-800/40">
+                            <span class="text-emerald-800 dark:text-emerald-300">
+                                {% trans "Client detected" %}: <strong>{{ extracted_customer_name }}</strong>
+                            </span>
+                            <button type="button" 
+                                     @click="billType = 'sale'; window.selectCustomerParty('{{ extracted_customer_name|escapejs }}')"
+                                     class="text-emerald-700 dark:text-emerald-300 hover:text-emerald-900 dark:hover:text-emerald-100 hover:underline font-semibold flex items-center gap-1">
+                                <span>👉 {% trans "Use Customer as Bill Party" %}</span>
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <!-- Party Selection -->
                         <div class="sm:col-span-2">
                             <label for="id_party" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                                {% trans "Party (Vendor / Supplier)" %} <span class="text-red-500">*</span>
+                                <span x-show="billType === 'purchase'">{% trans "Party (Vendor / Supplier)" %} <span class="text-red-500">*</span></span>
+                                <span x-show="billType === 'sale'" x-cloak style="display: none;">{% trans "Party (Customer / Client)" %} <span class="text-red-500">*</span></span>
                             </label>
                             <select name="party" id="id_party" 
                                     class="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-500">
@@ -124,10 +263,19 @@
 
                         <!-- Party Phone Number -->
                         <div>
-                            <label for="id_party_phone" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                                {% trans "Phone Number" %}
-                            </label>
-                            <input type="text" name="party_phone" id="id_party_phone" value="{{ bill.party.phone }}" placeholder="0300-1234567"
+                            <div class="flex items-center justify-between mb-1">
+                                <label for="id_party_phone" class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                    <span x-show="billType === 'purchase'">{% trans "Vendor Phone" %}</span>
+                                    <span x-show="billType === 'sale'" x-cloak style="display: none;">{% trans "Customer Phone" %}</span>
+                                </label>
+                                {% if extracted_vendor_phone or bill.party.phone %}
+                                <span class="text-[10px] bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 rounded-full font-medium inline-flex items-center gap-1">
+                                    <svg class="w-3 h-3 text-emerald-600 dark:text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                    {% trans "Extracted by AI" %}
+                                </span>
+                                {% endif %}
+                            </div>
+                            <input type="text" name="party_phone" id="id_party_phone" value="{{ bill.party.phone|default:extracted_vendor_phone }}" placeholder="0300-1234567"
                                    class="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm font-mono focus:ring-2 focus:ring-primary-500">
                         </div>
 
@@ -162,7 +310,7 @@
                         </span>
                     </div>
 
-                    <div class="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+                    <div class="border border-slate-200 dark:border-slate-700 rounded-xl overflow-x-auto">
                         <table class="w-full text-left rtl:text-right border-collapse text-xs">
                             <thead class="bg-slate-50 dark:bg-slate-900/60 text-[11px] uppercase font-semibold text-slate-500 dark:text-slate-400">
                                 <tr>
@@ -189,7 +337,7 @@
                                     </td>
                                     <td class="py-2 px-2 text-right rtl:text-left">
                                         <input type="number" step="0.01" name="item_price_{{ it.pk }}" value="{{ it.unit_price }}"
-                                               class="item-price w-24 text-right rtl:text-left px-2 py-1 text-xs rounded-lg border {% if not it.unit_price or it.unit_price <= 0 %}border-red-400 bg-red-50 text-red-700 dark:bg-red-950/60 dark:text-red-300 dark:border-red-700 font-bold{% else %}border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white{% endif %} font-mono focus:ring-1 focus:ring-primary-500 transition-colors"
+                                               class="item-price w-24 text-right rtl:text-left px-2 py-1 text-xs rounded-lg border {% if it.unit_price is None %}border-red-400 bg-red-50 text-red-700 dark:bg-red-950/60 dark:text-red-300 dark:border-red-700 font-bold{% else %}border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white{% endif %} font-mono focus:ring-1 focus:ring-primary-500 transition-colors"
                                                placeholder="0.00">
                                     </td>
                                     <td class="py-2 px-3 text-right rtl:text-left font-mono font-bold text-slate-900 dark:text-white">
@@ -241,7 +389,7 @@
                                 </span>
                                 <p id="total-error-hint" class="text-[11px] text-red-600 dark:text-red-400 font-medium mt-1 {% if not is_total_invalid %}hidden{% endif %}">
                                     {% if has_missing_price %}
-                                        ⚠️ {% trans "Item price is missing or 0.00. Grand total may be incomplete." %}
+                                        ⚠️ {% trans "Item price is missing. Grand total may be incomplete." %}
                                     {% elif has_total_mismatch %}
                                         ⚠️ {% trans "Total mismatch: Items sum (PKR" %} {{ items_sum|floatformat:2 }}) {% trans "differs from slip total (PKR" %} {{ bill.grand_total|floatformat:2 }}).
                                     {% endif %}
@@ -317,21 +465,22 @@
                     const lineTotalEl = row.querySelector('.item-line-total');
 
                     const qty = parseFloat(qtyEl ? qtyEl.value : 1) || 0;
-                    const price = parseFloat(priceEl ? priceEl.value : 0) || 0;
+                    const priceVal = priceEl ? priceEl.value.trim() : '';
+                    const price = parseFloat(priceVal) || 0;
 
-                    if (price <= 0) {
-                        anyMissingPrice = true;
-                        if (priceEl) {
-                            priceEl.classList.add('border-red-400', 'bg-red-50', 'text-red-700', 'dark:bg-red-950/60', 'dark:text-red-300', 'dark:border-red-700', 'font-bold');
-                        }
-                    } else {
-                        if (priceEl) {
-                            priceEl.classList.remove('border-red-400', 'bg-red-50', 'text-red-700', 'dark:bg-red-950/60', 'dark:text-red-300', 'dark:border-red-700', 'font-bold');
-                            priceEl.classList.add('border-slate-200', 'dark:border-slate-700');
+                    let rawLineTotal = qty * price;
+                    let lineTotal = Math.round(rawLineTotal * 100) / 100;
+
+                    // If total has no decimal on bill (integer e.g. 6 eggs @ 21.67 = 130),
+                    // ignore rounding artifact (.02) and round to the integer:
+                    if (qty > 1) {
+                        const intCand = Math.round(rawLineTotal);
+                        const maxDiff = Math.max(0.05, Math.round(qty * 0.0055 * 100) / 100);
+                        if (Math.abs(rawLineTotal - intCand) <= maxDiff && Math.abs((intCand / qty) - price) <= 0.01) {
+                            lineTotal = intCand;
                         }
                     }
 
-                    const lineTotal = Math.round(qty * price * 100) / 100;
                     if (lineTotalEl) {
                         lineTotalEl.textContent = lineTotal.toFixed(2);
                     }
@@ -340,10 +489,44 @@
 
                 const discount = parseFloat(discountInput ? discountInput.value : 0) || 0;
                 const tax = parseFloat(taxInput ? taxInput.value : 0) || 0;
-                const computedGrandTotal = Math.max(0, Math.round((itemsSum - discount + tax) * 100) / 100);
+                let computedGrandTotal = Math.max(0, Math.round((itemsSum - discount + tax) * 100) / 100);
 
                 // Initial slip total stored in dataset
                 const slipTotal = parseFloat(grandTotalAmount ? grandTotalAmount.dataset.billTotal : computedGrandTotal) || computedGrandTotal;
+
+                // If slip total has no decimals (integer e.g. 130 or 2670) and computed is within 0.05 of integer, ignore decimal
+                const isSlipInteger = Math.abs(slipTotal - Math.round(slipTotal)) <= 0.001;
+                if (isSlipInteger && Math.abs(computedGrandTotal - Math.round(computedGrandTotal)) <= 0.05) {
+                    computedGrandTotal = Math.round(computedGrandTotal);
+                }
+
+                const hasShortfall = slipTotal > 0 && (slipTotal - computedGrandTotal > 0.05);
+
+                // Highlight inputs that are genuinely missing
+                document.querySelectorAll('.item-row').forEach(function(row) {
+                    const priceEl = row.querySelector('.item-price');
+                    const nameEl = row.querySelector('.item-name');
+                    const name = (nameEl ? (nameEl.value || nameEl.textContent || '') : '').toLowerCase();
+                    const priceVal = priceEl ? priceEl.value.trim() : '';
+                    const isBlank = priceVal === '';
+                    const price = parseFloat(priceVal) || 0;
+
+                    const isMissing = isBlank || (name.includes('without price') || name.includes('missing')) || (hasShortfall && price <= 0);
+
+                    if (isMissing) {
+                        anyMissingPrice = true;
+                        if (priceEl) {
+                            priceEl.classList.add('border-red-400', 'bg-red-50', 'text-red-700', 'dark:bg-red-950/60', 'dark:text-red-300', 'dark:border-red-700', 'font-bold');
+                            priceEl.classList.remove('border-slate-200', 'dark:border-slate-700');
+                        }
+                    } else {
+                        if (priceEl) {
+                            priceEl.classList.remove('border-red-400', 'bg-red-50', 'text-red-700', 'dark:bg-red-950/60', 'dark:text-red-300', 'dark:border-red-700', 'font-bold');
+                            priceEl.classList.add('border-slate-200', 'dark:border-slate-700');
+                        }
+                    }
+                });
+
                 const hasMismatch = Math.abs(computedGrandTotal - slipTotal) > 0.05;
                 const isInvalid = anyMissingPrice || hasMismatch;
 
@@ -370,7 +553,7 @@
                     if (totalHint) {
                         totalHint.classList.remove('hidden');
                         if (anyMissingPrice) {
-                            totalHint.textContent = "⚠️ {% trans 'Item price is missing or 0.00. Grand total may be incomplete.' %}";
+                            totalHint.textContent = "⚠️ {% trans 'Item price is missing. Grand total may be incomplete.' %}";
                         } else if (hasMismatch) {
                             totalHint.textContent = `⚠️ {% trans 'Total mismatch: Items sum (PKR' %} ${computedGrandTotal.toFixed(2)}) {% trans 'differs from slip total (PKR' %} ${slipTotal.toFixed(2)}).`;
                         }
@@ -410,6 +593,23 @@
             });
             if (discountInput) discountInput.addEventListener('input', recalculate);
             if (taxInput) taxInput.addEventListener('input', recalculate);
+
+            window.selectCustomerParty = function(name) {
+                const sel = document.getElementById('id_party');
+                if (!sel || !name) return;
+                const target = name.toLowerCase().trim();
+                for (let i = 0; i < sel.options.length; i++) {
+                    if (sel.options[i].text.toLowerCase().includes(target)) {
+                        sel.selectedIndex = i;
+                        const phoneInput = document.getElementById('id_party_phone');
+                        const custPhone = document.getElementById('id_customer_phone');
+                        if (phoneInput && custPhone && custPhone.value) {
+                            phoneInput.value = custPhone.value;
+                        }
+                        break;
+                    }
+                }
+            };
         });
     </script>
 {% endblock %}

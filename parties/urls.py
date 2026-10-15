@@ -8,6 +8,7 @@ from django.urls import path
 from parties.views import (
     customer_list_view,
     party_add_view,
+    party_delete_view,
     party_edit_view,
     vendor_list_view,
 )
@@ -19,4 +20,5 @@ urlpatterns = [
     path("customers/", customer_list_view, name="customer_list"),
     path("add/", party_add_view, name="party_add"),
     path("<int:pk>/edit/", party_edit_view, name="party_edit"),
+    path("<int:pk>/delete/", party_delete_view, name="party_delete"),
 ]

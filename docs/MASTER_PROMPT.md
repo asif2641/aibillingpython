@@ -36,7 +36,7 @@ A responsive web app in dashboard style where a user uploads a bill (photo, scre
 - **Database:** SQLite (local) / PostgreSQL via `DATABASE_URL` env var (hosted)
 - **AI bill reading:** Vision-capable AI model API (Google Gemini free tier or Claude API) behind a provider-agnostic wrapper. Must read handwritten and printed bills in English, Urdu and mixed text. Optional fallback: PDF text extraction (PyMuPDF) for digital PDFs.
 - **File storage:** local `media/` folder in dev; Cloudinary or Supabase Storage in hosted stages.
-- **Background processing:** Django-Q2 or Celery-free alternative. Show a progress state (never freeze the page).
+- **Background processing:** Django-Q2 or Celery-free alternative. Show a progress state (never freeze the page). Workers and pipelines must maintain dedicated, isolated database sessions (`close_old_connections()` in Django / `SessionLocal()` in SQLAlchemy) rather than inheriting request-scoped connections that close upon HTTP response return.
 - **Auth:** Django auth with custom roles.
 - **Hosting stages:** (1) local computer, (2) free server (Render), (3) live server (low-cost VPS or paid plan).
 
@@ -57,6 +57,19 @@ A responsive web app in dashboard style where a user uploads a bill (photo, scre
 - Upload image (JPG, PNG, HEIC, WEBP), screenshot or PDF, by file picker, drag-and-drop, or camera capture on mobile.
 - **Multi-page bills:** one bill can have many files, labelled Image 1, 2, 3 … and PDF pages. User can reorder, remove or add pages before scanning. AI treats all pages as one bill and merges items without duplicates.
 - Auto image cleanup before scanning: rotate/deskew, resize, improve contrast, compress. Reject files over 15 MB or unsupported types with a friendly message.
+- **Pre-AI Document Quality Assessment (Quality Gate):**
+  - Minimum Resolution Guard: Reject images under 100×100 pixels.
+  - Blurry Image Detection: Measure edge variance and sharpness ratio to flag out-of-focus or blurred bills.
+  - Low Light / Dark Image Detection: Compute mean luminance (< 35/255) to catch underexposed/dark photos.
+  - Blank Page Detection: Measure contrast stddev (< 3.5) to catch empty pages or uniform sheets.
+  - Pre-flight Alerts: Client-side badges on upload preview tiles + server-side validation in `validate_and_preprocess_file` before creating ScanJobs or spending AI tokens. Full Urdu and English bilingual feedback.
+- **Direct Mobile Camera Capture Shortcut:**
+  - Dedicated "Take Photo" button with `<input type="file" accept="image/*" capture="environment">` to trigger the device back camera directly on phones without digging into gallery pickers.
+  - Multi-page camera snapping tile ("Camera / کیمرہ سے اگلا صفحہ") in document roster.
+  - Auto-open camera via `?camera=1` query parameter from mobile dashboard and bottom navigation bar.
+- **Background Pipeline & Database Session Isolation:**
+  - Background extraction tasks must maintain an isolated database connection/session lifecycle (e.g. `SessionLocal()` with explicit `try / finally db.close()` or Django's `close_old_connections()`).
+  - Never reuse request-scoped database sessions that terminate upon HTTP response return, eliminating race conditions and closed session connection errors under concurrent uploads.
 - Show upload preview and a progress indicator.
 
 #### 4.2 AI Extraction (no fixed template)

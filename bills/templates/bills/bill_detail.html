@@ -38,8 +38,8 @@
             </div>
         </div>
 
-        {% if bill.has_discrepancy %}
-        <!-- Discrepant Bill Alert & Quick Correction Banner -->
+        {% if bill.has_discrepancy and not bill.discrepancy_resolved %}
+        <!-- Active Discrepant Bill Alert & Quick Correction Banner -->
         <div class="bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/80 rounded-2xl p-5 shadow-sm space-y-3">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div class="flex items-start gap-3">
@@ -81,6 +81,24 @@
                     </a>
                 </div>
             </div>
+        </div>
+        {% elif bill.discrepancy_resolved %}
+        <!-- Corrected Bill Audit Banner -->
+        <div class="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800/80 rounded-2xl p-4 shadow-sm flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <span class="text-xl flex-shrink-0 text-emerald-600">✓</span>
+                <div>
+                    <h3 class="text-xs font-bold text-emerald-900 dark:text-emerald-200">
+                        {% trans "Discrepancy Corrected & Resolved" %}
+                    </h3>
+                    <p class="text-[11px] text-emerald-700 dark:text-emerald-300 mt-0.5">
+                        {{ bill.discrepancy_reason|default:_("Previously recorded with a paper slip discrepancy, then corrected to actual items sum.") }}
+                    </p>
+                </div>
+            </div>
+            <a href="{% url 'reports:incorrect_bills' %}" class="text-xs text-emerald-700 dark:text-emerald-300 hover:underline flex-shrink-0 font-medium">
+                {% trans "View in Audit Log" %} &rarr;
+            </a>
         </div>
         {% endif %}
 

@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Ledger & Khata Dashboard" %} — Bill Scanner & Ledger{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Top Header & Actions -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+                <span>📒</span>
+                <span>{% trans "General Ledger (Khata Dashboard)" %}</span>
+            </h1>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                {% trans "Unified ledger balances, payables, receivables, and party statements." %}
+            </p>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+                <a href="{% url 'parties:party_add' %}" 
+                   class="inline-flex items-center gap-2 px-3.5 py-2 min-h-[44px] rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-xs shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+                    <span>{% trans "Add Party" %}</span>
+                </a>
+                <a href="{% url 'ledger:payment_add' %}" 
+                   class="inline-flex items-center gap-2 px-4 py-2 min-h-[44px] rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs shadow-sm shadow-primary-500/25 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    <span>{% trans "Record Payment" %}</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- KPI Summary Cards (4 Cards) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+            <!-- Total Receivable -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700/80 shadow-sm">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        {% trans "Total Receivable" %}
+                    </span>
+                    <span class="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-sm">
+                        📥
+                    </span>
+                </div>
+                <div class="mt-3 text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                    Rs. {{ total_receivable|stringformat:".2f" }}
+                </div>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                    {% trans "Customers owe to you" %}
+                </p>
+            </div>
+
+            <!-- Total Payable -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700/80 shadow-sm">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        {% trans "Total Payable" %}
+                    </span>
+                    <span class="w-8 h-8 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center text-sm">
+                        📤
+                    </span>
+                </div>
+                <div class="mt-3 text-2xl font-bold text-rose-600 dark:text-rose-400">
+                    Rs. {{ total_payable|stringformat:".2f" }}
+                </div>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                    {% trans "You owe to vendors" %}
+                </p>
+            </div>
+
+            <!-- Net Balance -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700/80 shadow-sm">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        {% trans "Net Ledger Balance" %}
+                    </span>
+                    <span class="w-8 h-8 rounded-xl bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center text-sm">
+                        ⚖️
+                    </span>
+                </div>
+                <div class="mt-3 text-2xl font-bold {% if net_balance >= 0 %}text-slate-900 dark:text-white{% else %}text-rose-600 dark:text-rose-400{% endif %}">
+                    Rs. {{ net_balance|stringformat:".2f" }}
+                </div>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                    {% trans "Receivables minus Payables" %}
+                </p>
+            </div>
+
+            <!-- Accounts Count -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700/80 shadow-sm">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        {% trans "Active Accounts" %}
+                    </span>
+                    <span class="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center text-sm">
+                        👥
+                    </span>
+                </div>
+                <div class="mt-3 text-2xl font-bold text-slate-900 dark:text-white">
+                    {{ total_accounts_count }}
+                </div>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                    {% trans "Customers and Vendors" %}
+                </p>
+            </div>
+        </div>
+
+        <!-- Filter Tabs & Search Bar -->
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm">
+            <!-- Tabs -->
+            <div class="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-900/60 rounded-xl">
+                <a href="?type=all{% if query %}&q={{ query }}{% endif %}" 
+                   class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors {% if party_type == 'all' %}bg-white dark:bg-slate-800 text-primary-600 dark:text-primary-400 shadow-sm{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white{% endif %}">
+                    {% trans "All Accounts" %}
+                </a>
+                <a href="?type=vendor{% if query %}&q={{ query }}{% endif %}" 
+                   class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors {% if party_type == 'vendor' %}bg-white dark:bg-slate-800 text-primary-600 dark:text-primary-400 shadow-sm{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white{% endif %}">
+                    {% trans "Vendors" %}
+                </a>
+                <a href="?type=customer{% if query %}&q={{ query }}{% endif %}" 
+                   class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors {% if party_type == 'customer' %}bg-white dark:bg-slate-800 text-primary-600 dark:text-primary-400 shadow-sm{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white{% endif %}">
+                    {% trans "Customers" %}
+                </a>
+            </div>
+
+            <!-- Search Form -->
+            <form method="get" class="flex items-center gap-2 max-w-sm w-full">
+                <input type="hidden" name="type" value="{{ party_type }}">
+                <div class="relative flex-1">
+                    <div class="absolute inset-y-0 left-0 rtl:right-0 rtl:left-auto pl-3 rtl:pr-3 flex items-center pointer-events-none text-slate-400">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    </div>
+                    <input type="text" 
+                           name="q" 
+                           value="{{ query }}" 
+                           placeholder="{% trans "Search by name or phone..." %}"
+                           class="w-full pl-9 rtl:pr-9 pr-3 rtl:pl-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                </div>
+                <button type="submit" 
+                        class="px-3 py-2 min-h-[38px] text-xs font-semibold rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 transition-colors">
+                    {% trans "Search" %}
+                </button>
+                {% if query %}
+                    <a href="?type={{ party_type }}" 
+                       class="px-2 py-2 min-h-[38px] inline-flex items-center text-xs font-semibold rounded-xl text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+                        ✕
+                    </a>
+                {% endif %}
+            </form>
+        </div>
+
+        <!-- Ledger Accounts Table Card -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left rtl:text-right border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold">
+                            <th scope="col" class="py-3.5 px-4 sm:px-6">{% trans "Party / Account" %}</th>
+                            <th scope="col" class="py-3.5 px-4">{% trans "Type" %}</th>
+                            <th scope="col" class="py-3.5 px-4 text-right rtl:text-left">{% trans "Total Billed" %}</th>
+                            <th scope="col" class="py-3.5 px-4 text-right rtl:text-left">{% trans "Total Paid" %}</th>
+                            <th scope="col" class="py-3.5 px-4 text-right rtl:text-left">{% trans "Khata Balance" %}</th>
+                            <th scope="col" class="py-3.5 px-4 text-center">{% trans "Status" %}</th>
+                            <th scope="col" class="py-3.5 px-4 text-right rtl:text-left">{% trans "Actions" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200 dark:divide-slate-700 text-xs text-slate-700 dark:text-slate-200">
+                        {% for item in party_summaries %}
+                        <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors">
+                            <!-- Party Name -->
+                            <td class="py-3.5 px-4 sm:px-6">
+                                <a href="{% url 'ledger:party_ledger' item.party.pk %}" class="font-semibold text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                                    {{ item.party.name }}
+                                </a>
+                                {% if item.party.urdu_name %}
+                                    <p class="text-[11px] text-slate-400 font-urdu">{{ item.party.urdu_name }}</p>
+                                {% endif %}
+                                {% if item.party.phone %}
+                                    <p class="text-[11px] text-slate-500 dark:text-slate-400 font-mono">{{ item.party.phone }}</p>
+                                {% endif %}
+                            </td>
+
+                            <!-- Type Badge -->
+                            <td class="py-3.5 px-4">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold {% if item.party.party_type == 'vendor' %}bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300{% elif item.party.party_type == 'customer' %}bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300{% else %}bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300{% endif %}">
+                                    {{ item.party.get_party_type_display }}
+                                </span>
+                            </td>
+
+                            <!-- Total Billed -->
+                            <td class="py-3.5 px-4 font-mono font-medium text-slate-900 dark:text-white text-right rtl:text-left">
+                                Rs. {{ item.total_billed|stringformat:".2f" }}
+                            </td>
+
+                            <!-- Total Paid -->
+                            <td class="py-3.5 px-4 font-mono font-medium text-emerald-600 dark:text-emerald-400 text-right rtl:text-left">
+                                Rs. {{ item.total_paid|stringformat:".2f" }}
+                            </td>
+
+                            <!-- Balance -->
+                            <td class="py-3.5 px-4 font-mono font-bold text-right rtl:text-left {% if item.balance_type == 'payable' %}text-rose-600 dark:text-rose-400{% elif item.balance_type == 'receivable' %}text-emerald-600 dark:text-emerald-400{% else %}text-slate-500 dark:text-slate-400{% endif %}">
+                                Rs. {{ item.net_balance|stringformat:".2f" }}
+                            </td>
+
+                            <!-- Balance Status Badge -->
+                            <td class="py-3.5 px-4 text-center">
+                                {% if item.balance_type == 'payable' %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300">
+                                        {% trans "You owe" %}
+                                    </span>
+                                {% elif item.balance_type == 'receivable' %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
+                                        {% trans "To receive" %}
+                                    </span>
+                                {% elif item.balance_type == 'advance' %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">
+                                        {% trans "Advance" %}
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                                        {% trans "Settled" %}
+                                    </span>
+                                {% endif %}
+                            </td>
+
+                            <!-- Actions -->
+                            <td class="py-3.5 px-4 text-right rtl:text-left">
+                                <div class="flex items-center justify-end gap-1.5">
+                                    <a href="{% url 'ledger:party_ledger' item.party.pk %}" 
+                                       class="px-2.5 py-1 min-h-[36px] inline-flex items-center rounded-lg text-xs font-semibold bg-primary-50 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-900/40 transition-colors">
+                                        {% trans "Khata Statement" %}
+                                    </a>
+                                    <a href="{% url 'ledger:payment_add' %}?party={{ item.party.pk }}" 
+                                       class="px-2.5 py-1 min-h-[36px] inline-flex items-center rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                                        {% trans "Pay" %}
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="py-12 px-4 text-center">
+                                <div class="max-w-xs mx-auto space-y-2">
+                                    <span class="text-3xl">📒</span>
+                                    <h3 class="text-sm font-semibold text-slate-900 dark:text-white">
+                                        {% trans "No accounts found" %}
+                                    </h3>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                                        {% trans "No party accounts match the current filter or search criteria." %}
+                                    </p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <div class="px-4 py-3 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                <div class="text-xs text-slate-500 dark:text-slate-400">
+                    {% trans "Showing page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
+                </div>
+                <div class="flex items-center gap-2">
+                    {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}&type={{ party_type }}{% if query %}&q={{ query }}{% endif %}" 
+                           class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800 transition-colors">
+                            {% trans "Previous" %}
+                        </a>
+                    {% endif %}
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}&type={{ party_type }}{% if query %}&q={{ query }}{% endif %}" 
+                           class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800 transition-colors">
+                            {% trans "Next" %}
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+{% endblock %}

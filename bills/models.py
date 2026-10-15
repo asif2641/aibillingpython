@@ -178,10 +178,27 @@ class Bill(models.Model):
     has_discrepancy = models.BooleanField(
         default=False,
         db_index=True,
-        verbose_name=_("has discrepancy / incorrect total"),
+        verbose_name=_("has active discrepancy / incorrect total"),
+        help_text=_("True if bill currently has an active discrepancy from paper slip."),
+    )
+    had_discrepancy = models.BooleanField(
+        default=False,
+        db_index=True,
+        verbose_name=_("had discrepancy"),
         help_text=_(
-            "True if bill calculation differed from original paper slip and was accepted as-is."
+            "Permanently True if this bill was ever recorded with an incorrect slip total."
         ),
+    )
+    discrepancy_resolved = models.BooleanField(
+        default=False,
+        db_index=True,
+        verbose_name=_("discrepancy resolved"),
+        help_text=_("True if a previously discrepant bill was later corrected and resolved."),
+    )
+    discrepancy_resolved_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_("discrepancy resolved at"),
     )
     discrepancy_reason = models.TextField(
         blank=True,
@@ -273,18 +290,44 @@ class Bill(models.Model):
 
     @property
     def has_missing_price(self) -> bool:
-        """Check if any line item is missing a unit price or line total."""
-        for it in self.items.all():
-            if (it.unit_price is None or it.unit_price <= Decimal("0.00")) and (
-                it.line_total is None or it.line_total <= Decimal("0.00")
+        """Check if any line item is missing a unit price or line total.
+
+        A price of 0.00 is legitimate (waived fee, complimentary item, zero charge)
+        when items sum matches the slip total and the item isn't explicitly flagged missing.
+        """
+        items = list(self.items.all())
+        if not items:
+            return False
+        for it in items:
+            if it.unit_price is None and it.line_total is None:
+                return True
+            item_name_lower = (it.item_name or "").lower()
+            if ("without price" in item_name_lower or "missing" in item_name_lower) and (
+                (it.unit_price is None or it.unit_price <= Decimal("0.00"))
+                and (it.line_total is None or it.line_total <= Decimal("0.00"))
             ):
                 return True
+        computed_subtotal = money_round(sum(it.line_total for it in items))
+        target_subtotal = self.subtotal or self.grand_total or Decimal("0.00")
+        has_shortfall = target_subtotal > Decimal("0.00") and (
+            target_subtotal - computed_subtotal > Decimal("0.05")
+        )
+        if has_shortfall:
+            for it in items:
+                if (it.unit_price is None or it.unit_price <= Decimal("0.00")) and (
+                    it.line_total is None or it.line_total <= Decimal("0.00")
+                ):
+                    return True
         return False
 
     @property
     def is_total_invalid(self) -> bool:
-        """Return True if total has a mismatch, missing item price, or recorded discrepancy."""
-        return self.has_discrepancy or self.has_calculation_error or self.has_missing_price
+        """Return True if total has a mismatch, missing item price, or unresolved discrepancy."""
+        return (
+            (self.has_discrepancy and not self.discrepancy_resolved)
+            or self.has_calculation_error
+            or self.has_missing_price
+        )
 
 
 class BillItem(models.Model):

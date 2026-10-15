@@ -21,7 +21,7 @@ A responsive web app in dashboard style where a user uploads a bill (photo, scre
     ◦ Free hosting and live: PostgreSQL (free tier on Neon or Supabase). Use environment variable DATABASE_URL so switching is a one-line change.
 • AI bill reading: a vision-capable AI model API (Google Gemini free tier or Claude API) behind a provider-agnostic wrapper, so I can switch provider by changing one setting. It must read handwritten and printed bills in English, Urdu and mixed text. Optional fallback: PDF text extraction (PyMuPDF) before using AI for digital PDFs.
 • File storage: local media/ folder in development; free cloud storage (Cloudinary free tier or Supabase Storage) in hosted stages.
-• Background processing: scanning must not freeze the page. Use a simple background task (Django-Q2 or Celery-free alternative) and show a progress state.
+• Background processing: scanning must not freeze the page. Use a simple background task (Django-Q2 or Celery-free alternative) and show a progress state. Background workers and extraction pipelines must strictly maintain dedicated, isolated database sessions (`close_old_connections()` in Django / `SessionLocal()` in SQLAlchemy) rather than inheriting request-scoped connections that close upon HTTP response return.
 • Auth: Django auth with custom roles.
 • Hosting stages: (1) local computer, (2) free server (Render or similar), (3) live server (low-cost VPS or paid Render/Railway plan) with domain and HTTPS.
 3. Users and Roles
@@ -37,6 +37,19 @@ Login with username + password. Passwords hashed. Lock account for 15 minutes af
 • Upload image (JPG, PNG, HEIC, WEBP), screenshot or PDF, by file picker, drag-and-drop, or camera capture on mobile.
 • Multi-page bills: one bill can have many files, labelled Image 1, Image 2, Image 3 ... and PDF pages. User can reorder, remove or add pages before scanning. AI treats all pages as one single bill and merges items without duplicates (watch for repeated lines at page borders).
 • Auto image cleanup before scanning: rotate/deskew, resize, improve contrast, compress. Reject files over 15 MB or unsupported types with a friendly message.
+• Pre-AI Document Quality Assessment (Quality Gate):
+  - Minimum Dimension Guard: Reject images smaller than 100×100 pixels with an actionable prompt to upload a higher-resolution document.
+  - Blurry Image Detection: Measure high-frequency edge variance and sharpness ratio. Alert the user if the document is out of focus or blurred before calling the AI API.
+  - Low Light / Dark Image Detection: Compute mean luminance (threshold < 35/255). Alert and prevent scanning if the photo is underexposed or taken in severe darkness.
+  - Blank Page Detection: Measure contrast standard deviation (threshold < 3.5). Flag and reject empty pages or uniform backgrounds containing no bill text.
+  - Dual-Layer Protection: Client-side instant visual indicators on document preview cards with submission confirmation + server-side pre-processing validation in `validate_and_preprocess_file` that stops unreadable documents before invoking AI APIs or creating ScanJobs, saving AI tokens and eliminating false scans.
+• Direct Mobile Camera Capture Shortcut:
+  - Prominent "Take Photo" button equipped with `<input type="file" accept="image/*" capture="environment">` to directly invoke the device back camera on mobile phones and tablets without browsing galleries.
+  - Multi-page camera snapping tile ("Camera / کیمرہ سے اگلا صفحہ") in the document grid for seamless continuous snapping of multi-page invoices.
+  - Quick-launch camera parameter (`?camera=1`) supported from dashboard and mobile bottom navigation to auto-open the camera immediately.
+• Background Pipeline & Database Session Isolation:
+  - Ensure background extraction tasks instantiate or manage an independent database connection/session lifecycle (e.g. `SessionLocal()` with explicit `try / finally db.close()` or Django's `close_old_connections()`).
+  - Never reuse request-bound sessions that terminate upon HTTP response return, eliminating race conditions and closed session connection errors under concurrent uploads.
 • Show upload preview and a progress indicator.
 4.2 AI Extraction (no fixed template)
 The AI must work on any bill layout (shop receipt, invoice, handwritten note, thermal slip, utility bill, screenshot of an app invoice). Extract:
