@@ -145,3 +145,4 @@ X_FRAME_OPTIONS = _prod_settings["X_FRAME_OPTIONS"]
 SECURE_REFERRER_POLICY = _prod_settings["SECURE_REFERRER_POLICY"]
 if "DATABASES" in _prod_settings:
     DATABASES = _prod_settings["DATABASES"]
+WHITENOISE_MANIFEST_STRICT = False

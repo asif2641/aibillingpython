@@ -231,6 +231,9 @@ STORAGES = {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
+# Prevent missing manifest entries from raising 500 errors in serverless environments
+WHITENOISE_MANIFEST_STRICT = False
+
 
 MEDIA_URL = "/media/"
 # Uploaded files (bill images, shop logos, etc.) are stored here.
