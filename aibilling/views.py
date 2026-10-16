@@ -28,12 +28,20 @@ from settings_app.signals import DASHBOARD_CACHE_KEY
 @require_GET
 def healthcheck_view(request):
     """Verify application and database health for uptime monitors and cloud platforms."""
+    import os
     try:
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1")
-        return JsonResponse({"status": "ok", "database": "connected"}, status=200)
-    except Exception:
-        return JsonResponse({"status": "error", "database": "disconnected"}, status=503)
+        tables = connection.introspection.table_names()
+        return JsonResponse({
+            "status": "ok",
+            "database": "connected",
+            "vendor": connection.vendor,
+            "has_db_url": bool(os.environ.get("DATABASE_URL")),
+            "table_count": len(tables),
+        }, status=200)
+    except Exception as exc:
+        return JsonResponse({"status": "error", "database": "disconnected", "error": str(exc)}, status=503)
 
 
 @login_required
