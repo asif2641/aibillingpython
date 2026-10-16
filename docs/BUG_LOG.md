@@ -109,4 +109,26 @@ All confirmed bugs are recorded here. Each entry has: what happened, why, how it
   - `tests/test_scanning.py::TestAIExtractorProviderResolution::test_client_raw_file_hash_matches_preprocessed_file_duplicate_check`
   - `tests/test_scanning.py::TestAIExtractorProviderResolution::test_upload_post_pre_scan_duplicate_gate_blocks_redundant_scan`
 
+---
+
+## BUG-007: 403 Forbidden When Staff User Without Delete Permission Attempted to Delete Bill
+
+- **Date:** 2026-10-16
+- **Reported by:** user
+- **Severity:** Medium
+- **What happened:** When reviewing bills awaiting verification, a user attempted to delete an unwanted pending bill (#69) via the bill list table's "Delete" link (`/bills/69/delete/`) and received an unstyled HTTP 403 Forbidden error screen.
+- **Root cause:** 
+  1. The user was logged in with a staff account (`demo`) which was initially created without the `can_delete_records` permission flag.
+  2. `bills/templates/bills/bill_list.html` unconditionally rendered the "Trash" header link and the per-row "Delete" button to all authenticated users, without checking `request.user.can_delete_records` or superadmin privileges.
+  3. No custom `403.html` template existed in the application, causing Django to render a bare, confusing 403 Forbidden page without explaining why permission was denied or how to resolve it.
+- **How fixed:**
+  1. Updated the production database to grant `can_delete_records=True`, `can_manage_shop=True`, and `can_manage_categories=True` to the `demo` staff account.
+  2. In `bills/templates/bills/bill_list.html`, conditionally wrapped the "Trash" header link and the row-level "Delete" action button inside `{% if request.user.is_superuser or request.user.is_superadmin or request.user.can_delete_records %}` so unpermitted staff are not presented with actions they cannot perform.
+  3. Created `templates/403.html` with a user-friendly, responsive bilingual (English + Urdu) design explaining that the user account lacks the required permission, providing a staff permission guide, and offering one-click navigation back to Bills or Dashboard.
+- **Regression test:** 
+  - `tests/test_bills.py::TestBillSoftDeleteAndTrash::test_bill_list_view_hides_delete_and_trash_for_staff_without_permission`
+  - `tests/test_bills.py::TestBillSoftDeleteAndTrash::test_bill_list_view_shows_delete_and_trash_for_permitted_staff`
+  - `tests/test_bills.py::TestBillSoftDeleteAndTrash::test_forbidden_delete_renders_403_page`
+
+
 

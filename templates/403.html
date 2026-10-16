@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}403 {% trans "Permission Denied" %} — aibilling{% endblock %}
+
+{% block content %}
+<div class="min-h-[70vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-xl p-6 sm:p-8 text-center space-y-6">
+        <!-- Shield Lock Icon -->
+        <div class="w-20 h-20 mx-auto rounded-3xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900/60 flex items-center justify-center text-4xl shadow-inner text-rose-500">
+            🔒
+        </div>
+
+        <div class="space-y-2">
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800 dark:bg-rose-950/70 dark:text-rose-300">
+                HTTP 403 — {% trans "Forbidden" %}
+            </span>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                {% if LANGUAGE_CODE == 'ur' %}
+                کارروائی کی اجازت نہیں ہے
+                {% else %}
+                {% trans "Permission Denied" %}
+                {% endif %}
+            </h1>
+            <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                {% if LANGUAGE_CODE == 'ur' %}
+                آپ کے اکاؤنٹ کے پاس یہ کارروائی انجام دینے (جیسے ریکارڈ ڈیلیٹ کرنے) کی اجازت نہیں ہے۔ سپر ایڈمن سے رابطہ کر کے اجازت حاصل کریں۔
+                {% else %}
+                {% trans "Your current user account does not have permission to perform this action (such as deleting or managing trashed records). Please contact your Super Admin to grant you permission." %}
+                {% endif %}
+            </p>
+        </div>
+
+        <!-- Help Info Box -->
+        <div class="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-amber-800 dark:text-amber-300 text-xs text-left rtl:text-right space-y-1">
+            <p class="font-bold flex items-center gap-1.5">
+                <span>💡</span>
+                <span>{% trans "Staff Permission Guide" %}</span>
+            </p>
+            <p class="leading-relaxed">
+                {% if LANGUAGE_CODE == 'ur' %}
+                سپر ایڈمن سیٹنگز میں <strong>اسٹاف مینجمنٹ</strong> میں جا کر آپ کے اکاؤنٹ کو <em>"ریکارڈ ڈیلیٹ کرنے کی اجازت"</em> فعال کر سکتے ہیں۔
+                {% else %}
+                {% trans "The Super Admin can enable 'Can delete records' for your staff account under Settings → Staff Management." %}
+                {% endif %}
+            </p>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <a href="{% url 'bills:bill_list' %}"
+               class="w-full sm:w-auto px-5 py-2.5 min-h-[44px] inline-flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-bold transition-colors">
+                ← {% trans "Back to Bills" %}
+            </a>
+            <a href="{% url 'dashboard' %}"
+               class="w-full sm:w-auto px-5 py-2.5 min-h-[44px] inline-flex items-center justify-center rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold shadow-sm shadow-primary-500/25 transition-colors">
+                {% trans "Go to Dashboard" %}
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

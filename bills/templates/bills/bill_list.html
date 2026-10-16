@@ -18,11 +18,13 @@
                 </p>
             </div>
             <div class="flex flex-wrap items-center gap-2.5">
+                {% if request.user.is_superuser or request.user.is_superadmin or request.user.can_delete_records %}
                 <a href="{% url 'bills:bill_trash' %}" 
                    class="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[44px] rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 font-semibold text-xs transition-colors">
                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                     <span>{% trans "Trash" %}</span>
                 </a>
+                {% endif %}
                 <a href="{% url 'bills:bill_add' %}" 
                    class="inline-flex items-center gap-2 px-4 py-2 min-h-[44px] rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs shadow-sm shadow-primary-500/25 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
@@ -250,10 +252,12 @@
                                        class="px-2.5 py-1 min-h-[36px] inline-flex items-center rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
                                         {% trans "Edit" %}
                                     </a>
+                                    {% if request.user.is_superuser or request.user.is_superadmin or request.user.can_delete_records %}
                                     <a href="{% url 'bills:bill_delete' bill.pk %}" 
                                        class="px-2.5 py-1 min-h-[36px] inline-flex items-center rounded-lg text-xs font-semibold border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors">
                                         {% trans "Delete" %}
                                     </a>
+                                    {% endif %}
                                 </div>
                             </td>
                         </tr>

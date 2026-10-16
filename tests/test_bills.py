@@ -670,6 +670,47 @@ class TestBillSoftDeleteAndTrash:
         party.refresh_from_db()
         assert party.is_active is True
 
+    def test_bill_list_view_hides_delete_and_trash_for_staff_without_permission(
+        self, staff_client, sample_bill
+    ):
+        """BUG-007: Staff without can_delete_records must NOT see Delete button or Trash link in bill list."""
+        # Hypothesis: bill_list.html unconditionally rendered <a href='.../delete/'> and <a href='.../trash/'>
+        # leading to 403 Forbidden when unprivileged staff clicked them.
+        response = staff_client.get(
+            self._bills_url() if hasattr(self, "_bills_url") else "/en/bills/"
+        )
+        assert response.status_code == 200
+        content = response.content.decode("utf-8")
+        delete_url = self._delete_url(sample_bill.pk)
+        trash_url = self._trash_url()
+        assert delete_url not in content
+        assert trash_url not in content
+
+    def test_bill_list_view_shows_delete_and_trash_for_permitted_staff(
+        self, staff_with_delete_permission, sample_bill
+    ):
+        """Staff with can_delete_records sees Delete button and Trash link in bill list."""
+        from django.test import Client
+
+        client = Client()
+        client.force_login(staff_with_delete_permission)
+        response = client.get(self._bills_url() if hasattr(self, "_bills_url") else "/en/bills/")
+        assert response.status_code == 200
+        content = response.content.decode("utf-8")
+        delete_url = self._delete_url(sample_bill.pk)
+        trash_url = self._trash_url()
+        assert delete_url in content
+        assert trash_url in content
+
+    def test_forbidden_delete_renders_403_page(self, staff_client, sample_bill):
+        """When an unauthorized user attempts to delete, HTTP 403 page is rendered with helpful guidance."""
+        delete_url = self._delete_url(sample_bill.pk)
+        response = staff_client.get(delete_url)
+        assert response.status_code == 403
+        content = response.content.decode("utf-8")
+        assert "403" in content
+        assert "Permission Denied" in content or "کارروائی کی اجازت نہیں ہے" in content
+
 
 # ==============================================================================
 # 4. Bill Views & Workflow Tests
