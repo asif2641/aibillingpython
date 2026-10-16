@@ -1,7 +1,7 @@
 {
-  "name": "AI Billing & Ledger - سمارٹ کھاتہ",
-  "short_name": "AIBilling",
-  "description": "Smart AI Bill Scanner, Ledger & Expense Tracker",
+  "name": "ScanBooks - AI Bill Scanner & Smart Bookkeeping",
+  "short_name": "ScanBooks",
+  "description": "Smart AI Bill Scanner, Receipt Tracker & Business Ledger",
   "start_url": "/en/",
   "scope": "/",
   "display": "standalone",

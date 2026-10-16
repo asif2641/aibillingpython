@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>{% block title %}{% trans "Dashboard" %} — Bill Scanner & Ledger{% endblock %}</title>
+    <title>{% block title %}{% trans "Dashboard" %} — ScanBooks{% endblock %}</title>
 
     <!-- PWA Web App Manifest & Mobile Meta -->
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#1e293b">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="AIBilling">
+    <meta name="apple-mobile-web-app-title" content="ScanBooks">
     <link rel="icon" type="image/png" sizes="192x192" href="/static/icons/icon-192.png">
     <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
 
@@ -189,7 +189,7 @@
                     <div class="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
                         <a href="{% url 'dashboard' %}" class="flex items-center gap-2">
                             <span class="text-2xl">🧾</span>
-                            <span class="font-bold text-lg text-slate-900 dark:text-white">aibilling</span>
+                            <span class="font-bold text-lg text-slate-900 dark:text-white">ScanBooks</span>
                         </a>
                         <button 
                             @click="sidebarOpen = false" 
@@ -295,7 +295,7 @@
                             x-show="!sidebarCollapsed" 
                             x-transition
                             class="font-bold text-lg text-slate-900 dark:text-white whitespace-nowrap">
-                            aibilling
+                            ScanBooks
                         </span>
                     </a>
                     <button 
@@ -381,14 +381,14 @@
                         <!-- Mobile Brand Logo -->
                         <a href="{% url 'dashboard' %}" class="flex sm:hidden items-center gap-1.5 font-bold text-base text-slate-900 dark:text-white">
                             <span class="text-xl">🧾</span>
-                            <span class="tracking-tight">aibilling</span>
+                            <span class="tracking-tight">ScanBooks</span>
                         </a>
                         <div class="hidden sm:flex flex-col">
                             <h1 class="text-base font-semibold text-slate-900 dark:text-white leading-tight">
                                 {% block page_title %}{% trans "Dashboard" %}{% endblock %}
                             </h1>
                             <span class="text-xs text-slate-500 dark:text-slate-400">
-                                Bill Scanner & Ledger
+                                ScanBooks &bull; AI Bill Scanner &amp; Ledger
                             </span>
                         </div>
                     </div>
