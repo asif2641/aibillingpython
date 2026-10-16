@@ -98,17 +98,19 @@
                         <input type="file" name="files" multiple class="hidden" id="file-input">
 
                         <!-- Mobile / Direct Camera Capture Shortcut (high-visibility, touch-target min 48px, emerald accent) -->
-                        <label class="px-5 py-3 min-h-[48px] rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs shadow-md shadow-emerald-600/30 cursor-pointer inline-flex items-center gap-2.5 transition-all hover:scale-105 active:scale-95">
-                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                            <span>
-                                {% if request.LANGUAGE_CODE == 'ur' %}
-                                کیمرہ سے تصویر لیں
-                                {% else %}
-                                {% trans "Take Photo" %}
-                                {% endif %}
-                            </span>
+                        <div class="inline-flex items-center">
+                            <button type="button" @click="openCamera()" class="px-5 py-3 min-h-[48px] rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs shadow-md shadow-emerald-600/30 cursor-pointer inline-flex items-center gap-2.5 transition-all hover:scale-105 active:scale-95">
+                                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                <span>
+                                    {% if request.LANGUAGE_CODE == 'ur' %}
+                                    کیمرہ سے تصویر لیں
+                                    {% else %}
+                                    {% trans "Take Photo" %}
+                                    {% endif %}
+                                </span>
+                            </button>
                             <input type="file" id="camera-capture-input" capture="environment" accept="image/*" class="hidden" @change="handleFileSelect($event)">
-                        </label>
+                        </div>
 
                         <!-- Standard File / PDF Picker (Appends new files) -->
                         <label class="px-5 py-3 min-h-[48px] rounded-2xl bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-bold text-xs shadow-md shadow-primary-500/25 cursor-pointer inline-flex items-center gap-2.5 transition-all hover:scale-105 active:scale-95">
@@ -122,6 +124,18 @@
                             </span>
                             <input type="file" multiple accept="image/*,.pdf" class="hidden" @change="handleFileSelect($event)" id="browse-picker">
                         </label>
+                    </div>
+
+                    <!-- Mobile Low Memory Safety Advisory -->
+                    <div class="w-full max-w-md mx-auto mt-2 p-3 rounded-2xl bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-[11px] text-amber-900 dark:text-amber-200 flex items-start gap-2.5 text-left rtl:text-right shadow-sm">
+                        <span class="text-base shrink-0 select-none">💡</span>
+                        <div class="leading-relaxed">
+                            {% if request.LANGUAGE_CODE == 'ur' %}
+                            <strong>موبائل میموری مشورہ:</strong> اگر کیمرہ کھولنے پر فون میں میموری الرٹ آئے تو براؤزر کے کھلے ہوئے ٹیب بند کریں یا <strong>"فائل یا پی ڈی ایف منتخب کریں"</strong> پر کلک کر کے گیلری سے محفوظ شدہ تصویر اپلوڈ کریں۔
+                            {% else %}
+                            <strong>Mobile Memory Tip:</strong> If your phone shows a "low memory" alert, close unused browser tabs or click <strong>"Browse Files / PDF"</strong> to pick a photo from your gallery.
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -209,7 +223,8 @@
                     </template>
 
                     <!-- Snap Next Page with Camera Tile -->
-                    <label class="p-3 rounded-2xl border-2 border-dashed border-emerald-300 dark:border-emerald-700/60 hover:border-emerald-500 hover:bg-emerald-50/20 dark:hover:bg-emerald-950/20 bg-white dark:bg-slate-800 flex flex-col items-center justify-center text-center cursor-pointer transition-all min-h-[140px] group">
+                    <div class="p-3 rounded-2xl border-2 border-dashed border-emerald-300 dark:border-emerald-700/60 hover:border-emerald-500 hover:bg-emerald-50/20 dark:hover:bg-emerald-950/20 bg-white dark:bg-slate-800 flex flex-col items-center justify-center text-center cursor-pointer transition-all min-h-[140px] group"
+                         @click="openCamera()">
                         <div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl font-bold group-hover:scale-110 transition-transform mb-1 shadow-inner">
                             📷
                         </div>
@@ -228,7 +243,7 @@
                             {% endif %}
                         </span>
                         <input type="file" capture="environment" accept="image/*" class="hidden" @change="handleFileSelect($event)">
-                    </label>
+                    </div>
 
                     <!-- Add More Pages Tile (Gallery / PDF) -->
                     <label class="p-3 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-primary-500 hover:bg-primary-50/20 dark:hover:bg-primary-950/20 bg-white dark:bg-slate-800 flex flex-col items-center justify-center text-center cursor-pointer transition-all min-h-[140px] group">
@@ -342,6 +357,123 @@
                 </button>
             </div>
         </form>
+
+        <!-- Live In-Browser Camera Scanner Modal (Zero-Crash WebRTC Viewfinder) -->
+        <div x-show="showLiveCamera" x-cloak
+             class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5"
+             style="display: none;">
+            <div @click.away="closeCamera()"
+                 class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
+                
+                <!-- Modal Header -->
+                <div class="px-4 py-3 bg-slate-800/80 border-b border-slate-700/60 flex items-center justify-between text-white">
+                    <div class="flex items-center gap-2 font-bold text-sm">
+                        <span class="text-emerald-400 text-base">📷</span>
+                        <span>
+                            {% if request.LANGUAGE_CODE == 'ur' %}
+                            براہ راست کیمرہ اسکینر
+                            {% else %}
+                            Live Camera Scanner
+                            {% endif %}
+                        </span>
+                    </div>
+                    <button type="button" @click="closeCamera()" class="p-1.5 rounded-xl hover:bg-slate-700 text-slate-400 hover:text-white transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
+                <!-- Video Viewfinder Container -->
+                <div class="relative bg-black flex items-center justify-center min-h-[300px] max-h-[60vh] overflow-hidden">
+                    <video id="live-camera-video" playsinline autoplay muted class="w-full h-full object-contain"></video>
+
+                    <!-- Document Alignment Guide Frame -->
+                    <div class="absolute inset-4 sm:inset-6 border-2 border-dashed border-emerald-400/70 rounded-2xl pointer-events-none flex flex-col justify-between p-3">
+                        <div class="flex justify-between">
+                            <span class="w-4 h-4 border-t-2 border-l-2 border-emerald-400"></span>
+                            <span class="w-4 h-4 border-t-2 border-r-2 border-emerald-400"></span>
+                        </div>
+                        <p class="text-center text-[11px] font-semibold text-white/90 bg-black/60 px-3 py-1 rounded-full self-center backdrop-blur-sm">
+                            {% if request.LANGUAGE_CODE == 'ur' %}
+                            بل کو فریم کے اندر رکھیں اور کلک کریں
+                            {% else %}
+                            Align bill inside frame & snap
+                            {% endif %}
+                        </p>
+                        <div class="flex justify-between">
+                            <span class="w-4 h-4 border-b-2 border-l-2 border-emerald-400"></span>
+                            <span class="w-4 h-4 border-b-2 border-r-2 border-emerald-400"></span>
+                        </div>
+                    </div>
+
+                    <!-- Camera Loading Overlay -->
+                    <div x-show="cameraLoading" class="absolute inset-0 bg-slate-900/90 flex flex-col items-center justify-center text-white gap-3 p-4">
+                        <div class="w-8 h-8 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                        <span class="text-xs font-medium">
+                            {% if request.LANGUAGE_CODE == 'ur' %}
+                            کیمرہ شروع ہو رہا ہے...
+                            {% else %}
+                            Starting camera...
+                            {% endif %}
+                        </span>
+                    </div>
+
+                    <!-- Camera Error Overlay -->
+                    <div x-show="cameraError" class="absolute inset-0 bg-slate-900/95 flex flex-col items-center justify-center text-white gap-3 p-6 text-center" style="display: none;">
+                        <span class="text-3xl text-rose-400">⚠️</span>
+                        <p class="text-xs text-rose-200 font-medium" x-text="cameraError"></p>
+                        <div class="flex flex-col gap-2 pt-2 w-full max-w-xs">
+                            <button type="button" @click="fallbackToNativeCamera()" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md">
+                                {% if request.LANGUAGE_CODE == 'ur' %}
+                                فون کا کیمرہ ایپ کھولیں
+                                {% else %}
+                                Open Phone Camera App
+                                {% endif %}
+                            </button>
+                            <button type="button" @click="closeCamera(); document.getElementById('browse-picker').click();" class="px-4 py-2.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold text-xs">
+                                {% if request.LANGUAGE_CODE == 'ur' %}
+                                گیلری یا فائل منتخب کریں
+                                {% else %}
+                                Choose from Gallery / Files
+                                {% endif %}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Shutter & Action Footer -->
+                <div class="p-4 bg-slate-800/90 border-t border-slate-700/60 flex flex-col items-center gap-3">
+                    <div class="flex items-center justify-center gap-4 w-full">
+                        <button type="button" @click="closeCamera()" class="px-4 py-2 rounded-xl text-slate-400 hover:text-white text-xs font-semibold">
+                            {% if request.LANGUAGE_CODE == 'ur' %}منسوخ کریں{% else %}{% trans "Cancel" %}{% endif %}
+                        </button>
+                        
+                        <!-- Shutter Button -->
+                        <button type="button" @click="captureLivePhoto()"
+                                class="w-16 h-16 rounded-full bg-emerald-500 hover:bg-emerald-400 active:scale-95 border-4 border-white shadow-xl shadow-emerald-500/40 flex items-center justify-center transition-all">
+                            <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-emerald-600 font-black text-xl">
+                                📸
+                            </div>
+                        </button>
+
+                        <button type="button" @click="fallbackToNativeCamera()" class="px-3 py-2 rounded-xl text-slate-400 hover:text-emerald-300 text-[11px] font-medium text-center">
+                            {% if request.LANGUAGE_CODE == 'ur' %}
+                            سسٹم کیمرہ
+                            {% else %}
+                            System App
+                            {% endif %}
+                        </button>
+                    </div>
+
+                    <p class="text-[10px] text-slate-400 text-center">
+                        {% if request.LANGUAGE_CODE == 'ur' %}
+                        براہ راست ویب براؤزر کیمرہ کم میموری والے فونز پر بھی بغیر کریش ہوئے کام کرتا ہے۔
+                        {% else %}
+                        In-browser live camera works smoothly without OS memory crashes.
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
     </div>
 
 <script>
@@ -352,20 +484,173 @@ function uploadManager() {
         isDuplicate: false,
         duplicateInfo: null,
         selectedFiles: [],
+        showLiveCamera: false,
+        cameraLoading: false,
+        cameraError: null,
+        cameraStream: null,
         isUrdu: {% if request.LANGUAGE_CODE == 'ur' %}true{% else %}false{% endif %},
         init() {
             // Auto-trigger mobile camera if URL includes ?camera=1 or #camera
             const params = new URLSearchParams(window.location.search);
             if (params.get('camera') === '1' || window.location.hash === '#camera') {
                 setTimeout(() => {
-                    const camInput = document.getElementById('camera-capture-input');
-                    if (camInput) camInput.click();
+                    this.openCamera();
                 }, 350);
             }
         },
-        addFiles(files) {
+        async openCamera() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                this.fallbackToNativeCamera();
+                return;
+            }
+
+            this.showLiveCamera = true;
+            this.cameraLoading = true;
+            this.cameraError = null;
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: { ideal: 'environment' },
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    },
+                    audio: false
+                });
+                this.cameraStream = stream;
+                await this.$nextTick();
+                const video = document.getElementById('live-camera-video');
+                if (video) {
+                    video.srcObject = stream;
+                    video.onloadedmetadata = () => {
+                        video.play().catch(e => console.warn('Video play error:', e));
+                    };
+                }
+            } catch (err) {
+                console.warn('getUserMedia error:', err);
+                this.cameraError = this.isUrdu 
+                    ? 'براہ راست ویب کیمرہ شروع نہیں ہو سکا۔ نیچے بٹن سے موبائل کیمرہ یا گیلری منتخب کریں۔'
+                    : 'Could not access web camera. Please pick from gallery or use phone camera.';
+            } finally {
+                this.cameraLoading = false;
+            }
+        },
+        closeCamera() {
+            if (this.cameraStream) {
+                try {
+                    this.cameraStream.getTracks().forEach(track => track.stop());
+                } catch (e) {}
+                this.cameraStream = null;
+            }
+            const video = document.getElementById('live-camera-video');
+            if (video) {
+                video.srcObject = null;
+            }
+            this.showLiveCamera = false;
+            this.cameraError = null;
+        },
+        captureLivePhoto() {
+            const video = document.getElementById('live-camera-video');
+            if (!video || !this.cameraStream) return;
+
+            try {
+                const canvas = document.createElement('canvas');
+                const w = video.videoWidth || 1280;
+                const h = video.videoHeight || 720;
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, w, h);
+
+                canvas.toBlob(async (blob) => {
+                    if (blob) {
+                        const now = new Date();
+                        const timeStr = now.toISOString().replace(/[:.]/g, '-').substring(0, 19);
+                        const file = new File([blob], `bill_snap_${timeStr}.jpg`, {
+                            type: 'image/jpeg',
+                            lastModified: Date.now()
+                        });
+                        await this.addFiles([file]);
+                    }
+                    this.closeCamera();
+                }, 'image/jpeg', 0.88);
+            } catch (e) {
+                console.error('Failed to capture frame from live video:', e);
+                this.closeCamera();
+            }
+        },
+        fallbackToNativeCamera() {
+            this.closeCamera();
+            const input = document.getElementById('camera-capture-input');
+            if (input) input.click();
+        },
+        async compressImageIfNeeded(file) {
+            if (!file || !file.type || !file.type.startsWith('image/')) {
+                return file;
+            }
+            return new Promise((resolve) => {
+                try {
+                    const img = new Image();
+                    const objectUrl = URL.createObjectURL(file);
+                    img.onload = () => {
+                        URL.revokeObjectURL(objectUrl);
+                        const w = img.naturalWidth || img.width;
+                        const h = img.naturalHeight || img.height;
+                        const maxDim = 1920;
+
+                        if (w <= maxDim && h <= maxDim && file.size <= 1.5 * 1024 * 1024) {
+                            resolve(file);
+                            return;
+                        }
+
+                        let targetW = w;
+                        let targetH = h;
+                        if (w > h) {
+                            if (w > maxDim) {
+                                targetH = Math.round((h * maxDim) / w);
+                                targetW = maxDim;
+                            }
+                        } else {
+                            if (h > maxDim) {
+                                targetW = Math.round((w * maxDim) / h);
+                                targetH = maxDim;
+                            }
+                        }
+
+                        const canvas = document.createElement('canvas');
+                        canvas.width = targetW;
+                        canvas.height = targetH;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, targetW, targetH);
+
+                        canvas.toBlob((blob) => {
+                            if (blob && blob.size < file.size) {
+                                const baseName = (file.name || 'scanned_bill').replace(/\.[^/.]+$/, "");
+                                const compressedFile = new File([blob], baseName + '.jpg', {
+                                    type: 'image/jpeg',
+                                    lastModified: Date.now()
+                                });
+                                resolve(compressedFile);
+                            } else {
+                                resolve(file);
+                            }
+                        }, 'image/jpeg', 0.85);
+                    };
+                    img.onerror = () => {
+                        URL.revokeObjectURL(objectUrl);
+                        resolve(file);
+                    };
+                    img.src = objectUrl;
+                } catch (err) {
+                    console.warn('Image compression fallback:', err);
+                    resolve(file);
+                }
+            });
+        },
+        async addFiles(files) {
             if (!files || files.length === 0) return;
-            for (const f of files) {
+            for (const rawFile of files) {
+                const f = await this.compressImageIfNeeded(rawFile);
                 // Avoid identical duplicate file additions (matching name, size, lastModified)
                 const exists = this.selectedFiles.some(
                     e => e.name === f.name && e.size === f.size && e.lastModified === f.lastModified
@@ -536,17 +821,17 @@ function uploadManager() {
                 console.warn('Could not sync DataTransfer to input.files:', err);
             }
         },
-        handleFileSelect(event) {
+        async handleFileSelect(event) {
             const files = Array.from(event.target.files);
-            this.addFiles(files);
+            await this.addFiles(files);
             event.target.value = '';
         },
-        handleDrop(event) {
+        async handleDrop(event) {
             this.isDragging = false;
             const dt = event.dataTransfer;
             if (dt && dt.files) {
                 const files = Array.from(dt.files);
-                this.addFiles(files);
+                await this.addFiles(files);
             }
         },
         async checkDuplicateFile(files) {
