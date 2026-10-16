@@ -12,8 +12,11 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ScanBooks">
-    <link rel="icon" type="image/png" sizes="192x192" href="/static/icons/icon-192.png">
-    <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+    <link rel="icon" type="image/x-icon" href="{% static 'icons/favicon.ico' %}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'icons/favicon-32x32.png' %}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'icons/favicon-16x16.png' %}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'icons/apple-touch-icon.png' %}">
+    <link rel="icon" type="image/png" sizes="192x192" href="{% static 'icons/icon-192.png' %}">
 
     <!-- Tailwind CSS v3 via CDN with Dark Mode configured -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -187,8 +190,10 @@
                     
                     <!-- Drawer header -->
                     <div class="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
-                        <a href="{% url 'dashboard' %}" class="flex items-center gap-2">
-                            <span class="text-2xl">🧾</span>
+                        <a href="{% url 'dashboard' %}" class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-lg bg-white dark:bg-slate-700/70 p-1 flex items-center justify-center shadow-xs border border-slate-200/80 dark:border-slate-700 shrink-0">
+                                <img src="{% static 'icons/icon-192.png' %}" alt="ScanBooks" class="w-full h-full object-contain">
+                            </div>
                             <span class="font-bold text-lg text-slate-900 dark:text-white">ScanBooks</span>
                         </a>
                         <button 
@@ -290,7 +295,9 @@
                 <!-- App Logo & Branding -->
                 <div class="h-16 flex items-center px-4 border-b border-slate-200 dark:border-slate-800 justify-between">
                     <a href="{% url 'dashboard' %}" class="flex items-center gap-2.5 overflow-hidden">
-                        <span class="text-2xl flex-shrink-0">🧾</span>
+                        <div class="w-8 h-8 rounded-lg bg-white dark:bg-slate-700/70 p-1 flex items-center justify-center shadow-xs border border-slate-200/80 dark:border-slate-700 shrink-0">
+                            <img src="{% static 'icons/icon-192.png' %}" alt="ScanBooks" class="w-full h-full object-contain">
+                        </div>
                         <span 
                             x-show="!sidebarCollapsed" 
                             x-transition
@@ -379,8 +386,10 @@
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                         </button>
                         <!-- Mobile Brand Logo -->
-                        <a href="{% url 'dashboard' %}" class="flex sm:hidden items-center gap-1.5 font-bold text-base text-slate-900 dark:text-white">
-                            <span class="text-xl">🧾</span>
+                        <a href="{% url 'dashboard' %}" class="flex sm:hidden items-center gap-2 font-bold text-base text-slate-900 dark:text-white">
+                            <div class="w-7 h-7 rounded-lg bg-white dark:bg-slate-700/70 p-0.5 flex items-center justify-center shadow-xs border border-slate-200/80 dark:border-slate-700 shrink-0">
+                                <img src="{% static 'icons/icon-192.png' %}" alt="ScanBooks" class="w-full h-full object-contain">
+                            </div>
                             <span class="tracking-tight">ScanBooks</span>
                         </a>
                         <div class="hidden sm:flex flex-col">
