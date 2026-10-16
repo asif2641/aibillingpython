@@ -224,3 +224,36 @@ class TestDashboardEmptyState:
         add_bill_url = reverse("bills:bill_add")
         assert f'href="{scan_url}"' in content
         assert f'href="{add_bill_url}"' in content
+
+
+@pytest.mark.django_db
+class TestDashboardActionButtonsLayout:
+    """Tests verifying the top 3 quick-action buttons layout on mobile and desktop."""
+
+    def test_dashboard_renders_all_three_buttons_in_centered_single_row(self, staff_client):
+        """Dashboard renders Take Photo, Scan Bill, and Add Bill in a centered single row container."""
+        response = staff_client.get("/en/")
+        assert response.status_code == 200
+        content = response.content.decode()
+
+        # Container must be center-aligned on mobile and not wrap
+        assert "justify-center" in content
+        assert "flex items-center justify-center sm:justify-end" in content
+        assert "flex-wrap" not in content[: content.find("Welcome back") + 1200]
+
+        # All 3 buttons must be present in the header container
+        assert "upload/?camera=1" in content
+        assert "Take Photo" in content
+        assert "Scan Bill" in content
+        assert "Add Bill" in content
+
+    def test_dashboard_urdu_renders_all_three_buttons(self, staff_client):
+        """Urdu dashboard renders all 3 action buttons with RTL-friendly labels."""
+        response = staff_client.get("/ur/")
+        assert response.status_code == 200
+        content = response.content.decode()
+
+        assert "upload/?camera=1" in content
+        assert "تصویر لیں" in content
+        assert "بل اسکین کریں" in content
+        assert "بل شامل کریں" in content
