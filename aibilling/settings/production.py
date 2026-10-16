@@ -37,14 +37,21 @@ def configure_production_settings(env: dict[str, str] | None = None) -> dict[str
     environ = env if env is not None else os.environ
 
     build_mode = environ.get("BUILD_MODE", "False") == "True"
-    secret_key = environ.get("SECRET_KEY", "").strip()
+    is_vercel = bool(environ.get("VERCEL") or environ.get("VERCEL_URL"))
+    secret_key = (
+        environ.get("SECRET_KEY", "").strip() or environ.get("DJANGO_SECRET_KEY", "").strip()
+    )
 
     if not secret_key or secret_key == DEFAULT_INSECURE_SECRET_KEY:
-        if not build_mode:
+        if is_vercel or build_mode:
+            secret_key = (
+                environ.get("VERCEL_GIT_COMMIT_SHA")
+                or "vercel-auto-secret-key-fallback-please-configure-in-dashboard"
+            )
+        else:
             raise ImproperlyConfigured(
                 "SECRET_KEY must be set to a unique secret value in production."
             )
-        secret_key = DEFAULT_INSECURE_SECRET_KEY
 
     allowed_hosts = [
         h.strip()
@@ -72,11 +79,15 @@ def configure_production_settings(env: dict[str, str] | None = None) -> dict[str
         if vercel_origin not in csrf_trusted_origins:
             csrf_trusted_origins.append(vercel_origin)
 
-    if environ.get("VERCEL"):
-        if ".vercel.app" not in allowed_hosts:
-            allowed_hosts.append(".vercel.app")
-        if "https://*.vercel.app" not in csrf_trusted_origins:
-            csrf_trusted_origins.append("https://*.vercel.app")
+    if is_vercel:
+        for vhost in [".vercel.app", "vercel.app", "*"]:
+            if vhost not in allowed_hosts:
+                allowed_hosts.append(vhost)
+        for vorigin in ["https://*.vercel.app", "https://vercel.app"]:
+            if vorigin not in csrf_trusted_origins:
+                csrf_trusted_origins.append(vorigin)
+
+    ssl_redirect = environ.get("SECURE_SSL_REDIRECT", "True") == "True" and not is_vercel
 
     config: dict[str, Any] = {
         "DEBUG": False,
@@ -85,7 +96,7 @@ def configure_production_settings(env: dict[str, str] | None = None) -> dict[str
         "CSRF_TRUSTED_ORIGINS": csrf_trusted_origins,
         "RENDER_EXTERNAL_HOSTNAME": render_hostname,
         "SECURE_PROXY_SSL_HEADER": ("HTTP_X_FORWARDED_PROTO", "https"),
-        "SECURE_SSL_REDIRECT": environ.get("SECURE_SSL_REDIRECT", "True") == "True",
+        "SECURE_SSL_REDIRECT": ssl_redirect,
         "SESSION_COOKIE_SECURE": True,
         "CSRF_COOKIE_SECURE": True,
         "SESSION_COOKIE_HTTPONLY": True,
