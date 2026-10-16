@@ -25,6 +25,7 @@ from aibilling.views import (
     dashboard_view,
     global_search_view,
     healthcheck_view,
+    landing_page_view,
     manifest_view,
     offline_view,
     service_worker_view,
@@ -49,8 +50,10 @@ urlpatterns = [
 ]
 
 urlpatterns += i18n_patterns(
-    # Main dashboard view at root of localized paths (/en/, /ur/)
-    path("", dashboard_view, name="dashboard"),
+    # Public SaaS Landing page at root of localized paths (/en/, /ur/)
+    path("", landing_page_view, name="landing"),
+    # Main dashboard view for authenticated users (/en/dashboard/, /ur/dashboard/)
+    path("dashboard/", dashboard_view, name="dashboard"),
     # Global search across bills, parties, and items
     path("search/", global_search_view, name="global_search"),
     # Offline fallback shell for localized paths (/en/offline/, /ur/offline/)

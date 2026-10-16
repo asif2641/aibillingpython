@@ -11,7 +11,7 @@ from django.core.cache import cache
 from django.db import connection
 from django.db.models import Q
 from django.http import Http404, HttpResponse, JsonResponse
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.views.decorators.http import require_GET
 
 from bills.models import Bill, BillItem
@@ -25,20 +25,35 @@ from settings_app.models import ActivityLog
 from settings_app.signals import DASHBOARD_CACHE_KEY
 
 
+def landing_page_view(request):
+    """Render the public SaaS landing and marketing page.
+
+    If the user is already authenticated, render their private dashboard directly.
+    """
+    if request.user.is_authenticated:
+        return dashboard_view(request)
+    return render(request, "landing.html", {"title": "ScanBooks — AI Invoicing & Billing"})
+
+
+
 @require_GET
 def healthcheck_view(request):
     """Verify application and database health for uptime monitors and cloud platforms."""
     import os
+
     try:
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1")
-        return JsonResponse({
-            "status": "ok",
-            "database": "connected",
-            "vendor": connection.vendor,
-            "media_root": str(settings.MEDIA_ROOT),
-            "commit": os.environ.get("VERCEL_GIT_COMMIT_SHA", "dev")[:7],
-        }, status=200)
+        return JsonResponse(
+            {
+                "status": "ok",
+                "database": "connected",
+                "vendor": connection.vendor,
+                "media_root": str(settings.MEDIA_ROOT),
+                "commit": os.environ.get("VERCEL_GIT_COMMIT_SHA", "dev")[:7],
+            },
+            status=200,
+        )
     except Exception:
         return JsonResponse({"status": "error", "database": "disconnected"}, status=503)
 

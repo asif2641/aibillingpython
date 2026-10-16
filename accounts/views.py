@@ -14,7 +14,7 @@ from __future__ import annotations
 from functools import wraps
 
 from django.contrib import messages
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, login
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
@@ -27,13 +27,41 @@ from .forms import (
     CustomAuthenticationForm,
     StaffCreationForm,
     StaffPasswordResetForm,
+    UserRegistrationForm,
 )
 from .services import (
     create_staff_user,
+    register_owner_user,
     reset_staff_password,
     toggle_staff_status,
     update_staff_permissions,
 )
+
+
+def register_view(request):
+    """Handle self-service registration for new business owners."""
+    if request.user.is_authenticated:
+        return redirect("dashboard")
+
+    if request.method == "POST":
+        form = UserRegistrationForm(request.POST)
+        if form.is_valid():
+            user = register_owner_user(
+                username=form.cleaned_data["username"],
+                password=form.cleaned_data["password"],
+                business_name=form.cleaned_data["business_name"],
+                email=form.cleaned_data.get("email", ""),
+            )
+            login(request, user)
+            messages.success(
+                request,
+                _("Welcome to ScanBooks! Your account is ready with 10 free scans."),
+            )
+            return redirect("dashboard")
+    else:
+        form = UserRegistrationForm()
+
+    return render(request, "accounts/register.html", {"form": form})
 
 
 class LoginView(auth_views.LoginView):

@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% block title %}{% trans "Create Free Account" %} — ScanBooks{% endblock %}
+
+{% block extra_head %}
+<style>
+    #id_business_name, #id_username, #id_email, #id_password, #id_password_confirm {
+        display: block;
+        width: 100%;
+        min-height: 44px;
+        padding: 0.65rem 0.875rem;
+        font-size: 0.95rem;
+        line-height: 1.5;
+        color: #0f172a;
+        background-color: #ffffff;
+        border: 1px solid #cbd5e1;
+        border-radius: 0.75rem;
+        box-sizing: border-box;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out, background-color 0.15s;
+    }
+    .dark #id_business_name, .dark #id_username, .dark #id_email, .dark #id_password, .dark #id_password_confirm {
+        color: #f8fafc;
+        background-color: #1e293b;
+        border-color: #334155;
+    }
+    #id_business_name:focus, #id_username:focus, #id_email:focus, #id_password:focus, #id_password_confirm:focus {
+        outline: none;
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+    }
+    #id_business_name::placeholder, #id_username::placeholder, #id_email::placeholder, #id_password::placeholder, #id_password_confirm::placeholder {
+        color: #94a3b8;
+    }
+    .dark #id_business_name::placeholder, .dark #id_username::placeholder, .dark #id_email::placeholder, .dark #id_password::placeholder, .dark #id_password_confirm::placeholder {
+        color: #64748b;
+    }
+</style>
+{% endblock %}
+
+{% block layout %}
+<div class="min-h-screen flex flex-col justify-between bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-200" dir="{% if LANGUAGE_BIDI %}rtl{% else %}ltr{% endif %}">
+
+    <!-- Top Bar: App Branding & Language / Theme Controls -->
+    <header class="w-full flex justify-between items-center px-4 py-4 sm:px-8 border-b border-slate-200/60 dark:border-slate-800/80 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md sticky top-0 z-20">
+        <a href="{% url 'landing' %}" class="flex items-center gap-3 group focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-lg">
+            <img src="{% static 'img/logo-icon.png' %}" alt="ScanBooks" class="h-9 w-auto object-contain shrink-0 group-hover:scale-105 transition-transform">
+            <span class="font-bold text-xl text-slate-900 dark:text-white tracking-tight">ScanBooks</span>
+        </a>
+
+        <div class="flex items-center gap-2 sm:gap-3">
+            <!-- Language Switcher Form -->
+            <form action="{% url 'set_language' %}" method="post" class="inline-flex items-center">
+                {% csrf_token %}
+                <input name="next" type="hidden" value="{{ request.get_full_path }}">
+                {% if LANGUAGE_CODE == 'ur' %}
+                    <button 
+                        type="submit" 
+                        name="language" 
+                        value="en" 
+                        class="inline-flex items-center gap-1.5 px-3 py-2 min-h-[44px] text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors border border-slate-200 dark:border-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500" 
+                        title="Switch to English" 
+                        aria-label="Switch to English language">
+                        <span>EN</span>
+                        <span class="text-slate-400">|</span>
+                        <span>English</span>
+                    </button>
+                {% else %}
+                    <button 
+                        type="submit" 
+                        name="language" 
+                        value="ur" 
+                        class="inline-flex items-center gap-1.5 px-3 py-2 min-h-[44px] text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors border border-slate-200 dark:border-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500" 
+                        title="اردو میں تبدیل کریں" 
+                        aria-label="Switch to Urdu language">
+                        <span>اردو</span>
+                        <span class="text-slate-400">|</span>
+                        <span>Urdu</span>
+                    </button>
+                {% endif %}
+            </form>
+
+            <!-- Theme Toggle Button -->
+            <button 
+                @click="toggleTheme()" 
+                type="button" 
+                class="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500" 
+                title="{% trans 'Toggle light and dark theme mode' %}" 
+                aria-label="{% trans 'Toggle light and dark theme mode' %}">
+                <svg x-show="darkMode" x-cloak class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                </svg>
+                <svg x-show="!darkMode" class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Area: Centered Register Card -->
+    <main class="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8">
+        <div class="w-full max-w-lg bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-xl shadow-slate-200/50 dark:shadow-none p-6 sm:p-8 space-y-6">
+            
+            <!-- Card Header -->
+            <div class="text-center">
+                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-primary-50 dark:bg-primary-950/60 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800 mb-3">
+                    <span>✨</span>
+                    <span>{% trans "10 Free AI Scans Included" %}</span>
+                </div>
+                <h1 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+                    {% trans "Start Your Free Trial" %}
+                </h1>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                    {% trans "No credit card needed. Automate your billing in minutes." %}
+                </p>
+            </div>
+
+            <!-- Form Errors -->
+            {% if form.non_field_errors %}
+                <div class="p-4 rounded-xl bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 text-sm text-red-800 dark:text-red-300 space-y-1" role="alert">
+                    {% for error in form.non_field_errors %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- Register Form -->
+            <form method="post" action="" class="space-y-4">
+                {% csrf_token %}
+
+                <!-- Business Name Field -->
+                <div>
+                    <label for="id_business_name" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                        {% trans "Business / Shop Name" %} <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        {{ form.business_name }}
+                    </div>
+                    {% if form.business_name.errors %}
+                        <p class="mt-1 text-xs text-red-600 dark:text-red-400 font-medium">{{ form.business_name.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Username Field -->
+                    <div>
+                        <label for="id_username" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            {% trans "Username" %} <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            {{ form.username }}
+                        </div>
+                        {% if form.username.errors %}
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-400 font-medium">{{ form.username.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Email Field -->
+                    <div>
+                        <label for="id_email" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            {% trans "Email (Optional)" %}
+                        </label>
+                        <div class="relative">
+                            {{ form.email }}
+                        </div>
+                        {% if form.email.errors %}
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-400 font-medium">{{ form.email.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Password Field -->
+                    <div>
+                        <label for="id_password" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            {% trans "Password" %} <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            {{ form.password }}
+                        </div>
+                        {% if form.password.errors %}
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-400 font-medium">{{ form.password.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Confirm Password Field -->
+                    <div>
+                        <label for="id_password_confirm" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            {% trans "Confirm Password" %} <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            {{ form.password_confirm }}
+                        </div>
+                        {% if form.password_confirm.errors %}
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-400 font-medium">{{ form.password_confirm.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="pt-2">
+                    <button 
+                        type="submit" 
+                        class="w-full min-h-[46px] flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-semibold shadow-sm shadow-primary-500/25 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 cursor-pointer">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        <span>{% trans "Create Free Account & Start Scanning" %}</span>
+                    </button>
+                </div>
+            </form>
+
+            <!-- Sign in link -->
+            <div class="pt-2 text-center text-sm text-slate-500 dark:text-slate-400 border-t border-slate-200/60 dark:border-slate-700/60">
+                <span>{% trans "Already have an account?" %}</span>
+                <a href="{% url 'accounts:login' %}" class="font-semibold text-primary-600 dark:text-primary-400 hover:underline ms-1">
+                    {% trans "Sign In" %}
+                </a>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="py-4 text-center text-xs text-slate-400 dark:text-slate-500">
+        <span>&copy; {% now "Y" %} ScanBooks. {% trans "All rights reserved." %}</span>
+    </footer>
+
+</div>
+{% endblock %}

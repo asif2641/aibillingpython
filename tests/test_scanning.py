@@ -1210,23 +1210,28 @@ class TestAIExtractorProviderResolution:
         assert data["grand_total"] == "3500.00"
 
     def test_upload_post_pre_scan_duplicate_gate_blocks_redundant_scan(
-        self, client, superadmin_user, sample_image
+        self, client, superadmin_user, sample_image, monkeypatch
     ):
         """BUG-006: Uploading a duplicate file via POST is caught before running AI/ScanJob,
         displaying an actionable duplicate warning with a link to the existing bill.
         """
         import hashlib
 
+        from django.conf import settings
+
         from bills.models import Bill
         from parties.models import Party
         from scanning.models import BillFile, ScanJob
 
+        monkeypatch.setattr(settings, "AI_PROVIDER", "mock")
         client.force_login(superadmin_user)
+
 
         sample_image.seek(0)
         raw_bytes = sample_image.read()
         sample_image.seek(0)
         raw_hash = hashlib.sha256(raw_bytes).hexdigest()
+
 
         party = Party.objects.create(name="Apex Supplies", party_type="vendor")
         existing_bill = Bill.objects.create(

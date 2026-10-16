@@ -161,3 +161,25 @@ def reset_staff_password(target_user: User, new_password: str) -> User:
         update_fields=["password", "failed_login_attempts", "is_locked", "locked_until"]
     )
     return target_user
+
+
+def register_owner_user(
+    username: str,
+    password: str,
+    business_name: str,
+    email: str = "",
+) -> User:
+    """Create and return a new business owner user for SaaS onboarding."""
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+    return User.objects.create_user(
+        username=username,
+        email=email,
+        password=password,
+        first_name=business_name,
+        role=User.Role.SUPERADMIN,
+        can_delete_records=True,
+        can_manage_shop=True,
+        can_manage_categories=True,
+    )
