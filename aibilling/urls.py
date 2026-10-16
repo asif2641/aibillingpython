@@ -35,6 +35,8 @@ urlpatterns = [
     path("healthz/", healthcheck_view, name="healthcheck"),
     # Static files serving route
     re_path(r"^static/(?P<path>.*)$", serve, {"document_root": settings.STATICFILES_DIRS[0]}),
+    # Media files serving route
+    re_path(r"^media/(?P<path>.*)$", serve, {"document_root": settings.MEDIA_ROOT}),
     # PWA Service Worker & Web App Manifest (served at root, outside i18n)
     path("sw.js", service_worker_view, name="service_worker"),
     path("manifest.json", manifest_view, name="manifest"),

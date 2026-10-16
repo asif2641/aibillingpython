@@ -237,10 +237,20 @@ WHITENOISE_MANIFEST_STRICT = False
 
 MEDIA_URL = "/media/"
 # Uploaded files (bill images, shop logos, etc.) are stored here.
-MEDIA_ROOT = BASE_DIR / "media"
+# On Vercel serverless functions, the root filesystem is read-only except for /tmp.
+if os.environ.get("VERCEL"):
+    import tempfile
+    MEDIA_ROOT = Path(tempfile.gettempdir()) / "media"
+    BACKUP_DIR = Path(tempfile.gettempdir()) / "backups"
+else:
+    MEDIA_ROOT = BASE_DIR / "media"
+    BACKUP_DIR = Path(os.environ.get("BACKUP_DIR", BASE_DIR / "backups"))
 
-# Directory where automated and manual database backups are stored.
-BACKUP_DIR = Path(os.environ.get("BACKUP_DIR", BASE_DIR / "backups"))
+try:
+    MEDIA_ROOT.mkdir(parents=True, exist_ok=True)
+    BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+except Exception:
+    pass
 
 
 # ──────────────────────────────────────────────────────────────────────────────

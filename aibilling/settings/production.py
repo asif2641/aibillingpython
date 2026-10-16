@@ -123,6 +123,19 @@ def configure_production_settings(env: dict[str, str] | None = None) -> dict[str
             }
         }
 
+    if is_vercel:
+        import tempfile
+        from pathlib import Path
+
+        temp_dir = Path(tempfile.gettempdir())
+        config["MEDIA_ROOT"] = temp_dir / "media"
+        config["BACKUP_DIR"] = temp_dir / "backups"
+        try:
+            config["MEDIA_ROOT"].mkdir(parents=True, exist_ok=True)
+            config["BACKUP_DIR"].mkdir(parents=True, exist_ok=True)
+        except Exception:
+            pass
+
     return config
 
 
@@ -145,4 +158,7 @@ X_FRAME_OPTIONS = _prod_settings["X_FRAME_OPTIONS"]
 SECURE_REFERRER_POLICY = _prod_settings["SECURE_REFERRER_POLICY"]
 if "DATABASES" in _prod_settings:
     DATABASES = _prod_settings["DATABASES"]
+if "MEDIA_ROOT" in _prod_settings:
+    MEDIA_ROOT = _prod_settings["MEDIA_ROOT"]
+    BACKUP_DIR = _prod_settings["BACKUP_DIR"]
 WHITENOISE_MANIFEST_STRICT = False
