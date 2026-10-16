@@ -13,6 +13,7 @@ from bills.views import (
     bill_edit_view,
     bill_list_view,
     bill_payment_view,
+    bill_purge_view,
     bill_restore_view,
     bill_trash_view,
 )
@@ -31,6 +32,7 @@ urlpatterns = [
         name="bill_correct_discrepancy",
     ),
     path("<int:pk>/delete/", bill_delete_view, name="bill_delete"),
+    path("<int:pk>/purge/", bill_purge_view, name="bill_purge"),
     path("<int:pk>/restore/", bill_restore_view, name="bill_restore"),
     path("<int:pk>/payment/", bill_payment_view, name="bill_payment"),
 ]

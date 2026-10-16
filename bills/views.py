@@ -290,11 +290,38 @@ def bill_correct_discrepancy_view(request: HttpRequest, pk: int) -> HttpResponse
 
 @login_required
 def bill_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
-    """Soft delete a bill (requires can_delete_records or superadmin)."""
+    """Delete a bill: soft-delete to trash by default, or permanently delete from database."""
     check_can_delete_permission(request.user)
     bill = get_object_or_404(Bill.all_objects, pk=pk)
 
     if request.method == "POST":
+        permanent = request.POST.get("permanent") in ("1", "true", "True")
+        invoice_display = bill.invoice_no or f"#{bill.pk}"
+        party = bill.party
+
+        if permanent:
+            # Permanent hard delete: purge bill and associated files, items, errors, scan jobs
+            bill.scan_jobs.all().delete()
+            bill.files.all().delete()
+            bill.errors.all().delete()
+            bill.items.all().delete()
+            bill.delete()
+
+            if party:
+                has_other_bills = party.bills.filter(is_deleted=False).exists()
+                has_payments = party.payments.filter(is_deleted=False).exists()
+                if not has_other_bills and not has_payments:
+                    party.is_active = False
+                    party.save(update_fields=["is_active"])
+
+            messages.success(
+                request,
+                _("Bill %(inv)s was permanently deleted from the database.")
+                % {"inv": invoice_display},
+            )
+            return redirect("bills:bill_list")
+
+        # Soft delete (Move to Trash)
         bill.is_deleted = True
         bill.deleted_at = timezone.now()
         bill.save(update_fields=["is_deleted", "deleted_at"])
@@ -303,8 +330,7 @@ def bill_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
         bill.payments.filter(is_deleted=False).update(is_deleted=True, deleted_at=timezone.now())
 
         # If the party has no other active bills and no active payments, deactivate the party
-        if bill.party:
-            party = bill.party
+        if party:
             has_other_bills = party.bills.filter(is_deleted=False).exclude(pk=bill.pk).exists()
             has_payments = party.payments.filter(is_deleted=False).exists()
             if not has_other_bills and not has_payments:
@@ -313,11 +339,42 @@ def bill_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
 
         messages.success(
             request,
-            _("Bill #%(inv)s deleted successfully.") % {"inv": bill.invoice_no or bill.pk},
+            _("Bill #%(inv)s deleted successfully.") % {"inv": invoice_display},
         )
         return redirect("bills:bill_list")
 
     return render(request, "bills/bill_confirm_delete.html", {"bill": bill})
+
+
+@login_required
+def bill_purge_view(request: HttpRequest, pk: int) -> HttpResponse:
+    """Permanently delete a soft-deleted bill from trash (requires permission)."""
+    check_can_delete_permission(request.user)
+    bill = get_object_or_404(Bill.all_objects, pk=pk)
+
+    if request.method == "POST":
+        invoice_display = bill.invoice_no or f"#{bill.pk}"
+        party = bill.party
+        bill.scan_jobs.all().delete()
+        bill.files.all().delete()
+        bill.errors.all().delete()
+        bill.items.all().delete()
+        bill.delete()
+
+        if party:
+            has_other_bills = party.bills.filter(is_deleted=False).exists()
+            has_payments = party.payments.filter(is_deleted=False).exists()
+            if not has_other_bills and not has_payments:
+                party.is_active = False
+                party.save(update_fields=["is_active"])
+
+        messages.success(
+            request,
+            _("Bill %(inv)s was permanently erased from the database.") % {"inv": invoice_display},
+        )
+        return redirect("bills:bill_trash")
+
+    return redirect("bills:bill_trash")
 
 
 @login_required

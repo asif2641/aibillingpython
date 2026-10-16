@@ -711,6 +711,53 @@ class TestBillSoftDeleteAndTrash:
         assert "403" in content
         assert "Permission Denied" in content or "کارروائی کی اجازت نہیں ہے" in content
 
+    def test_permanent_delete_purges_bill_and_files_from_database(
+        self, superadmin_client, sample_bill
+    ):
+        """POST permanent=1 completely purges the bill and line items from the database."""
+        pk = sample_bill.pk
+        delete_url = self._delete_url(pk)
+        response = superadmin_client.post(delete_url, {"permanent": "1"})
+        assert response.status_code in (302, 200)
+        assert not Bill.all_objects.filter(pk=pk).exists()
+
+    def test_purge_from_trash_purges_bill_from_database(self, superadmin_client, sample_bill):
+        """POST to bill_purge view erases a trashed bill from the database."""
+        sample_bill.is_deleted = True
+        sample_bill.deleted_at = timezone.now()
+        sample_bill.save()
+        pk = sample_bill.pk
+
+        purge_url = reverse("bills:bill_purge", kwargs={"pk": pk})
+        response = superadmin_client.post(purge_url)
+        assert response.status_code in (302, 200)
+        assert not Bill.all_objects.filter(pk=pk).exists()
+
+    def test_soft_deleted_bill_never_triggers_duplicate_detection(
+        self, superadmin_client, sample_bill
+    ):
+        """A soft-deleted bill is excluded from duplicate checks, allowing re-scanning without conflict."""
+        from scanning.models import BillFile
+
+        # Create dummy file attached to sample bill
+        bf = BillFile.objects.create(
+            bill=sample_bill,
+            file_hash="testhash12345678901234567890123456789012",
+            raw_hash="testhash12345678901234567890123456789012",
+        )
+
+        # Soft delete the bill
+        sample_bill.is_deleted = True
+        sample_bill.deleted_at = timezone.now()
+        sample_bill.save()
+
+        # Query duplicate check view
+        dup_url = reverse("scanning:check_duplicate") + f"?hash={bf.file_hash}"
+        response = superadmin_client.get(dup_url)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["is_duplicate"] is False
+
 
 # ==============================================================================
 # 4. Bill Views & Workflow Tests

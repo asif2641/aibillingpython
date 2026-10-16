@@ -5,7 +5,7 @@
 
 {% block content %}
 <div class="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md mx-auto space-y-6">
+    <div class="max-w-lg mx-auto space-y-6">
 
         <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm p-6 sm:p-8 space-y-5 text-center">
             <div class="w-14 h-14 mx-auto rounded-full bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400 flex items-center justify-center text-2xl">
@@ -13,27 +13,69 @@
             </div>
 
             <h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
-                {% trans "Move to Trash?" %}
+                {% if LANGUAGE_CODE == 'ur' %}
+                بل ڈیلیٹ کریں
+                {% else %}
+                {% trans "Delete Bill" %}
+                {% endif %}
             </h1>
 
             <p class="text-xs text-slate-500 dark:text-slate-400">
-                {% trans "Are you sure you want to move bill" %} <strong class="text-slate-800 dark:text-slate-200 font-mono">{{ bill.invoice_no|default:"(No Invoice #)" }}</strong> ({% trans "Party:" %} {{ bill.party.name }}) {% trans "to trash?" %}
+                {% trans "Are you sure you want to delete bill" %} <strong class="text-slate-800 dark:text-slate-200 font-mono">{{ bill.invoice_no|default:"(No Invoice #)" }}</strong> ({% trans "Party:" %} {{ bill.party.name }})?
             </p>
 
-            <div class="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-amber-800 dark:text-amber-300 text-xs text-left rtl:text-right">
-                <p class="font-semibold mb-0.5">ℹ️ {% trans "Safe Soft-Delete" %}</p>
-                <p>{% trans "Financial records are never permanently erased. You can restore this bill anytime from the Trash bin." %}</p>
+            <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-xs text-left rtl:text-right space-y-2">
+                <p class="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                    <span>💡</span>
+                    <span>
+                        {% if LANGUAGE_CODE == 'ur' %}
+                        ڈپلیکیٹ کا کوئی مسئلہ نہیں ہوگا:
+                        {% else %}
+                        {% trans "Duplicate Protection Note:" %}
+                        {% endif %}
+                    </span>
+                </p>
+                <p class="text-slate-600 dark:text-slate-400 leading-relaxed">
+                    {% if LANGUAGE_CODE == 'ur' %}
+                    بل چاہے ٹریش میں بھیجا جائے یا ڈیٹا بیس سے ہمیشہ کے لیے مٹایا جائے، دونوں صورتوں میں آپ اسی بل کو دوبارہ بالکل نئے سرے سے اسکین کر سکتے ہیں؛ سسٹم ڈپلیکیٹ کا کوئی ایرر نہیں دے گا۔
+                    {% else %}
+                    {% trans "Whether moved to Trash or deleted permanently, deleted bills will never trigger duplicate warnings if scanned again." %}
+                    {% endif %}
+                </p>
             </div>
 
-            <form method="post" class="pt-2 flex items-center justify-center gap-3">
+            <form method="post" class="pt-2 flex flex-col sm:flex-row items-center justify-center gap-2.5">
                 {% csrf_token %}
-                <a href="{% url 'bills:bill_detail' bill.pk %}" 
-                   class="px-5 py-2.5 min-h-[44px] inline-flex items-center rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 font-semibold text-xs transition-colors">
+                <a href="{% url 'bills:bill_list' %}" 
+                   class="w-full sm:w-auto px-4 py-2.5 min-h-[44px] inline-flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 font-semibold text-xs transition-colors">
                     {% trans "Cancel" %}
                 </a>
-                <button type="submit" 
-                        class="px-5 py-2.5 min-h-[44px] inline-flex items-center rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold text-xs shadow-sm shadow-red-500/25 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500">
-                    {% trans "Move to Trash" %}
+
+                <!-- Option 1: Move to Trash (Soft delete) -->
+                <button type="submit" name="permanent" value="0"
+                        class="w-full sm:w-auto px-4 py-2.5 min-h-[44px] inline-flex items-center justify-center gap-1 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:hover:bg-amber-900/60 dark:text-amber-300 dark:border-amber-800 font-semibold text-xs shadow-sm transition-colors">
+                    <span>🗑️</span>
+                    <span>
+                        {% if LANGUAGE_CODE == 'ur' %}
+                        ٹریش میں بھیجیں (Soft Delete)
+                        {% else %}
+                        {% trans "Move to Trash" %}
+                        {% endif %}
+                    </span>
+                </button>
+
+                <!-- Option 2: Permanent Delete (Hard delete) -->
+                <button type="submit" name="permanent" value="1"
+                        onclick="return confirm('{% trans "Are you sure you want to permanently delete this bill from the database? This cannot be undone." %}')"
+                        class="w-full sm:w-auto px-4 py-2.5 min-h-[44px] inline-flex items-center justify-center gap-1 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold text-xs shadow-sm shadow-red-500/25 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    <span>
+                        {% if LANGUAGE_CODE == 'ur' %}
+                        ہمیشہ کے لیے مٹائیں (Permanent)
+                        {% else %}
+                        {% trans "Delete Permanently" %}
+                        {% endif %}
+                    </span>
                 </button>
             </form>
         </div>

@@ -56,13 +56,31 @@
                                 {{ bill.deleted_at|date:"Y-m-d H:i" }}
                             </td>
                             <td class="py-3.5 px-4 text-right rtl:text-left">
-                                <form method="post" action="{% url 'bills:bill_restore' bill.pk %}" class="inline">
-                                    {% csrf_token %}
-                                    <button type="submit" 
-                                        class="px-3 py-1.5 min-h-[36px] rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 transition-colors">
-                                        {% trans "Restore" %}
-                                    </button>
-                                </form>
+                                <div class="inline-flex items-center gap-2">
+                                    <form method="post" action="{% url 'bills:bill_restore' bill.pk %}" class="inline">
+                                        {% csrf_token %}
+                                        <button type="submit" 
+                                            class="px-3 py-1.5 min-h-[36px] rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 transition-colors">
+                                            {% trans "Restore" %}
+                                        </button>
+                                    </form>
+                                    <form method="post" action="{% url 'bills:bill_purge' bill.pk %}" class="inline"
+                                          onsubmit="return confirm('{% trans "Permanently erase this bill from the database? This cannot be undone." %}')">
+                                        {% csrf_token %}
+                                        <button type="submit" 
+                                            class="px-3 py-1.5 min-h-[36px] rounded-lg text-xs font-semibold bg-red-50 text-red-700 dark:bg-red-950/60 dark:text-red-300 border border-red-200 dark:border-red-800 hover:bg-red-100 transition-colors"
+                                            title="{% trans 'Erase permanently from database' %}">
+                                            <span>🗑️</span>
+                                            <span>
+                                                {% if LANGUAGE_CODE == 'ur' %}
+                                                ہمیشہ کیلئے مٹائیں
+                                                {% else %}
+                                                {% trans "Delete Forever" %}
+                                                {% endif %}
+                                            </span>
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                         {% empty %}
