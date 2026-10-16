@@ -25,11 +25,29 @@
                 </div>
             </div>
 
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2.5">
                 <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200 dark:border-amber-900/60">
                     <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
                     <span>{{ bill.get_status_display }}</span>
                 </span>
+
+                <!-- Top Discard Button -->
+                <form method="post" action="{% url 'scanning:review' job.pk %}" class="inline-block"
+                      onsubmit="return confirm('{% trans "Are you sure you want to discard this bill? It will be removed from your records." %}')">
+                    {% csrf_token %}
+                    <button type="submit" name="action" value="discard"
+                            class="px-3 py-1.5 min-h-[38px] rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900/80 transition-colors flex items-center gap-1.5 shadow-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
+                            title="{% trans 'Cancel and discard this bill' %}">
+                        <svg class="w-3.5 h-3.5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        <span>
+                            {% if request.LANGUAGE_CODE == 'ur' %}
+                            بل رد کریں
+                            {% else %}
+                            {% trans "Discard Bill" %}
+                            {% endif %}
+                        </span>
+                    </button>
+                </form>
             </div>
         </div>
 
@@ -409,6 +427,21 @@
                                 </p>
                             </div>
                             <div class="flex flex-wrap items-center gap-2">
+                                <!-- Discard Button in Discrepancy Panel -->
+                                <button type="submit" name="action" value="discard"
+                                        onclick="return confirm('{% trans "Are you sure you want to discard this bill? It will be removed from your records." %}')"
+                                        class="px-3.5 py-2 min-h-[42px] inline-flex items-center justify-center gap-1.5 rounded-xl border border-rose-300 dark:border-rose-800 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 font-bold text-xs shadow-sm transition-all focus:ring-2 focus:ring-rose-500"
+                                        title="{% trans 'Cancel and discard this bill' %}">
+                                    <span>🗑️</span>
+                                    <span>
+                                        {% if request.LANGUAGE_CODE == 'ur' %}
+                                        بل رد کریں
+                                        {% else %}
+                                        {% trans "Discard Bill" %}
+                                        {% endif %}
+                                    </span>
+                                </button>
+
                                 <!-- Option 1: Go with Incorrect Bill -->
                                 <button type="submit" name="action" value="accept_incorrect"
                                         class="flex-1 sm:flex-none px-3.5 py-2 min-h-[42px] inline-flex items-center justify-center gap-1.5 rounded-xl border border-amber-400 bg-amber-100 hover:bg-amber-200 dark:bg-amber-950 dark:hover:bg-amber-900/60 text-amber-900 dark:text-amber-200 font-bold text-xs shadow-sm transition-all focus:ring-2 focus:ring-amber-500"
@@ -428,7 +461,22 @@
                         </div>
 
                         <!-- Standard Verify & Approve when Total has No Discrepancy -->
-                        <div id="standard-approve-panel" class="pt-3 border-t border-slate-200 dark:border-slate-700 flex items-center justify-end {% if is_total_invalid %}hidden{% endif %}">
+                        <div id="standard-approve-panel" class="pt-3 border-t border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3 {% if is_total_invalid %}hidden{% endif %}">
+                            <!-- Discard Button -->
+                            <button type="submit" name="action" value="discard"
+                                    onclick="return confirm('{% trans "Are you sure you want to discard this bill? It will be removed from your records." %}')"
+                                    class="px-4 py-2.5 min-h-[44px] inline-flex items-center gap-1.5 rounded-xl border border-rose-300 dark:border-rose-800 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 font-bold text-xs shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-rose-500"
+                                    title="{% trans 'Cancel and discard this bill' %}">
+                                <svg class="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                <span>
+                                    {% if request.LANGUAGE_CODE == 'ur' %}
+                                    بل رد کریں (Discard)
+                                    {% else %}
+                                    {% trans "Cancel & Discard Bill" %}
+                                    {% endif %}
+                                </span>
+                            </button>
+
                             <button type="submit" name="action" value="verify"
                                     class="px-6 py-2.5 min-h-[44px] inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm shadow-emerald-500/25 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>

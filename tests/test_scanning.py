@@ -2051,3 +2051,101 @@ class TestAIExtractorProviderResolution:
         assert response.status_code == 200
         content = response.content.decode("utf-8")
         assert "upload/?camera=1" in content
+
+    def test_review_view_discard_action_soft_deletes_and_redirects(self, client, superadmin_user):
+        """POST action='discard' soft-deletes the bill, marks scan job failed, and redirects to upload."""
+        from bills.models import Bill
+        from scanning.models import BillEditHistory, BillError, ScanJob
+
+        party = Party.objects.create(name="Discard Vendor", party_type=Party.PartyType.VENDOR)
+        bill = Bill.objects.create(
+            party=party,
+            invoice_no="INV-DISCARD-1",
+            bill_date=timezone.now().date(),
+            grand_total=Decimal("500.00"),
+            status=Bill.Status.NEEDS_REVIEW,
+        )
+        job = ScanJob.objects.create(
+            bill=bill,
+            provider="mock",
+            status=ScanJob.Status.COMPLETED,
+        )
+        err = BillError.objects.create(
+            bill=bill,
+            error_type=BillError.ErrorType.MATH_MISMATCH,
+            message="Math mismatch test",
+            is_resolved=False,
+        )
+
+        client.force_login(superadmin_user)
+        response = client.post(
+            f"/en/scanning/review/{job.pk}/",
+            {"action": "discard"},
+        )
+        assert response.status_code == 302
+        assert response.url == "/en/scanning/upload/"
+
+        bill.refresh_from_db()
+        assert bill.is_deleted is True
+        assert bill.deleted_at is not None
+
+        job.refresh_from_db()
+        assert job.status == ScanJob.Status.FAILED
+        assert "discarded by user" in job.error_message
+
+        err.refresh_from_db()
+        assert err.is_resolved is True
+
+        history = BillEditHistory.objects.filter(bill=bill, new_value="discarded")
+        assert history.exists()
+
+    def test_review_view_discarded_bill_excluded_from_pending_queries(
+        self, client, superadmin_user
+    ):
+        """A discarded bill does not appear in pending bills filter for dashboard."""
+        from bills.models import Bill
+        from scanning.models import ScanJob
+
+        party = Party.objects.create(name="Discard Vendor 2", party_type=Party.PartyType.VENDOR)
+        bill = Bill.objects.create(
+            party=party,
+            invoice_no="INV-DISCARD-2",
+            bill_date=timezone.now().date(),
+            grand_total=Decimal("750.00"),
+            status=Bill.Status.NEEDS_REVIEW,
+        )
+        job = ScanJob.objects.create(
+            bill=bill,
+            provider="mock",
+            status=ScanJob.Status.COMPLETED,
+        )
+
+        pending = Bill.objects.filter(
+            is_deleted=False, status__in=[Bill.Status.NEEDS_REVIEW, Bill.Status.DRAFT]
+        )
+        assert bill in pending
+
+        client.force_login(superadmin_user)
+        client.post(f"/en/scanning/review/{job.pk}/", {"action": "discard"})
+
+        pending_after = Bill.objects.filter(
+            is_deleted=False, status__in=[Bill.Status.NEEDS_REVIEW, Bill.Status.DRAFT]
+        )
+        assert bill not in pending_after
+
+    def test_review_view_renders_discard_buttons_in_urdu(
+        self, client, superadmin_user, sample_image
+    ):
+        """Review page in Urdu renders the 'بل رد کریں' discard button."""
+        from scanning.models import BillFile, ScanJob
+        from scanning.services.extraction import process_scan_job
+
+        job = ScanJob.objects.create(provider="mock", created_by=superadmin_user)
+        BillFile.objects.create(scan_job=job, file=sample_image, page_number=1)
+        process_scan_job(job)
+
+        client.force_login(superadmin_user)
+        response = client.get(f"/ur/scanning/review/{job.pk}/")
+        assert response.status_code == 200
+        content = response.content.decode("utf-8")
+        assert "بل رد کریں" in content

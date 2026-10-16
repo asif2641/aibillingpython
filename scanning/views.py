@@ -254,6 +254,40 @@ def review_view(request: HttpRequest, job_id: int) -> HttpResponse:
     if request.method == "POST":
         action = request.POST.get("action", "save_draft")
 
+        if action in ("discard", "cancel"):
+            # Mark bill as soft-deleted so it drops out of pending queue and calculations
+            bill.is_deleted = True
+            bill.deleted_at = timezone.now()
+            bill.save(update_fields=["is_deleted", "deleted_at"])
+
+            # Mark scan job status
+            job.status = ScanJob.Status.FAILED
+            job.error_message = "Scan discarded by user during review."
+            job.save(update_fields=["status", "error_message"])
+
+            # Resolve attached errors
+            bill.errors.all().update(is_resolved=True)
+
+            # Record audit history
+            BillEditHistory.objects.create(
+                bill=bill,
+                user=request.user,
+                field_name="status",
+                old_value=bill.status,
+                new_value="discarded",
+            )
+
+            invoice_display = bill.invoice_no or f"#{bill.pk}"
+            messages.info(
+                request,
+                _("Bill %(inv)s was discarded and removed from your records.")
+                % {"inv": invoice_display},
+            )
+            next_url = request.POST.get("next")
+            if next_url:
+                return redirect(next_url)
+            return redirect("scanning:upload")
+
         # Update core invoice details
         invoice_no = request.POST.get("invoice_no", "").strip()
         bill_type_val = request.POST.get("bill_type", "").strip()
