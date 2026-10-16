@@ -25,4 +25,11 @@ else
     BUILD_MODE=True python3 manage.py collectstatic --noinput --clear || true
 fi
 
+echo "=== Mirroring static files for /static/ routing ==="
+mkdir -p .static_stage
+cp -r staticfiles/* .static_stage/ 2>/dev/null || true
+mkdir -p staticfiles/static
+cp -r .static_stage/* staticfiles/static/ 2>/dev/null || true
+rm -rf .static_stage
+
 echo "=== Build finished successfully ==="
