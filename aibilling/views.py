@@ -28,6 +28,7 @@ from settings_app.signals import DASHBOARD_CACHE_KEY
 @require_GET
 def healthcheck_view(request):
     """Verify application and database health for uptime monitors and cloud platforms."""
+    import os
     try:
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1")
@@ -35,6 +36,8 @@ def healthcheck_view(request):
             "status": "ok",
             "database": "connected",
             "vendor": connection.vendor,
+            "media_root": str(settings.MEDIA_ROOT),
+            "commit": os.environ.get("VERCEL_GIT_COMMIT_SHA", "dev")[:7],
         }, status=200)
     except Exception:
         return JsonResponse({"status": "error", "database": "disconnected"}, status=503)

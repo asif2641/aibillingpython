@@ -237,9 +237,20 @@ WHITENOISE_MANIFEST_STRICT = False
 
 MEDIA_URL = "/media/"
 # Uploaded files (bill images, shop logos, etc.) are stored here.
-# On Vercel serverless functions, the root filesystem is read-only except for /tmp.
-if os.environ.get("VERCEL"):
+# On Vercel / AWS Lambda serverless functions, the root filesystem is read-only.
+is_read_only_fs = (
+    bool(
+        os.environ.get("VERCEL")
+        or os.environ.get("VERCEL_URL")
+        or os.environ.get("VERCEL_ENV")
+        or os.environ.get("AWS_LAMBDA_FUNCTION_NAME")
+        or os.environ.get("LAMBDA_TASK_ROOT")
+    )
+    or not os.access(str(BASE_DIR), os.W_OK)
+)
+if is_read_only_fs:
     import tempfile
+
     MEDIA_ROOT = Path(tempfile.gettempdir()) / "media"
     BACKUP_DIR = Path(tempfile.gettempdir()) / "backups"
 else:

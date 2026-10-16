@@ -123,7 +123,17 @@ def configure_production_settings(env: dict[str, str] | None = None) -> dict[str
             }
         }
 
-    if is_vercel:
+    is_serverless = (
+        is_vercel
+        or bool(
+            environ.get("VERCEL_ENV")
+            or environ.get("AWS_LAMBDA_FUNCTION_NAME")
+            or environ.get("LAMBDA_TASK_ROOT")
+        )
+        or not os.access(str(BASE_DIR), os.W_OK)
+    )
+
+    if is_serverless:
         import tempfile
         from pathlib import Path
 
