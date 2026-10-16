@@ -6,6 +6,8 @@ Signal receivers for automatic ActivityLog audit entries and dashboard cache inv
 
 from __future__ import annotations
 
+import contextlib
+
 from django.core.cache import cache
 from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
@@ -21,6 +23,8 @@ DASHBOARD_CACHE_KEY = "dashboard_summary_data"
 def invalidate_dashboard_cache() -> None:
     """Clear cached dashboard KPIs and chart data."""
     cache.delete(DASHBOARD_CACHE_KEY)
+    with contextlib.suppress(Exception):
+        cache.clear()
 
 
 @receiver(pre_save, sender=Bill)

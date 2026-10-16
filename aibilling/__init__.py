@@ -10,6 +10,7 @@ try:
 
     def _safe_base_context_copy(self):
         duplicate = self.__class__.__new__(self.__class__)
+        duplicate.__dict__.update(self.__dict__)
         duplicate.dicts = self.dicts[:]
         return duplicate
 

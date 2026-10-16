@@ -34,12 +34,54 @@ class User(AbstractUser):
         SUPERADMIN = "superadmin", _("Super Admin")
         STAFF = "staff", _("Staff")
 
+    class Plan(models.TextChoices):
+        """SaaS subscription plans."""
+
+        FREE = "free", _("Free Trial")
+        PRO = "pro", _("Pro")
+        BUSINESS = "business", _("Business")
+
     role = models.CharField(
         max_length=20,
         choices=Role.choices,
         default=Role.STAFF,
         verbose_name=_("role"),
         help_text=_("Determines what actions this user can perform."),
+    )
+
+    plan = models.CharField(
+        max_length=20,
+        choices=Plan.choices,
+        default=Plan.FREE,
+        verbose_name=_("subscription plan"),
+        help_text=_("Current SaaS subscription plan tier."),
+    )
+
+    business_name = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        verbose_name=_("business / shop name"),
+        help_text=_("Primary commercial or shop identity."),
+    )
+
+    monthly_scan_quota = models.PositiveIntegerField(
+        default=10,
+        verbose_name=_("monthly scan quota"),
+        help_text=_("Maximum AI bill scans allowed in the current billing cycle."),
+    )
+
+    scans_used_this_month = models.PositiveIntegerField(
+        default=0,
+        verbose_name=_("scans used this month"),
+        help_text=_("Number of scans consumed in the current billing cycle."),
+    )
+
+    quota_reset_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name=_("quota reset date"),
+        help_text=_("Next date when monthly scan counter resets."),
     )
 
     is_locked = models.BooleanField(
@@ -109,3 +151,23 @@ class User(AbstractUser):
     def is_staff_member(self) -> bool:
         """Return True if this user has the Staff role."""
         return self.role == self.Role.STAFF
+
+    @property
+    def has_scans_remaining(self) -> bool:
+        """Return True if user has scans remaining in the current cycle."""
+        if self.is_superuser:
+            return True
+        return self.scans_used_this_month < self.monthly_scan_quota
+
+    @property
+    def remaining_scans(self) -> int:
+        """Return remaining scans count."""
+        if self.is_superuser:
+            return 9999
+        return max(0, self.monthly_scan_quota - self.scans_used_this_month)
+
+    def increment_scans_used(self) -> int:
+        """Increment scans consumed counter and persist."""
+        self.scans_used_this_month += 1
+        self.save(update_fields=["scans_used_this_month"])
+        return self.scans_used_this_month

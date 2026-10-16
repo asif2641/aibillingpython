@@ -41,6 +41,8 @@ def bill_list_view(request: HttpRequest) -> HttpResponse:
         .prefetch_related("scan_jobs")
         .order_by("-bill_date", "-id")
     )
+    if not request.user.is_superuser:
+        qs = qs.filter(Q(created_by=request.user) | Q(created_by__isnull=True))
 
     # Status filter: by default, show verified and approved bills (exclude unreviewed scans)
     status_filter = request.GET.get("status", "").strip()
@@ -93,10 +95,19 @@ def bill_list_view(request: HttpRequest) -> HttpResponse:
     total_amount = money_round(Decimal(str(qs.aggregate(total=Sum("grand_total"))["total"] or 0)))
     total_count = qs.count()
 
-    selected_party = Party.objects.filter(pk=party_id).first() if party_id else None
-    parties = Party.objects.filter(is_active=True).order_by("name")
+    parties_qs = Party.objects.filter(is_active=True)
+    if not request.user.is_superuser:
+        parties_qs = parties_qs.filter(Q(user=request.user) | Q(user__isnull=True))
 
-    needs_review_count = Bill.objects.filter(status=Bill.Status.NEEDS_REVIEW).count()
+    selected_party = parties_qs.filter(pk=party_id).first() if party_id else None
+    parties = parties_qs.order_by("name")
+
+    needs_review_qs = Bill.objects.filter(status=Bill.Status.NEEDS_REVIEW)
+    if not request.user.is_superuser:
+        needs_review_qs = needs_review_qs.filter(
+            Q(created_by=request.user) | Q(created_by__isnull=True)
+        )
+    needs_review_count = needs_review_qs.count()
 
     paginator = Paginator(qs, 25)
     page_number = request.GET.get("page")
@@ -123,7 +134,7 @@ def bill_list_view(request: HttpRequest) -> HttpResponse:
 def bill_add_view(request: HttpRequest) -> HttpResponse:
     """Create a new manual bill along with line items."""
     if request.method == "POST":
-        form = BillForm(request.POST)
+        form = BillForm(request.POST, user=request.user)
         has_items = "items-TOTAL_FORMS" in request.POST
         formset = BillItemFormSet(request.POST, prefix="items") if has_items else None
 
@@ -154,7 +165,7 @@ def bill_add_view(request: HttpRequest) -> HttpResponse:
             status=400,
         )
 
-    form = BillForm()
+    form = BillForm(user=request.user)
     formset = BillItemFormSet(prefix="items")
     return render(request, "bills/bill_form.html", {"form": form, "formset": formset})
 
@@ -162,20 +173,23 @@ def bill_add_view(request: HttpRequest) -> HttpResponse:
 @login_required
 def bill_detail_view(request: HttpRequest, pk: int) -> HttpResponse:
     """Show details and line items for a bill."""
-    bill = get_object_or_404(
-        Bill.all_objects.select_related("party", "category").prefetch_related("items"),
-        pk=pk,
-    )
+    bill_qs = Bill.all_objects.select_related("party", "category").prefetch_related("items")
+    if not request.user.is_superuser:
+        bill_qs = bill_qs.filter(Q(created_by=request.user) | Q(created_by__isnull=True))
+    bill = get_object_or_404(bill_qs, pk=pk)
     return render(request, "bills/bill_detail.html", {"bill": bill})
 
 
 @login_required
 def bill_edit_view(request: HttpRequest, pk: int) -> HttpResponse:
     """Edit an existing bill."""
-    bill = get_object_or_404(Bill.objects, pk=pk)
+    bill_qs = Bill.objects.all()
+    if not request.user.is_superuser:
+        bill_qs = bill_qs.filter(Q(created_by=request.user) | Q(created_by__isnull=True))
+    bill = get_object_or_404(bill_qs, pk=pk)
 
     if request.method == "POST":
-        form = BillForm(request.POST, instance=bill)
+        form = BillForm(request.POST, instance=bill, user=request.user)
         has_items = "items-TOTAL_FORMS" in request.POST
         formset = (
             BillItemFormSet(request.POST, instance=bill, prefix="items") if has_items else None
@@ -232,7 +246,7 @@ def bill_edit_view(request: HttpRequest, pk: int) -> HttpResponse:
             status=400,
         )
 
-    form = BillForm(instance=bill)
+    form = BillForm(instance=bill, user=request.user)
     formset = BillItemFormSet(instance=bill, prefix="items")
     return render(
         request,
@@ -244,7 +258,10 @@ def bill_edit_view(request: HttpRequest, pk: int) -> HttpResponse:
 @login_required
 def bill_correct_discrepancy_view(request: HttpRequest, pk: int) -> HttpResponse:
     """Instantly correct a discrepant bill to match line items total and resolve discrepancies."""
-    bill = get_object_or_404(Bill.objects, pk=pk)
+    bill_qs = Bill.objects.all()
+    if not request.user.is_superuser:
+        bill_qs = bill_qs.filter(Q(created_by=request.user) | Q(created_by__isnull=True))
+    bill = get_object_or_404(bill_qs, pk=pk)
     if request.method == "POST":
         orig_slip = (
             bill.original_slip_total if bill.original_slip_total is not None else bill.grand_total
@@ -292,7 +309,10 @@ def bill_correct_discrepancy_view(request: HttpRequest, pk: int) -> HttpResponse
 def bill_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
     """Delete a bill: soft-delete to trash by default, or permanently delete from database."""
     check_can_delete_permission(request.user)
-    bill = get_object_or_404(Bill.all_objects, pk=pk)
+    bill_qs = Bill.all_objects.all()
+    if not request.user.is_superuser:
+        bill_qs = bill_qs.filter(Q(created_by=request.user) | Q(created_by__isnull=True))
+    bill = get_object_or_404(bill_qs, pk=pk)
 
     if request.method == "POST":
         permanent = request.POST.get("permanent") in ("1", "true", "True")
@@ -350,7 +370,10 @@ def bill_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
 def bill_purge_view(request: HttpRequest, pk: int) -> HttpResponse:
     """Permanently delete a soft-deleted bill from trash (requires permission)."""
     check_can_delete_permission(request.user)
-    bill = get_object_or_404(Bill.all_objects, pk=pk)
+    bill_qs = Bill.all_objects.all()
+    if not request.user.is_superuser:
+        bill_qs = bill_qs.filter(Q(created_by=request.user) | Q(created_by__isnull=True))
+    bill = get_object_or_404(bill_qs, pk=pk)
 
     if request.method == "POST":
         invoice_display = bill.invoice_no or f"#{bill.pk}"
@@ -382,7 +405,10 @@ def bill_trash_view(request: HttpRequest) -> HttpResponse:
     """Display trash list of soft-deleted bills (requires permission)."""
     check_can_delete_permission(request.user)
 
-    trashed_qs = Bill.all_objects.filter(is_deleted=True).order_by("-deleted_at")
+    trashed_qs = Bill.all_objects.filter(is_deleted=True)
+    if not request.user.is_superuser:
+        trashed_qs = trashed_qs.filter(Q(created_by=request.user) | Q(created_by__isnull=True))
+    trashed_qs = trashed_qs.order_by("-deleted_at")
     paginator = Paginator(trashed_qs, 25)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
@@ -401,7 +427,10 @@ def bill_trash_view(request: HttpRequest) -> HttpResponse:
 def bill_restore_view(request: HttpRequest, pk: int) -> HttpResponse:
     """Restore a soft-deleted bill from trash (requires permission)."""
     check_can_delete_permission(request.user)
-    bill = get_object_or_404(Bill.all_objects, pk=pk)
+    bill_qs = Bill.all_objects.all()
+    if not request.user.is_superuser:
+        bill_qs = bill_qs.filter(Q(created_by=request.user) | Q(created_by__isnull=True))
+    bill = get_object_or_404(bill_qs, pk=pk)
 
     if request.method == "POST":
         bill.is_deleted = False
@@ -428,7 +457,10 @@ def bill_restore_view(request: HttpRequest, pk: int) -> HttpResponse:
 @login_required
 def bill_payment_view(request: HttpRequest, pk: int) -> HttpResponse:
     """Record a payment towards a specific bill."""
-    bill = get_object_or_404(Bill.all_objects, pk=pk)
+    bill_qs = Bill.all_objects.all()
+    if not request.user.is_superuser:
+        bill_qs = bill_qs.filter(Q(created_by=request.user) | Q(created_by__isnull=True))
+    bill = get_object_or_404(bill_qs, pk=pk)
 
     if request.method == "POST":
         from ledger.services import record_payment

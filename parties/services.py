@@ -7,8 +7,10 @@ from __future__ import annotations
 
 import difflib
 import re
+from typing import Any
 
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 
 from parties.models import Party
 
@@ -32,6 +34,7 @@ def match_or_create_party(
     address: str = "",
     tax_number: str = "",
     notes: str = "",
+    user: Any = None,
     **kwargs,
 ) -> Party:
     """Match an existing party using phone number or fuzzy name matching, or create a new one.
@@ -53,6 +56,8 @@ def match_or_create_party(
     norm_phone = normalize_phone(phone)
 
     active_parties = Party.objects.filter(is_active=True)
+    if user is not None and not getattr(user, "is_superuser", False):
+        active_parties = active_parties.filter(Q(user=user) | Q(user__isnull=True))
 
     # 1. Match by phone if phone is provided
     if norm_phone:
@@ -96,14 +101,18 @@ def match_or_create_party(
         return best_match
 
     # 3. Create new party
-    return Party.objects.create(
-        name=clean_name,
-        phone=str(phone).strip() if phone else "",
-        party_type=party_type,
-        urdu_name=urdu_name,
-        email=email,
-        address=address,
-        tax_number=tax_number,
-        notes=notes,
+    create_kwargs = {
+        "name": clean_name,
+        "phone": str(phone).strip() if phone else "",
+        "party_type": party_type,
+        "urdu_name": urdu_name,
+        "email": email,
+        "address": address,
+        "tax_number": tax_number,
+        "notes": notes,
         **kwargs,
-    )
+    }
+    if user is not None:
+        create_kwargs["user"] = user
+
+    return Party.objects.create(**create_kwargs)

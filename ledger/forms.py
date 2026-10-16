@@ -26,8 +26,22 @@ class PaymentForm(forms.ModelForm):
             "notes",
         ]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
+        if user is not None and not getattr(user, "is_superuser", False):
+            from django.db.models import Q
+
+            from bills.models import Bill
+            from parties.models import Party
+
+            if "party" in self.fields:
+                self.fields["party"].queryset = Party.objects.filter(is_active=True).filter(
+                    Q(user=user) | Q(user__isnull=True)
+                )
+            if "bill" in self.fields:
+                self.fields["bill"].queryset = Bill.objects.filter(is_deleted=False).filter(
+                    Q(created_by=user) | Q(created_by__isnull=True)
+                )
         for field in self.fields.values():
             field.widget.attrs["class"] = (
                 "w-full px-3.5 py-2.5 min-h-[44px] rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"

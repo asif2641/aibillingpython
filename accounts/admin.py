@@ -33,24 +33,39 @@ class CustomUserAdmin(UserAdmin):
     list_display = [
         "username",
         "email",
+        "business_name",
+        "plan",
+        "monthly_scan_quota",
+        "scans_used_this_month",
         "role",
         "is_active",
         "is_locked",
-        "failed_login_attempts",
         "date_joined",
     ]
 
     # Filters in the right sidebar of the list view.
-    list_filter = ["role", "is_active", "is_locked", "is_staff"]
+    list_filter = ["plan", "role", "is_active", "is_locked", "is_staff"]
 
     # Fields that can be searched in the search bar.
-    search_fields = ["username", "email", "first_name", "last_name"]
+    search_fields = ["username", "email", "business_name", "first_name", "last_name"]
 
     # Bulk actions in the admin list view.
     actions = ["unlock_accounts", "lock_accounts"]
 
     # Add our custom fields to the existing UserAdmin fieldsets.
     fieldsets = UserAdmin.fieldsets + (  # type: ignore[operator]
+        (
+            _("SaaS Plan & Quota"),
+            {
+                "fields": (
+                    "business_name",
+                    "plan",
+                    "monthly_scan_quota",
+                    "scans_used_this_month",
+                    "quota_reset_date",
+                )
+            },
+        ),
         (
             _("Role & Security"),
             {
@@ -68,9 +83,9 @@ class CustomUserAdmin(UserAdmin):
     # Also show custom fields in the "Add User" form.
     add_fieldsets = UserAdmin.add_fieldsets + (  # type: ignore[operator]
         (
-            _("Role & Security"),
+            _("SaaS Plan & Role"),
             {
-                "fields": ("role",),
+                "fields": ("business_name", "plan", "role", "monthly_scan_quota"),
             },
         ),
     )

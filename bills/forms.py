@@ -6,9 +6,11 @@ Forms and FormSets for creating and editing bills and bill items.
 from decimal import Decimal
 
 from django import forms
+from django.db.models import Q
 from django.forms import inlineformset_factory
 
 from bills.models import Bill, BillItem
+from parties.models import Party
 
 
 class BillForm(forms.ModelForm):
@@ -29,8 +31,12 @@ class BillForm(forms.ModelForm):
             "notes",
         ]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
+        if user is not None and not getattr(user, "is_superuser", False) and "party" in self.fields:
+            self.fields["party"].queryset = Party.objects.filter(is_active=True).filter(
+                Q(user=user) | Q(user__isnull=True)
+            )
         if "status" in self.fields:
             self.fields["status"].required = False
             self.fields["status"].initial = Bill.Status.VERIFIED

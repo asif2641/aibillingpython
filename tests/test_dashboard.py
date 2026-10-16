@@ -69,7 +69,6 @@ class TestDashboardAccess:
         assert "Dashboard" in response.content.decode()
 
 
-
 @pytest.mark.django_db
 class TestDashboardSidebarNavigation:
     """Tests for sidebar navigation elements on the dashboard."""

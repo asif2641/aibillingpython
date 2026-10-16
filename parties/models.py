@@ -3,6 +3,7 @@
 Party model representing vendors, customers, or entities that act as both.
 """
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy as _
@@ -15,6 +16,16 @@ class Party(models.Model):
         VENDOR = "vendor", _("Vendor")
         CUSTOMER = "customer", _("Customer")
         BOTH = "both", _("Both")
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="parties",
+        verbose_name=_("owner"),
+        help_text=_("Business account that owns this party."),
+    )
 
     name = models.CharField(
         max_length=255,

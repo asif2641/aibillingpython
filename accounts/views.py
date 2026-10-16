@@ -223,3 +223,38 @@ def staff_reset_password_view(request, user_id: int):
         "accounts/staff_reset_password.html",
         {"form": form, "target_user": target_user},
     )
+
+
+@login_required
+def subscription_view(request):
+    """View and manage SaaS subscription plan and scan quota."""
+    user = request.user
+    if request.method == "POST":
+        new_plan = request.POST.get("plan")
+        if new_plan in (user.Plan.FREE, user.Plan.PRO, user.Plan.BUSINESS):
+            user.plan = new_plan
+            if new_plan == user.Plan.FREE:
+                user.monthly_scan_quota = 10
+            elif new_plan == user.Plan.PRO:
+                user.monthly_scan_quota = 100
+            elif new_plan == user.Plan.BUSINESS:
+                user.monthly_scan_quota = 500
+            user.save(update_fields=["plan", "monthly_scan_quota"])
+            messages.success(
+                request,
+                _("Your subscription has been updated to %(plan)s (%(quota)d scans/month)!")
+                % {"plan": user.get_plan_display(), "quota": user.monthly_scan_quota},
+            )
+            return redirect("accounts:subscription")
+
+    usage_percent = 0
+    if user.monthly_scan_quota > 0:
+        usage_percent = min(100, int((user.scans_used_this_month / user.monthly_scan_quota) * 100))
+
+    context = {
+        "title": _("Subscription & Plan"),
+        "user": user,
+        "usage_percent": usage_percent,
+        "remaining_scans": user.remaining_scans,
+    }
+    return render(request, "accounts/subscription.html", context)

@@ -708,7 +708,9 @@ def process_scan_job(job: ScanJob) -> Bill:
 
         # 1. Resolve Party (Vendor and Customer)
         vendor_data = validated_data.get("vendor") or {}
-        party, _ = resolve_scan_party(vendor_data, party_type=Party.PartyType.VENDOR)
+        party, _ = resolve_scan_party(
+            vendor_data, party_type=Party.PartyType.VENDOR, user=job.created_by
+        )
 
         # Auto-create or match Customer profile if customer details were extracted
         customer_data = validated_data.get("customer") or {}
@@ -722,7 +724,7 @@ def process_scan_job(job: ScanJob) -> Bill:
             "walk-in customer",
         ):
             customer_party, _ = resolve_scan_party(
-                customer_data, party_type=Party.PartyType.CUSTOMER
+                customer_data, party_type=Party.PartyType.CUSTOMER, user=job.created_by
             )
 
         # 2. Resolve Category

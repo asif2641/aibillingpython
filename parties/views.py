@@ -6,6 +6,7 @@ Views for managing vendors and customers.
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
+from django.db.models import Q
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import gettext as _
@@ -17,9 +18,11 @@ from parties.models import Party
 @login_required
 def vendor_list_view(request: HttpRequest) -> HttpResponse:
     """List active vendors (parties of type 'vendor' or 'both'). Paginated by 25."""
-    parties_qs = Party.objects.filter(party_type__in=["vendor", "both"], is_active=True).order_by(
-        "name"
-    )
+    parties_qs = Party.objects.filter(party_type__in=["vendor", "both"], is_active=True)
+    if not request.user.is_superuser:
+        parties_qs = parties_qs.filter(Q(user=request.user) | Q(user__isnull=True))
+    parties_qs = parties_qs.order_by("name")
+
     paginator = Paginator(parties_qs, 25)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
@@ -38,9 +41,11 @@ def vendor_list_view(request: HttpRequest) -> HttpResponse:
 @login_required
 def customer_list_view(request: HttpRequest) -> HttpResponse:
     """List active customers (parties of type 'customer' or 'both'). Paginated by 25."""
-    parties_qs = Party.objects.filter(party_type__in=["customer", "both"], is_active=True).order_by(
-        "name"
-    )
+    parties_qs = Party.objects.filter(party_type__in=["customer", "both"], is_active=True)
+    if not request.user.is_superuser:
+        parties_qs = parties_qs.filter(Q(user=request.user) | Q(user__isnull=True))
+    parties_qs = parties_qs.order_by("name")
+
     paginator = Paginator(parties_qs, 25)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
@@ -59,7 +64,13 @@ def customer_list_view(request: HttpRequest) -> HttpResponse:
 @login_required
 def party_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
     """Deactivate / delete a party so it no longer appears in active vendor/customer lists."""
-    party = get_object_or_404(Party, pk=pk)
+    if request.user.is_superuser:
+        party = get_object_or_404(Party, pk=pk)
+    else:
+        party = get_object_or_404(
+            Party.objects.filter(Q(user=request.user) | Q(user__isnull=True)), pk=pk
+        )
+
     target = (
         "parties:customer_list"
         if party.party_type == Party.PartyType.CUSTOMER
@@ -84,7 +95,9 @@ def party_add_view(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
         form = PartyForm(request.POST)
         if form.is_valid():
-            party = form.save()
+            party = form.save(commit=False)
+            party.user = request.user
+            party.save()
             if party.party_type == Party.PartyType.CUSTOMER:
                 return redirect("parties:customer_list")
             return redirect("parties:vendor_list")
@@ -97,7 +110,12 @@ def party_add_view(request: HttpRequest) -> HttpResponse:
 @login_required
 def party_edit_view(request: HttpRequest, pk: int) -> HttpResponse:
     """Edit an existing party."""
-    party = get_object_or_404(Party, pk=pk)
+    if request.user.is_superuser:
+        party = get_object_or_404(Party, pk=pk)
+    else:
+        party = get_object_or_404(
+            Party.objects.filter(Q(user=request.user) | Q(user__isnull=True)), pk=pk
+        )
 
     if request.method == "POST":
         form = PartyForm(request.POST, instance=party)

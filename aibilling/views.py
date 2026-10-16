@@ -11,7 +11,7 @@ from django.core.cache import cache
 from django.db import connection
 from django.db.models import Q
 from django.http import Http404, HttpResponse, JsonResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import render
 from django.views.decorators.http import require_GET
 
 from bills.models import Bill, BillItem
@@ -33,7 +33,6 @@ def landing_page_view(request):
     if request.user.is_authenticated:
         return dashboard_view(request)
     return render(request, "landing.html", {"title": "ScanBooks — AI Invoicing & Billing"})
-
 
 
 @require_GET
@@ -65,29 +64,36 @@ def dashboard_view(request):
     Uses Django's cache framework for dashboard aggregations and invalidates
     automatically via signals when Bill or Payment records change.
     """
-    cached_data = cache.get(DASHBOARD_CACHE_KEY)
+    user_cache_key = f"{DASHBOARD_CACHE_KEY}_{request.user.pk}"
+    cached_data = cache.get(user_cache_key)
     if cached_data is None:
-        summary = get_spending_summary(date_range_key="all")
-        chart_data = get_spending_over_time()
-        category_breakdown = get_spending_by_category()
+        summary = get_spending_summary(date_range_key="all", user=request.user)
+        chart_data = get_spending_over_time(user=request.user)
+        category_breakdown = get_spending_by_category(user=request.user)
         cached_data = {
             "summary": summary,
             "chart_data": chart_data,
             "category_breakdown": category_breakdown,
         }
-        cache.set(DASHBOARD_CACHE_KEY, cached_data, timeout=300)
+        cache.set(user_cache_key, cached_data, timeout=300)
     else:
         summary = cached_data["summary"]
         chart_data = cached_data["chart_data"]
         category_breakdown = cached_data["category_breakdown"]
 
+    bills_qs = Bill.objects.filter(is_deleted=False)
+    if not request.user.is_superuser:
+        bills_qs = bills_qs.filter(Q(created_by=request.user) | Q(created_by__isnull=True))
     recent_bills = (
-        Bill.objects.filter(is_deleted=False)
-        .select_related("party", "category")
+        bills_qs.select_related("party", "category")
         .prefetch_related("scan_jobs")
         .order_by("-created_at")[:5]
     )
-    recent_activities = ActivityLog.objects.select_related("user").order_by("-created_at")[:6]
+
+    activities_qs = ActivityLog.objects.select_related("user")
+    if not request.user.is_superuser:
+        activities_qs = activities_qs.filter(user=request.user)
+    recent_activities = activities_qs.order_by("-created_at")[:6]
 
     context = {
         "title": "Dashboard",
@@ -111,9 +117,18 @@ def global_search_view(request):
     """Search across bills, parties, and bill line items (English and Urdu)."""
     q = request.GET.get("q", "").strip()
     if q:
+        bills_qs = Bill.objects.filter(is_deleted=False)
+        parties_qs = Party.objects.filter(is_active=True)
+        items_qs = BillItem.objects.filter(bill__is_deleted=False)
+        if not request.user.is_superuser:
+            bills_qs = bills_qs.filter(Q(created_by=request.user) | Q(created_by__isnull=True))
+            parties_qs = parties_qs.filter(Q(user=request.user) | Q(user__isnull=True))
+            items_qs = items_qs.filter(
+                Q(bill__created_by=request.user) | Q(bill__created_by__isnull=True)
+            )
+
         bills = list(
-            Bill.objects.filter(is_deleted=False)
-            .select_related("party", "category")
+            bills_qs.select_related("party", "category")
             .filter(
                 Q(invoice_no__icontains=q)
                 | Q(notes__icontains=q)
@@ -123,13 +138,12 @@ def global_search_view(request):
             .distinct()[:20]
         )
         parties = list(
-            Party.objects.filter(is_active=True)
-            .filter(Q(name__icontains=q) | Q(urdu_name__icontains=q) | Q(phone__icontains=q))
-            .distinct()[:20]
+            parties_qs.filter(
+                Q(name__icontains=q) | Q(urdu_name__icontains=q) | Q(phone__icontains=q)
+            ).distinct()[:20]
         )
         items = list(
-            BillItem.objects.filter(bill__is_deleted=False)
-            .select_related("bill", "bill__party")
+            items_qs.select_related("bill", "bill__party")
             .filter(Q(item_name__icontains=q) | Q(urdu_item_name__icontains=q))
             .distinct()[:20]
         )

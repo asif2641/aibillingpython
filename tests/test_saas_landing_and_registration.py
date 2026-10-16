@@ -50,15 +50,12 @@ class TestSaaSLandingPage:
         assert "10 بلز مفت اسکین کریں" in content
         assert "طریقہ کار" in content
 
-    def test_authenticated_user_visiting_landing_page_sees_dashboard(
-        self, superadmin_client
-    ):
+    def test_authenticated_user_visiting_landing_page_sees_dashboard(self, superadmin_client):
         """Logged-in users automatically see their private dashboard."""
         response = superadmin_client.get("/en/")
         assert response.status_code == 200
         content = response.content.decode("utf-8")
         assert "Dashboard" in content
-
 
 
 @pytest.mark.django_db

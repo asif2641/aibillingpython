@@ -1226,12 +1226,10 @@ class TestAIExtractorProviderResolution:
         monkeypatch.setattr(settings, "AI_PROVIDER", "mock")
         client.force_login(superadmin_user)
 
-
         sample_image.seek(0)
         raw_bytes = sample_image.read()
         sample_image.seek(0)
         raw_hash = hashlib.sha256(raw_bytes).hexdigest()
-
 
         party = Party.objects.create(name="Apex Supplies", party_type="vendor")
         existing_bill = Bill.objects.create(

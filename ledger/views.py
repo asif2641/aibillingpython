@@ -26,7 +26,9 @@ def ledger_dashboard_view(request: HttpRequest) -> HttpResponse:
     party_type = request.GET.get("type", "all")
     query = request.GET.get("q", "").strip()
 
-    summary_data = get_all_parties_ledger_summary(party_type_filter=party_type, search_query=query)
+    summary_data = get_all_parties_ledger_summary(
+        party_type_filter=party_type, search_query=query, user=request.user
+    )
 
     paginator = Paginator(summary_data["party_summaries"], 25)
     page_number = request.GET.get("page")
@@ -49,7 +51,7 @@ def ledger_dashboard_view(request: HttpRequest) -> HttpResponse:
 def payment_add_view(request: HttpRequest) -> HttpResponse:
     """Record a payment towards a party or bill."""
     if request.method == "POST":
-        form = PaymentForm(request.POST)
+        form = PaymentForm(request.POST, user=request.user)
         if form.is_valid():
             try:
                 payment = record_payment(
@@ -74,14 +76,19 @@ def payment_add_view(request: HttpRequest) -> HttpResponse:
     initial = {}
     if party_id:
         initial["party"] = party_id
-    form = PaymentForm(initial=initial)
+    form = PaymentForm(initial=initial, user=request.user)
     return render(request, "ledger/payment_form.html", {"form": form})
 
 
 @login_required
 def party_ledger_view(request: HttpRequest, party_id: int) -> HttpResponse:
     """Render the running ledger statement (Khata) for a specific party."""
-    party = get_object_or_404(Party, pk=party_id)
+    from django.db.models import Q
+
+    party_qs = Party.objects.all()
+    if not request.user.is_superuser:
+        party_qs = party_qs.filter(Q(user=request.user) | Q(user__isnull=True))
+    party = get_object_or_404(party_qs, pk=party_id)
     statement = get_party_ledger_statement(party)
     context = {
         "party": party,
@@ -93,7 +100,12 @@ def party_ledger_view(request: HttpRequest, party_id: int) -> HttpResponse:
 @login_required
 def party_ledger_csv_view(request: HttpRequest, party_id: int) -> HttpResponse:
     """Export the party running ledger statement as a downloadable CSV."""
-    party = get_object_or_404(Party, pk=party_id)
+    from django.db.models import Q
+
+    party_qs = Party.objects.all()
+    if not request.user.is_superuser:
+        party_qs = party_qs.filter(Q(user=request.user) | Q(user__isnull=True))
+    party = get_object_or_404(party_qs, pk=party_id)
     csv_content = generate_ledger_csv(party)
     today_str = timezone.now().date().strftime("%Y-%m-%d")
     response = HttpResponse(csv_content, content_type="text/csv")
