@@ -21,7 +21,8 @@ local_settings.py
 db.sqlite3
 db.sqlite3-journal
 media/
-staticfiles/
+staticfiles/*
+!staticfiles/.gitkeep
 backups/
 
 # Environment variables — NEVER commit this
