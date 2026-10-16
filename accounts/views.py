@@ -11,6 +11,7 @@ Business logic resides in accounts/services.py — views stay thin.
 
 from __future__ import annotations
 
+from decimal import Decimal
 from functools import wraps
 
 from django.contrib import messages
@@ -18,10 +19,13 @@ from django.contrib.auth import get_user_model, login
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
+from django.db.models import Count, Q, Sum
 from django.http import HttpResponseBadRequest, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
+
+from bills.models import Bill
 
 from .forms import (
     CustomAuthenticationForm,
@@ -258,3 +262,161 @@ def subscription_view(request):
         "remaining_scans": user.remaining_scans,
     }
     return render(request, "accounts/subscription.html", context)
+
+
+@superadmin_required
+def superadmin_dashboard_view(request):
+    """Dedicated Frontend Super Admin SaaS Management Dashboard.
+
+    Provides high-level platform KPIs (MRR, tenant count, scan volume, bills)
+    and granular tenant administration (tier changes, quota management, account status).
+    """
+    User = get_user_model()
+    tenants_base = User.objects.exclude(is_superuser=True)
+
+    total_tenants = tenants_base.count()
+    pro_count = tenants_base.filter(plan=User.Plan.PRO).count()
+    business_count = tenants_base.filter(plan=User.Plan.BUSINESS).count()
+    free_count = tenants_base.filter(plan=User.Plan.FREE).count()
+
+    pro_price = Decimal("1500.00")
+    business_price = Decimal("4000.00")
+    estimated_mrr = (Decimal(pro_count) * pro_price) + (Decimal(business_count) * business_price)
+
+    total_scans_used = tenants_base.aggregate(total=Sum("scans_used_this_month"))["total"] or 0
+
+    total_platform_bills = Bill.objects.active().count()
+    total_platform_volume = Bill.objects.active().aggregate(total=Sum("grand_total"))[
+        "total"
+    ] or Decimal("0.00")
+
+    # Filter & Search
+    q = request.GET.get("q", "").strip()
+    selected_plan = request.GET.get("plan", "").strip().lower()
+
+    tenants_qs = tenants_base.annotate(
+        bills_count=Count("created_bills", filter=Q(created_bills__is_deleted=False), distinct=True)
+    ).order_by("-date_joined")
+
+    if q:
+        tenants_qs = tenants_qs.filter(
+            Q(business_name__icontains=q) | Q(username__icontains=q) | Q(email__icontains=q)
+        )
+    if selected_plan in (User.Plan.FREE, User.Plan.PRO, User.Plan.BUSINESS):
+        tenants_qs = tenants_qs.filter(plan=selected_plan)
+
+    paginator = Paginator(tenants_qs, 20)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        "title": _("SaaS Super Admin Console"),
+        "total_tenants": total_tenants,
+        "pro_count": pro_count,
+        "business_count": business_count,
+        "free_count": free_count,
+        "estimated_mrr": estimated_mrr,
+        "total_scans_used": total_scans_used,
+        "total_platform_bills": total_platform_bills,
+        "total_platform_volume": total_platform_volume,
+        "page_obj": page_obj,
+        "tenants": page_obj.object_list,
+        "q": q,
+        "selected_plan": selected_plan,
+        "plan_choices": User.Plan.choices,
+    }
+    return render(request, "accounts/superadmin_dashboard.html", context)
+
+
+@superadmin_required
+def superadmin_update_tenant_plan_view(request, user_id: int):
+    """Update tenant subscription tier and monthly scan quota."""
+    if request.method != "POST":
+        return redirect("accounts:superadmin_dashboard")
+
+    User = get_user_model()
+    tenant = get_object_or_404(User, pk=user_id)
+
+    new_plan = request.POST.get("plan")
+    new_quota = request.POST.get("monthly_scan_quota")
+
+    if new_plan in (User.Plan.FREE, User.Plan.PRO, User.Plan.BUSINESS):
+        tenant.plan = new_plan
+
+    if new_quota is not None and str(new_quota).isdigit():
+        tenant.monthly_scan_quota = int(new_quota)
+    elif new_plan == User.Plan.FREE:
+        tenant.monthly_scan_quota = 10
+    elif new_plan == User.Plan.PRO:
+        tenant.monthly_scan_quota = 100
+    elif new_plan == User.Plan.BUSINESS:
+        tenant.monthly_scan_quota = 500
+
+    tenant.save(update_fields=["plan", "monthly_scan_quota"])
+    messages.success(
+        request,
+        _("Subscription plan for %(username)s updated to %(plan)s (%(quota)d scans/month).")
+        % {
+            "username": tenant.username,
+            "plan": tenant.get_plan_display(),
+            "quota": tenant.monthly_scan_quota,
+        },
+    )
+    return redirect(request.META.get("HTTP_REFERER") or "accounts:superadmin_dashboard")
+
+
+@superadmin_required
+def superadmin_toggle_tenant_status_view(request, user_id: int):
+    """Toggle tenant active status (activate or suspend account)."""
+    if request.method != "POST":
+        return redirect("accounts:superadmin_dashboard")
+
+    User = get_user_model()
+    tenant = get_object_or_404(User, pk=user_id)
+
+    if tenant.pk == request.user.pk:
+        messages.error(request, _("You cannot suspend your own superadmin account."))
+        return redirect("accounts:superadmin_dashboard")
+
+    tenant.is_active = not tenant.is_active
+    tenant.save(update_fields=["is_active"])
+
+    status_label = _("activated") if tenant.is_active else _("suspended")
+    messages.success(
+        request,
+        _("Tenant account %(username)s has been %(status)s.")
+        % {"username": tenant.username, "status": status_label},
+    )
+    return redirect(request.META.get("HTTP_REFERER") or "accounts:superadmin_dashboard")
+
+
+@superadmin_required
+def superadmin_add_bonus_scans_view(request, user_id: int):
+    """Add bonus scans to tenant's current monthly scan quota."""
+    if request.method != "POST":
+        return redirect("accounts:superadmin_dashboard")
+
+    User = get_user_model()
+    tenant = get_object_or_404(User, pk=user_id)
+
+    bonus_raw = request.POST.get("bonus_scans", 0)
+    try:
+        bonus = int(bonus_raw)
+        if bonus > 0:
+            tenant.monthly_scan_quota += bonus
+            tenant.save(update_fields=["monthly_scan_quota"])
+            messages.success(
+                request,
+                _("Granted %(bonus)d bonus scans to %(username)s. New monthly quota: %(total)d.")
+                % {
+                    "bonus": bonus,
+                    "username": tenant.username,
+                    "total": tenant.monthly_scan_quota,
+                },
+            )
+        else:
+            messages.warning(request, _("Bonus scans must be greater than zero."))
+    except (ValueError, TypeError):
+        messages.error(request, _("Invalid bonus scan value entered."))
+
+    return redirect(request.META.get("HTTP_REFERER") or "accounts:superadmin_dashboard")

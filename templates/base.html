@@ -257,6 +257,17 @@
                             <svg class="w-5 h-5 flex-shrink-0 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                             <span>{% trans "Subscription & Quota" %}</span>
                         </a>
+                        {% if request.user.is_superuser %}
+                        <div class="pt-2 pb-1">
+                            <div class="px-3 text-[10px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">
+                                {% trans "SaaS Admin" %}
+                            </div>
+                        </div>
+                        <a href="{% url 'accounts:superadmin_dashboard' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium {% if 'superadmin' in request.path %}bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800{% else %}text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors{% endif %}">
+                            <svg class="w-5 h-5 flex-shrink-0 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                            <span>{% trans "SaaS Console" %}</span>
+                        </a>
+                        {% endif %}
                     </nav>
 
                     <!-- Mobile Drawer Footer: User Profile & Sign Out -->
@@ -371,6 +382,17 @@
                         <svg class="w-5 h-5 flex-shrink-0 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                         <span x-show="!sidebarCollapsed" class="whitespace-nowrap">{% trans "Subscription & Quota" %}</span>
                     </a>
+                    {% if request.user.is_superuser %}
+                    <div class="pt-2 pb-1" x-show="!sidebarCollapsed">
+                        <div class="px-3 text-[10px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">
+                            {% trans "SaaS Admin" %}
+                        </div>
+                    </div>
+                    <a href="{% url 'accounts:superadmin_dashboard' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors {% if 'superadmin' in request.path %}bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800{% else %}text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/30{% endif %}" title="{% trans 'SaaS Console' %}">
+                        <svg class="w-5 h-5 flex-shrink-0 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                        <span x-show="!sidebarCollapsed" class="whitespace-nowrap">{% trans "SaaS Console" %}</span>
+                    </a>
+                    {% endif %}
                 </nav>
             </aside>
 
@@ -487,6 +509,11 @@
                             <svg class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                             <span>{{ request.user.scans_used_this_month }}/{{ request.user.monthly_scan_quota }} {% trans "Scans" %}</span>
                             <span class="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-200 dark:bg-emerald-800 text-emerald-900 dark:text-emerald-100">{% trans "Upgrade" %}</span>
+                        </a>
+                        {% else %}
+                        <a href="{% url 'accounts:superadmin_dashboard' %}" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-900 transition-colors" title="{% trans 'SaaS Console' %}">
+                            <svg class="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                            <span>{% trans "SaaS Console" %}</span>
                         </a>
                         {% endif %}
 
