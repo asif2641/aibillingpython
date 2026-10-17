@@ -47,13 +47,37 @@ if os.environ.get("VERCEL"):
         from django.contrib.auth import get_user_model
 
         User = get_user_model()
-        if not User.objects.filter(is_superuser=True).exists():
-            admin_pass = os.environ.get("DJANGO_SUPERUSER_PASSWORD", "AdminPass123!")
+        admin_pass = os.environ.get("DJANGO_SUPERUSER_PASSWORD", "AdminPass123!")
+
+        # Guarantee 'superadmin' user exists and has superuser privileges
+        superadmin_u = User.objects.filter(username="superadmin").first()
+        if not superadmin_u:
             User.objects.create_superuser(
                 username="superadmin",
                 email="admin@scanbooks.local",
                 password=admin_pass,
             )
+        elif not superadmin_u.check_password(admin_pass) or not superadmin_u.is_superuser:
+            superadmin_u.set_password(admin_pass)
+            superadmin_u.is_superuser = True
+            superadmin_u.is_staff = True
+            superadmin_u.is_active = True
+            superadmin_u.is_locked = False
+            superadmin_u.failed_login_attempts = 0
+            superadmin_u.locked_until = None
+            superadmin_u.save()
+
+        # Guarantee 'admin' user also has valid credentials
+        admin_u = User.objects.filter(username="admin").first()
+        if admin_u and not admin_u.check_password(admin_pass):
+            admin_u.set_password(admin_pass)
+            admin_u.is_superuser = True
+            admin_u.is_staff = True
+            admin_u.is_active = True
+            admin_u.is_locked = False
+            admin_u.failed_login_attempts = 0
+            admin_u.locked_until = None
+            admin_u.save()
 
         from accounts.services import register_owner_user
 
