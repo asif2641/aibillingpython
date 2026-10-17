@@ -180,3 +180,24 @@ class TestSuperadminTenantActions:
 
         tenant.refresh_from_db()
         assert tenant.monthly_scan_quota == initial_quota + 25
+
+    def test_superadmin_can_create_new_tenant(self, superadmin_client):
+        """Superadmin can provision a new tenant directly from the console."""
+        url = reverse("accounts:superadmin_create_tenant")
+        post_data = {
+            "business_name": "New Fresh Tenant Mart",
+            "username": "fresh_tenant",
+            "password": "Password123!",
+            "email": "fresh@example.com",
+            "plan": "pro",
+            "monthly_scan_quota": 120,
+        }
+        response = superadmin_client.post(url, post_data)
+        assert response.status_code == 302
+        assert User.objects.filter(username="fresh_tenant").exists()
+        created = User.objects.get(username="fresh_tenant")
+        assert created.business_name == "New Fresh Tenant Mart"
+        assert created.plan == User.Plan.PRO
+        assert created.monthly_scan_quota == 120
+        assert created.scans_used_this_month == 0
+        assert created.check_password("Password123!")

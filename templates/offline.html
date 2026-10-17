@@ -24,7 +24,7 @@
             <!-- Status Pill & Theme Toggle -->
             <div class="flex items-center gap-3">
                 <!-- Status Pill -->
-                <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300/60 dark:border-amber-800/60 shadow-sm"
+                <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300/60 dark:border-amber-800/60"
                      role="status" aria-live="polite">
                     <span class="relative flex h-2 w-2">
                         <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
@@ -58,7 +58,7 @@
         x-transition:enter="transition ease-out duration-300"
         x-transition:enter-start="-translate-y-4 opacity-0"
         x-transition:enter-end="translate-y-0 opacity-100"
-        class="bg-emerald-600 text-white px-4 py-3 shadow-lg">
+        class="bg-emerald-600 text-white px-4 py-3">
         <div class="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
             <div class="flex items-center gap-2">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -71,7 +71,7 @@
             <button 
                 @click="window.location.reload()" 
                 type="button" 
-                class="px-4 py-1.5 min-h-[44px] bg-white text-emerald-700 font-semibold text-xs rounded-lg shadow hover:bg-emerald-50 transition-colors focus:outline-none focus:ring-2 focus:ring-white">
+                class="px-4 py-1.5 min-h-[44px] bg-white text-emerald-700 font-semibold text-xs rounded-lg hover:bg-emerald-50 transition-colors focus:outline-none focus:ring-2 focus:ring-white">
                 Reload Now / اب ری لوڈ کریں
             </button>
         </div>
@@ -81,16 +81,11 @@
     <main class="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8">
         <div class="max-w-2xl w-full">
             <!-- Glassmorphic Main Card -->
-            <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-10 shadow-xl border border-slate-200 dark:border-slate-700 text-center relative overflow-hidden">
-                
-                <!-- Background decorative ambient circles -->
-                <div class="absolute -top-24 -left-24 w-48 h-48 bg-primary-500/10 rounded-full blur-2xl pointer-events-none"></div>
-                <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>
-
+            <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-10 border border-slate-200 dark:border-slate-700 text-center relative overflow-hidden">
                 <!-- Animated Offline Graphic -->
                 <div class="relative mx-auto mb-6 w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center">
                     <div class="absolute inset-0 rounded-full bg-amber-500/10 dark:bg-amber-400/10 animate-ping"></div>
-                    <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 flex items-center justify-center shadow-inner">
+                    <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 flex items-center justify-center">
                         <!-- Cloud Offline Icon -->
                         <svg class="w-10 h-10 sm:w-12 sm:h-12 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 00-9.78 2.096A4.001 4.001 0 003 15z" />
@@ -169,7 +164,7 @@
                     <!-- Primary Button: Create Bill Offline -->
                     <a 
                         href="{% url 'bills:bill_add' %}" 
-                        class="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3.5 min-h-[44px] rounded-xl font-semibold text-sm text-white bg-primary-600 hover:bg-primary-500 active:bg-primary-700 shadow-lg shadow-primary-600/30 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-slate-800">
+                        class="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3.5 min-h-[44px] rounded-xl font-semibold text-sm text-white bg-primary-600 hover:bg-primary-500 active:bg-primary-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-slate-800">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                         </svg>

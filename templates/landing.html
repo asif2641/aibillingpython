@@ -38,6 +38,16 @@
                         sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
                         urdu: ["'Jameel Noori Nastaleeq'", "'Noto Sans Arabic'", 'Tahoma', 'sans-serif'],
                     },
+                    boxShadow: {
+                        none: 'none',
+                        sm: 'none',
+                        DEFAULT: 'none',
+                        md: 'none',
+                        lg: 'none',
+                        xl: 'none',
+                        '2xl': 'none',
+                        inner: 'none',
+                    },
                 },
             },
         };
@@ -85,6 +95,20 @@
         }
         .animate-scan {
             animation: scanPulse 2.5s ease-in-out infinite;
+        }
+
+        /* Universal Flat Design - Strictly eliminate box-shadows and gradients */
+        *, *::before, *::after {
+            --tw-shadow: 0 0 #0000 !important;
+            --tw-shadow-colored: 0 0 #0000 !important;
+            box-shadow: none !important;
+        }
+        [class*="bg-gradient-"] {
+            background-image: none !important;
+        }
+        :focus-visible {
+            outline: 2px solid #6366f1 !important;
+            outline-offset: 1px !important;
         }
     </style>
 
@@ -194,7 +218,7 @@
                 </a>
 
                 <!-- Primary CTA Button -->
-                <a href="{% url 'accounts:register' %}" class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-primary-600 hover:bg-primary-700 active:scale-95 rounded-xl shadow-md shadow-primary-500/25 transition-all">
+                <a href="{% url 'accounts:register' %}" class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-primary-600 hover:bg-primary-700 active:scale-95 rounded-xl transition-all">
                     <span>{% if LANGUAGE_CODE == 'ur' %}مفت شروع کریں{% else %}Start Free{% endif %}</span>
                     <span class="text-xs bg-primary-500/80 px-1.5 py-0.5 rounded-full font-mono">10</span>
                 </a>
@@ -208,56 +232,61 @@
          2. HERO SECTION
          ────────────────────────────────────────────────────────────────────────── -->
     <section class="relative overflow-hidden pt-12 pb-20 lg:pt-20 lg:pb-32">
-        <!-- Background Gradient Glows -->
-        <div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-gradient-to-tr from-primary-600/20 to-indigo-400/20 rounded-full blur-3xl pointer-events-none -z-10"></div>
-
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-8">
             
             <!-- Trust Pill -->
-            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold bg-primary-50 dark:bg-primary-950/70 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800 shadow-sm animate-fade-in">
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold bg-primary-50 dark:bg-primary-950/70 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800 animate-fade-in">
                 <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-ping"></span>
-                <span>{% if LANGUAGE_CODE == 'ur' %}✨ جدید ترین AI کے ذریعے رسیدیں اور کھاتہ خودکار بنائیں{% else %}✨ Automated AI Invoicing & Smart Khata{% endif %}</span>
+                <span>{% if LANGUAGE_CODE == 'ur' %}{{ site_settings.hero_badge_ur|default:"✨ جدید ترین AI کے ذریعے رسیدیں اور کھاتہ خودکار بنائیں" }}{% else %}{{ site_settings.hero_badge_en|default:"✨ Automated AI Invoicing & Smart Khata" }}{% endif %}</span>
             </div>
 
             <!-- Main Heading -->
             <h1 class="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-950 dark:text-white tracking-tight leading-[1.2] max-w-4xl mx-auto">
                 {% if LANGUAGE_CODE == 'ur' %}
-                    کاغذی بلوں اور پرچیوں سے نجات۔  
-                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary-600 via-indigo-600 to-primary-400">
-                        صرف 5 سیکنڈ میں
-                    </span>
-                    خودکار ڈیجیٹل کھاتہ!
+                    {% if site_settings.hero_title_ur %}
+                        {{ site_settings.hero_title_ur|linebreaksbr }}
+                    {% else %}
+                        کاغذی بلوں اور پرچیوں سے نجات۔  
+                        <span class="text-primary-600 dark:text-primary-400">
+                            صرف 5 سیکنڈ میں
+                        </span>
+                        خودکار ڈیجیٹل کھاتہ!
+                    {% endif %}
                 {% else %}
-                    Turn Paper Bills into Smart Accounts in 
-                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary-600 via-indigo-600 to-primary-400">
-                        5 Seconds
-                    </span>
+                    {% if site_settings.hero_title_en %}
+                        {{ site_settings.hero_title_en|linebreaksbr }}
+                    {% else %}
+                        Turn Paper Bills into Smart Accounts in 
+                        <span class="text-primary-600 dark:text-primary-400">
+                            5 Seconds
+                        </span>
+                    {% endif %}
                 {% endif %}
             </h1>
 
             <!-- Subheading -->
             <p class="text-lg sm:text-xl text-slate-600 dark:text-slate-300 max-w-2xl mx-auto font-normal leading-relaxed">
                 {% if LANGUAGE_CODE == 'ur' %}
-                    موبائل کیمرے سے کسی بھی ہاتھ سے لکھے یا پرنٹ شدہ بل کی تصویر لیں۔ ہمارا AI خودکار اشیاء، ریٹس اور ٹوٹل نکال کر گاہک کا کھاتہ اور واٹس ایپ رپورٹ فوراً تیار کر دیتا ہے۔
+                    {{ site_settings.hero_subtitle_ur|default:"موبائل کیمرے سے کسی بھی ہاتھ سے لکھے یا پرنٹ شدہ بل کی تصویر لیں۔ ہمارا AI خودکار اشیاء، ریٹس اور ٹوٹل نکال کر گاہک کا کھاتہ اور واٹس ایپ رپورٹ فوراً تیار کر دیتا ہے۔" }}
                 {% else %}
-                    Snap a photo of any handwritten or printed receipt. ScanBooks extracts line items, updates customer ledgers, and generates instant WhatsApp bills without manual typing.
+                    {{ site_settings.hero_subtitle_en|default:"Snap a photo of any handwritten or printed receipt. ScanBooks extracts line items, updates customer ledgers, and generates instant WhatsApp bills without manual typing." }}
                 {% endif %}
             </p>
 
             <!-- CTA Buttons -->
             <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
                 <!-- Free Trial CTA -->
-                <a href="{% url 'accounts:register' %}" class="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-4 text-base font-bold text-white bg-primary-600 hover:bg-primary-700 active:scale-95 rounded-2xl shadow-xl shadow-primary-500/30 transition-all cursor-pointer">
+                <a href="{% url 'accounts:register' %}" class="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-4 text-base font-bold text-white bg-primary-600 hover:bg-primary-700 active:scale-95 rounded-2xl transition-all cursor-pointer">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                    <span>{% if LANGUAGE_CODE == 'ur' %}10 بلز مفت اسکین کریں{% else %}Start 10 Free Scans{% endif %}</span>
+                    <span>{% if LANGUAGE_CODE == 'ur' %}{{ site_settings.hero_cta_text_ur|default:"10 بلز مفت اسکین کریں" }}{% else %}{{ site_settings.hero_cta_text_en|default:"Start 10 Free Scans" }}{% endif %}</span>
                 </a>
 
                 <!-- Watch Video Demo CTA -->
-                <button @click="openDemoVideo()" type="button" class="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-7 py-4 text-base font-semibold text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer group">
+                <button @click="openDemoVideo()" type="button" class="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-7 py-4 text-base font-semibold text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-2xl transition-all cursor-pointer group">
                     <span class="w-7 h-7 rounded-full bg-primary-100 dark:bg-primary-950/80 text-primary-600 dark:text-primary-400 flex items-center justify-center group-hover:scale-110 transition-transform">
                         <svg class="w-4 h-4 translate-x-0.5 rtl:-translate-x-0.5 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                     </span>
-                    <span>{% if LANGUAGE_CODE == 'ur' %}45 سیکنڈ کی ویڈیو دیکھیں{% else %}Watch 45s Video Demo{% endif %}</span>
+                    <span>{% if LANGUAGE_CODE == 'ur' %}{{ site_settings.video_button_text_ur|default:"45 سیکنڈ کی ویڈیو دیکھیں" }}{% else %}{{ site_settings.video_button_text_en|default:"Watch 45s Video Demo" }}{% endif %}</span>
                 </button>
             </div>
 
@@ -272,7 +301,7 @@
 
             <!-- Product Showcase / Mockup Frame with Play Button -->
             <div class="relative max-w-5xl mx-auto pt-8">
-                <div class="relative rounded-3xl p-2 sm:p-4 bg-gradient-to-b from-slate-200/80 via-slate-100/50 to-transparent dark:from-slate-800/80 dark:via-slate-900/50 border border-slate-200/80 dark:border-slate-800 shadow-2xl">
+                <div class="relative rounded-3xl p-2 sm:p-4 bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
                     <div class="relative rounded-2xl overflow-hidden bg-slate-950 aspect-[16/9] max-h-[540px] group cursor-pointer" @click="openDemoVideo()">
                         <img 
                             src="{% static 'img/dashboard-preview.png' %}" 
@@ -281,20 +310,20 @@
                         
                         <!-- Overlay Play Button -->
                         <div class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/40 group-hover:bg-slate-950/30 transition-colors">
-                            <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-primary-600/90 text-white flex items-center justify-center shadow-2xl shadow-primary-600/50 group-hover:scale-110 group-hover:bg-primary-500 transition-all duration-300 ring-8 ring-primary-500/20">
+                            <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-primary-600 text-white flex items-center justify-center group-hover:scale-110 group-hover:bg-primary-500 transition-all duration-300 ring-4 ring-primary-500/20">
                                 <svg class="w-9 h-9 sm:w-10 sm:h-10 translate-x-1 rtl:-translate-x-1 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                             </div>
-                            <span class="mt-4 px-4 py-1.5 rounded-full text-xs font-bold bg-slate-900/80 text-white backdrop-blur-md border border-slate-700/60 shadow-lg">
+                            <span class="mt-4 px-4 py-1.5 rounded-full text-xs font-bold bg-slate-900/80 text-white backdrop-blur-md border border-slate-700/60">
                                 {% if LANGUAGE_CODE == 'ur' %}ویڈیو دیکھیں کہ سسٹم کیسے کام کرتا ہے{% else %}Click to Watch Live Demo Video{% endif %}
                             </span>
                         </div>
 
                         <!-- Floating Badges on Preview -->
                         <div class="absolute bottom-4 left-4 sm:bottom-6 sm:left-6 flex flex-wrap gap-2 pointer-events-none">
-                            <span class="px-3 py-1.5 rounded-xl bg-slate-900/90 text-emerald-400 text-xs font-bold border border-slate-700/60 backdrop-blur-md shadow-lg flex items-center gap-1.5">
+                            <span class="px-3 py-1.5 rounded-xl bg-slate-900/90 text-emerald-400 text-xs font-bold border border-slate-700/60 backdrop-blur-md flex items-center gap-1.5">
                                 <span>⚡</span> 99.4% OCR Accuracy
                             </span>
-                            <span class="px-3 py-1.5 rounded-xl bg-slate-900/90 text-primary-300 text-xs font-bold border border-slate-700/60 backdrop-blur-md shadow-lg flex items-center gap-1.5">
+                            <span class="px-3 py-1.5 rounded-xl bg-slate-900/90 text-primary-300 text-xs font-bold border border-slate-700/60 backdrop-blur-md flex items-center gap-1.5">
                                 <span>📱</span> Urdu & English Receipts
                             </span>
                         </div>
@@ -336,7 +365,7 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
                 
                 <!-- Step 1 Card -->
-                <div class="relative bg-slate-50 dark:bg-slate-800/70 rounded-3xl p-8 border border-slate-200 dark:border-slate-700/70 hover:border-primary-500/50 transition-all shadow-sm hover:shadow-xl group">
+                <div class="relative bg-slate-50 dark:bg-slate-800/70 rounded-3xl p-8 border border-slate-200 dark:border-slate-700/70 hover:border-primary-500/50 transition-all group">
                     <div class="w-14 h-14 rounded-2xl bg-primary-600/10 dark:bg-primary-500/20 text-primary-600 dark:text-primary-400 flex items-center justify-center text-2xl font-black mb-6 group-hover:scale-110 transition-transform">
                         📸
                     </div>
@@ -356,7 +385,7 @@
                 </div>
 
                 <!-- Step 2 Card -->
-                <div class="relative bg-slate-50 dark:bg-slate-800/70 rounded-3xl p-8 border border-slate-200 dark:border-slate-700/70 hover:border-primary-500/50 transition-all shadow-sm hover:shadow-xl group">
+                <div class="relative bg-slate-50 dark:bg-slate-800/70 rounded-3xl p-8 border border-slate-200 dark:border-slate-700/70 hover:border-primary-500/50 transition-all group">
                     <div class="w-14 h-14 rounded-2xl bg-indigo-600/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-2xl font-black mb-6 group-hover:scale-110 transition-transform">
                         ⚡
                     </div>
@@ -376,7 +405,7 @@
                 </div>
 
                 <!-- Step 3 Card -->
-                <div class="relative bg-slate-50 dark:bg-slate-800/70 rounded-3xl p-8 border border-slate-200 dark:border-slate-700/70 hover:border-primary-500/50 transition-all shadow-sm hover:shadow-xl group">
+                <div class="relative bg-slate-50 dark:bg-slate-800/70 rounded-3xl p-8 border border-slate-200 dark:border-slate-700/70 hover:border-primary-500/50 transition-all group">
                     <div class="w-14 h-14 rounded-2xl bg-emerald-600/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-2xl font-black mb-6 group-hover:scale-110 transition-transform">
                         📊
                     </div>
@@ -430,7 +459,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
                 
                 <!-- Feature 1 -->
-                <div class="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/70 shadow-sm hover:shadow-md transition-shadow">
+                <div class="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/70 hover:border-slate-300 dark:hover:border-slate-600 transition-colors">
                     <div class="w-12 h-12 rounded-xl bg-primary-100 dark:bg-primary-950 text-primary-600 dark:text-primary-400 flex items-center justify-center text-xl mb-5">
                         ✍️
                     </div>
@@ -447,7 +476,7 @@
                 </div>
 
                 <!-- Feature 2 -->
-                <div class="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/70 shadow-sm hover:shadow-md transition-shadow">
+                <div class="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/70 hover:border-slate-300 dark:hover:border-slate-600 transition-colors">
                     <div class="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl mb-5">
                         💬
                     </div>
@@ -464,7 +493,7 @@
                 </div>
 
                 <!-- Feature 3 -->
-                <div class="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/70 shadow-sm hover:shadow-md transition-shadow">
+                <div class="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/70 hover:border-slate-300 dark:hover:border-slate-600 transition-colors">
                     <div class="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xl mb-5">
                         📒
                     </div>
@@ -481,8 +510,8 @@
                 </div>
 
                 <!-- Feature 4 -->
-                <div class="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/70 shadow-sm hover:shadow-md transition-shadow">
-                    <div class="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-950 text-purple-600 dark:text-purple-400 flex items-center justify-center text-xl mb-5">
+                <div class="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/70 hover:border-slate-300 dark:hover:border-slate-600 transition-colors">
+                    <div class="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xl mb-5">
                         📈
                     </div>
                     <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">
@@ -498,7 +527,7 @@
                 </div>
 
                 <!-- Feature 5 -->
-                <div class="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/70 shadow-sm hover:shadow-md transition-shadow">
+                <div class="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/70 hover:border-slate-300 dark:hover:border-slate-600 transition-colors">
                     <div class="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xl mb-5">
                         📱
                     </div>
@@ -515,7 +544,7 @@
                 </div>
 
                 <!-- Feature 6 -->
-                <div class="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/70 shadow-sm hover:shadow-md transition-shadow">
+                <div class="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/70 hover:border-slate-300 dark:hover:border-slate-600 transition-colors">
                     <div class="w-12 h-12 rounded-xl bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400 flex items-center justify-center text-xl mb-5">
                         🔒
                     </div>
@@ -557,18 +586,18 @@
                 
                 <!-- Currency Toggle Buttons -->
                 <div class="pt-4 flex items-center justify-center">
-                    <div class="inline-flex items-center p-1 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <div class="inline-flex items-center p-1 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                         <button 
                             @click="currency = 'PKR'" 
                             type="button" 
-                            :class="currency === 'PKR' ? 'bg-primary-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'"
+                            :class="currency === 'PKR' ? 'bg-primary-600 text-white' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'"
                             class="px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all">
                             🇵🇰 پاکستان (PKR)
                         </button>
                         <button 
                             @click="currency = 'USD'" 
                             type="button" 
-                            :class="currency === 'USD' ? 'bg-primary-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'"
+                            :class="currency === 'USD' ? 'bg-primary-600 text-white' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'"
                             class="px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all">
                             🌍 Global (USD)
                         </button>
@@ -580,7 +609,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch max-w-6xl mx-auto">
                 
                 <!-- Free Tier Card -->
-                <div class="rounded-3xl p-8 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between">
+                <div class="rounded-3xl p-8 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex flex-col justify-between">
                     <div>
                         <div class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
                             {% if LANGUAGE_CODE == 'ur' %}مفت ٹرائل{% else %}Free Trial{% endif %}
@@ -590,15 +619,15 @@
                         </h3>
                         <div class="flex items-baseline gap-1 mb-6">
                             <span class="text-4xl font-extrabold text-slate-900 dark:text-white">
-                                <span x-show="currency === 'PKR'">0 روپے</span>
-                                <span x-show="currency === 'USD'">$0</span>
+                                <span x-show="currency === 'PKR'">{{ site_settings.starter_price_pkr|default:"0" }} روپے</span>
+                                <span x-show="currency === 'USD'">${{ site_settings.starter_price_usd|default:"0" }}</span>
                             </span>
                             <span class="text-sm text-slate-500">/ {% if LANGUAGE_CODE == 'ur' %}ہمیشہ کے لیے{% else %}forever{% endif %}</span>
                         </div>
                         <ul class="space-y-3.5 text-sm text-slate-600 dark:text-slate-300 mb-8">
                             <li class="flex items-center gap-2.5">
                                 <span class="text-emerald-500 font-bold">✓</span>
-                                <strong class="text-slate-900 dark:text-white">10 AI Bill Scans</strong>
+                                <strong class="text-slate-900 dark:text-white">{{ site_settings.starter_scans|default:10 }} AI Bill Scans</strong>
                             </li>
                             <li class="flex items-center gap-2.5">
                                 <span class="text-emerald-500 font-bold">✓</span>
@@ -625,8 +654,8 @@
                 </div>
 
                 <!-- Pro Tier Card (Highlighted) -->
-                <div class="relative rounded-3xl p-8 bg-white dark:bg-slate-800 border-2 border-primary-600 dark:border-primary-500 shadow-xl shadow-primary-500/10 flex flex-col justify-between transform lg:-translate-y-2">
-                    <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-black bg-primary-600 text-white uppercase tracking-wider shadow-md">
+                <div class="relative rounded-3xl p-8 bg-white dark:bg-slate-800 border-2 border-primary-600 dark:border-primary-500 flex flex-col justify-between transform lg:-translate-y-2">
+                    <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-black bg-primary-600 text-white uppercase tracking-wider">
                         {% if LANGUAGE_CODE == 'ur' %}سب سے مقبول پلان{% else %}Most Popular{% endif %}
                     </div>
                     <div>
@@ -638,15 +667,15 @@
                         </h3>
                         <div class="flex items-baseline gap-1 mb-6">
                             <span class="text-4xl font-extrabold text-slate-900 dark:text-white">
-                                <span x-show="currency === 'PKR'">1,499 روپے</span>
-                                <span x-show="currency === 'USD'">$9.99</span>
+                                <span x-show="currency === 'PKR'">{{ site_settings.pro_price_pkr|default:"1,499" }} روپے</span>
+                                <span x-show="currency === 'USD'">${{ site_settings.pro_price_usd|default:"9.99" }}</span>
                             </span>
                             <span class="text-sm text-slate-500">/ {% if LANGUAGE_CODE == 'ur' %}ماہانہ{% else %}month{% endif %}</span>
                         </div>
                         <ul class="space-y-3.5 text-sm text-slate-600 dark:text-slate-300 mb-8">
                             <li class="flex items-center gap-2.5">
                                 <span class="text-emerald-500 font-bold">✓</span>
-                                <strong class="text-slate-900 dark:text-white">150 AI Bill Scans / mo</strong>
+                                <strong class="text-slate-900 dark:text-white">{{ site_settings.pro_scans|default:150 }} AI Bill Scans / mo</strong>
                             </li>
                             <li class="flex items-center gap-2.5">
                                 <span class="text-emerald-500 font-bold">✓</span>
@@ -667,13 +696,13 @@
                         </ul>
                     </div>
 
-                    <a href="{% url 'accounts:register' %}" class="w-full py-3.5 px-4 rounded-xl text-center text-sm font-bold bg-primary-600 hover:bg-primary-700 text-white shadow-lg shadow-primary-500/30 transition-all">
+                    <a href="{% url 'accounts:register' %}" class="w-full py-3.5 px-4 rounded-xl text-center text-sm font-bold bg-primary-600 hover:bg-primary-700 text-white transition-all">
                         {% if LANGUAGE_CODE == 'ur' %}پرو ٹرائل شروع کریں{% else %}Start Pro Trial{% endif %}
                     </a>
                 </div>
 
                 <!-- Business Tier Card -->
-                <div class="rounded-3xl p-8 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between">
+                <div class="rounded-3xl p-8 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex flex-col justify-between">
                     <div>
                         <div class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
                             {% if LANGUAGE_CODE == 'ur' %}ہول سیل اور بڑے ادارے{% else %}High Volume{% endif %}
@@ -683,15 +712,15 @@
                         </h3>
                         <div class="flex items-baseline gap-1 mb-6">
                             <span class="text-4xl font-extrabold text-slate-900 dark:text-white">
-                                <span x-show="currency === 'PKR'">3,999 روپے</span>
-                                <span x-show="currency === 'USD'">$24.99</span>
+                                <span x-show="currency === 'PKR'">{{ site_settings.business_price_pkr|default:"3,999" }} روپے</span>
+                                <span x-show="currency === 'USD'">${{ site_settings.business_price_usd|default:"24.99" }}</span>
                             </span>
                             <span class="text-sm text-slate-500">/ {% if LANGUAGE_CODE == 'ur' %}ماہانہ{% else %}month{% endif %}</span>
                         </div>
                         <ul class="space-y-3.5 text-sm text-slate-600 dark:text-slate-300 mb-8">
                             <li class="flex items-center gap-2.5">
                                 <span class="text-emerald-500 font-bold">✓</span>
-                                <strong class="text-slate-900 dark:text-white">500 AI Bill Scans / mo</strong>
+                                <strong class="text-slate-900 dark:text-white">{{ site_settings.business_scans|default:500 }} AI Bill Scans / mo</strong>
                             </li>
                             <li class="flex items-center gap-2.5">
                                 <span class="text-emerald-500 font-bold">✓</span>
@@ -788,7 +817,7 @@
     <!-- ──────────────────────────────────────────────────────────────────────────
          7. BOTTOM CALL TO ACTION
          ────────────────────────────────────────────────────────────────────────── -->
-    <section class="py-16 bg-gradient-to-r from-primary-600 to-indigo-700 text-white text-center">
+    <section class="py-16 bg-primary-600 text-white text-center">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
             <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight">
                 {% if LANGUAGE_CODE == 'ur' %}
@@ -805,7 +834,7 @@
                 {% endif %}
             </p>
             <div class="pt-2">
-                <a href="{% url 'accounts:register' %}" class="inline-flex items-center gap-2 px-8 py-4 text-base font-black text-primary-700 bg-white hover:bg-slate-100 active:scale-95 rounded-2xl shadow-2xl transition-all cursor-pointer">
+                <a href="{% url 'accounts:register' %}" class="inline-flex items-center gap-2 px-8 py-4 text-base font-black text-primary-700 bg-white hover:bg-slate-100 active:scale-95 rounded-2xl transition-all cursor-pointer">
                     <span>{% if LANGUAGE_CODE == 'ur' %}ابھی 10 مفت اسکینز حاصل کریں{% else %}Claim Your 10 Free Scans Now{% endif %}</span>
                     <span class="rtl:rotate-180">→</span>
                 </a>
@@ -815,16 +844,98 @@
 
 
     <!-- ──────────────────────────────────────────────────────────────────────────
-         8. FOOTER
+         8. FOOTER & CONTACT INFORMATION
          ────────────────────────────────────────────────────────────────────────── -->
     <footer class="py-12 bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 text-slate-500 text-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6">
-            <div class="flex items-center gap-3">
-                <img src="{% static 'img/logo-icon.png' %}" alt="ScanBooks" class="h-8 w-auto object-contain">
-                <span class="font-bold text-lg text-slate-900 dark:text-white">ScanBooks</span>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <!-- Col 1: Brand & Bio -->
+                <div class="space-y-3 md:col-span-1">
+                    <div class="flex items-center gap-3">
+                        <img src="{% static 'img/logo-icon.png' %}" alt="ScanBooks" class="h-8 w-auto object-contain">
+                        <span class="font-bold text-lg text-slate-900 dark:text-white">{{ site_settings.site_title|default:"ScanBooks" }}</span>
+                    </div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                        {% if LANGUAGE_CODE == 'ur' %}
+                            AI پر مبنی جدید اسمارٹ بلنگ، کیمرہ اسکیننگ اور واٹس ایپ کھاتہ مینجمنٹ سافٹ ویئر۔
+                        {% else %}
+                            Smart AI-powered bill scanning, digital khata, and 1-click WhatsApp invoicing for retail and wholesale businesses.
+                        {% endif %}
+                    </p>
+                </div>
+
+                <!-- Col 2: Contact Info -->
+                <div class="space-y-2 text-xs">
+                    <h4 class="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[11px]">
+                        {% if LANGUAGE_CODE == 'ur' %}رابطہ و سپورٹ{% else %}{% trans "Contact & Support" %}{% endif %}
+                    </h4>
+                    {% if site_settings.support_phone %}
+                    <p class="flex items-center gap-2">
+                        <span>📞</span>
+                        <a href="tel:{{ site_settings.support_phone }}" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">{{ site_settings.support_phone }}</a>
+                    </p>
+                    {% endif %}
+                    {% if site_settings.support_email %}
+                    <p class="flex items-center gap-2">
+                        <span>✉️</span>
+                        <a href="mailto:{{ site_settings.support_email }}" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">{{ site_settings.support_email }}</a>
+                    </p>
+                    {% endif %}
+                    {% if site_settings.contact_address %}
+                    <p class="flex items-center gap-2">
+                        <span>📍</span>
+                        <span>{{ site_settings.contact_address }}</span>
+                    </p>
+                    {% endif %}
+                    {% if site_settings.contact_hours %}
+                    <p class="flex items-center gap-2 text-slate-400">
+                        <span>⏰</span>
+                        <span>{{ site_settings.contact_hours }}</span>
+                    </p>
+                    {% endif %}
+                </div>
+
+                <!-- Col 3: Quick Links -->
+                <div class="space-y-2 text-xs">
+                    <h4 class="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[11px]">
+                        {% if LANGUAGE_CODE == 'ur' %}فوری روابط{% else %}{% trans "Navigation" %}{% endif %}
+                    </h4>
+                    <ul class="space-y-1.5">
+                        <li><a href="#features" class="hover:text-primary-600 dark:hover:text-primary-400">{% if LANGUAGE_CODE == 'ur' %}خصوصیات{% else %}Features{% endif %}</a></li>
+                        <li><a href="#pricing" class="hover:text-primary-600 dark:hover:text-primary-400">{% if LANGUAGE_CODE == 'ur' %}قیمتیں و پیکجز{% else %}Pricing{% endif %}</a></li>
+                        <li><a href="{% url 'accounts:login' %}" class="hover:text-primary-600 dark:hover:text-primary-400">{% if LANGUAGE_CODE == 'ur' %}لاگ ان{% else %}Login{% endif %}</a></li>
+                        <li><a href="{% url 'accounts:register' %}" class="hover:text-primary-600 dark:hover:text-primary-400 font-semibold text-primary-600 dark:text-primary-400">{% if LANGUAGE_CODE == 'ur' %}مفت ٹرائل رجسٹر کریں{% else %}Create Free Account{% endif %}</a></li>
+                    </ul>
+                </div>
+
+                <!-- Col 4: WhatsApp Support & Social -->
+                <div class="space-y-3 text-xs">
+                    <h4 class="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[11px]">
+                        {% if LANGUAGE_CODE == 'ur' %}براہ راست رابطہ{% else %}{% trans "Connect With Us" %}{% endif %}
+                    </h4>
+                    {% if site_settings.clean_whatsapp %}
+                    <a href="https://wa.me/{{ site_settings.clean_whatsapp }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition-colors">
+                        <span>💬</span>
+                        <span>{% if LANGUAGE_CODE == 'ur' %}واٹس ایپ پر رابطہ کریں{% else %}Chat on WhatsApp{% endif %}</span>
+                    </a>
+                    {% endif %}
+                    <div class="flex items-center gap-3 pt-2 text-slate-400">
+                        {% if site_settings.facebook_url %}<a href="{{ site_settings.facebook_url }}" target="_blank" rel="noopener noreferrer" class="hover:text-primary-600" title="Facebook">FB</a>{% endif %}
+                        {% if site_settings.twitter_url %}<a href="{{ site_settings.twitter_url }}" target="_blank" rel="noopener noreferrer" class="hover:text-primary-600" title="Twitter / X">X</a>{% endif %}
+                        {% if site_settings.linkedin_url %}<a href="{{ site_settings.linkedin_url }}" target="_blank" rel="noopener noreferrer" class="hover:text-primary-600" title="LinkedIn">IN</a>{% endif %}
+                        {% if site_settings.youtube_url %}<a href="{{ site_settings.youtube_url }}" target="_blank" rel="noopener noreferrer" class="hover:text-primary-600" title="YouTube">YT</a>{% endif %}
+                    </div>
+                </div>
             </div>
-            <div>
-                &copy; {% now "Y" %} ScanBooks SaaS. {% if LANGUAGE_CODE == 'ur' %}تمام جملہ حقوق محفوظ ہیں۔{% else %}All rights reserved.{% endif %}
+
+            <!-- Copyright Line -->
+            <div class="pt-6 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
+                <div>
+                    &copy; {% now "Y" %} {{ site_settings.site_title|default:"ScanBooks" }}. {% if LANGUAGE_CODE == 'ur' %}{{ site_settings.footer_text_ur|default:"تمام جملہ حقوق محفوظ ہیں۔" }}{% else %}{{ site_settings.footer_text_en|default:"All rights reserved." }}{% endif %}
+                </div>
+                <div class="flex items-center gap-4 text-slate-400">
+                    <span>100% Encrypted & Secure</span>
+                </div>
             </div>
         </div>
     </footer>
@@ -836,7 +947,7 @@
     <dialog 
         id="demo-video-modal" 
         @click="if ($event.target === $el) closeDemoVideo()"
-        class="rounded-3xl p-0 max-w-3xl w-full border border-slate-700/80 bg-slate-950 text-white shadow-2xl overflow-hidden focus:outline-none backdrop:bg-slate-950/80">
+        class="rounded-3xl p-0 max-w-3xl w-full border border-slate-700/80 bg-slate-950 text-white overflow-hidden focus:outline-none backdrop:bg-slate-950/80">
         
         <div class="flex flex-col">
             <!-- Modal Header -->
@@ -854,10 +965,21 @@
                 </button>
             </div>
 
-            <!-- Simulated Interactive Video Demonstration -->
+            <!-- Video Screen / Player Container -->
             <div class="p-6 sm:p-8 bg-slate-950 space-y-6">
                 
-                <!-- Video Screen -->
+                {% if site_settings.embed_video_url %}
+                <!-- Dynamic Embedded Video Player (YouTube, Vimeo, MP4) -->
+                <div class="relative rounded-2xl bg-slate-900 border border-slate-800 aspect-[16/9] w-full overflow-hidden">
+                    <iframe 
+                        src="{{ site_settings.embed_video_url }}" 
+                        class="w-full h-full border-0" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                        allowfullscreen>
+                    </iframe>
+                </div>
+                {% else %}
+                <!-- Simulated Interactive Video Demonstration -->
                 <div class="relative rounded-2xl bg-slate-900 border border-slate-800 aspect-[16/9] flex flex-col justify-between p-6 overflow-hidden">
                     
                     <!-- Top Video Overlay Info -->
@@ -934,6 +1056,7 @@
                     </div>
 
                 </div>
+                {% endif %}
 
                 <!-- Modal CTA -->
                 <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
@@ -944,7 +1067,7 @@
                             Ready to try it on your own real receipts?
                         {% endif %}
                     </p>
-                    <a href="{% url 'accounts:register' %}" class="w-full sm:w-auto px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-primary-600 hover:bg-primary-500 text-center shadow-lg transition-all">
+                    <a href="{% url 'accounts:register' %}" class="w-full sm:w-auto px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-primary-600 hover:bg-primary-500 text-center transition-all">
                         {% if LANGUAGE_CODE == 'ur' %}10 بلز مفت اسکین کریں{% else %}Start 10 Free Scans{% endif %}
                     </a>
                 </div>
@@ -952,6 +1075,19 @@
             </div>
         </div>
     </dialog>
+
+    {% if site_settings.clean_whatsapp %}
+    <!-- Floating WhatsApp Support Button -->
+    <a 
+        href="https://wa.me/{{ site_settings.clean_whatsapp }}?text={% if LANGUAGE_CODE == 'ur' %}السلام علیکم، مجھے ScanBooks کے بارے میں معلومات چاہیے۔{% else %}Hi, I need assistance with ScanBooks.{% endif %}" 
+        target="_blank" 
+        rel="noopener noreferrer" 
+        class="fixed bottom-6 end-6 z-40 inline-flex items-center gap-2 px-4 py-3 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-none transition-all active:scale-95 group focus:outline-none focus:ring-2 focus:ring-emerald-400"
+        title="WhatsApp Support">
+        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.312.045-.634.075-1.29-.191-.741-.301-1.639-1.049-2.376-1.785-.826-.827-1.397-1.802-1.579-2.221-.183-.418-.021-.645.105-.795.111-.132.253-.332.38-.475.126-.143.169-.238.253-.4.085-.162.042-.304-.021-.428s-.571-1.378-.782-1.888c-.206-.497-.417-.43-.573-.438-.148-.008-.318-.009-.488-.009s-.445.064-.678.318c-.233.254-.89 0.869-.89 2.12s.911 2.457 1.038 2.628c.127.171 1.792 2.736 4.341 3.836 2.55 1.1 2.55.733 3.01.691.46-.042 1.482-.605 1.693-1.19.211-.585.211-1.086.148-1.191-.063-.105-.233-.169-.487-.295z"/></svg>
+        <span class="hidden sm:inline">{% if LANGUAGE_CODE == 'ur' %}واٹس ایپ پر رابطہ کریں{% else %}Chat on WhatsApp{% endif %}</span>
+    </a>
+    {% endif %}
 
 </body>
 </html>

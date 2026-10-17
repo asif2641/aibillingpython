@@ -44,7 +44,7 @@
             {% endif %}
 
             <!-- Invoice Header Card -->
-            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm p-6 space-y-4">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-6 space-y-4">
                 <h2 class="text-base font-bold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-700 pb-3">
                     {% trans "Invoice Details" %}
                 </h2>
@@ -93,7 +93,7 @@
             </div>
 
             <!-- Line Items Card -->
-            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm p-6 space-y-4">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-6 space-y-4">
                 <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-3">
                     <h2 class="text-base font-bold text-slate-900 dark:text-white">
                         {% trans "Bill Items" %}
@@ -146,7 +146,7 @@
             </div>
 
             <!-- Summary & Totals Adjustment Card -->
-            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm p-6 space-y-4">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-6 space-y-4">
                 <h2 class="text-base font-bold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-700 pb-3">
                     {% trans "Discounts & Taxes" %}
                 </h2>
@@ -178,7 +178,7 @@
                 <a href="{% url 'bills:bill_list' %}" class="px-4 py-2 min-h-[44px] inline-flex items-center text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
                     {% trans "Cancel" %}
                 </a>
-                <button type="submit" class="px-6 py-2.5 min-h-[44px] rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold text-sm shadow-sm shadow-primary-500/25 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
+                <button type="submit" class="px-6 py-2.5 min-h-[44px] rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
                     {% if bill %}{% trans "Update Bill" %}{% else %}{% trans "Save Bill" %}{% endif %}
                 </button>
             </div>

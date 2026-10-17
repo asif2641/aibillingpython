@@ -130,5 +130,88 @@ All confirmed bugs are recorded here. Each entry has: what happened, why, how it
   - `tests/test_bills.py::TestBillSoftDeleteAndTrash::test_bill_list_view_shows_delete_and_trash_for_permitted_staff`
   - `tests/test_bills.py::TestBillSoftDeleteAndTrash::test_forbidden_delete_renders_403_page`
 
+---
+
+## BUG-008: Bill Selection Dropdown Showed Other Parties' Bills Resulting in '__all__: Bill party does not match payment party'
+
+- **Date:** 2026-10-17
+- **Reported by:** user
+- **Severity:** High
+- **What happened:** When recording a payment against a party (e.g. `/en/ledger/payments/add/?party=31` for "ABRISH ASIF"), the "Associated Bill / Invoice" dropdown listed bills belonging to completely different vendors/customers (such as Bill 1708 belonging to "Rah-e-Danish..."). Selecting any bill not belonging to the chosen party caused form submission to fail with an ugly raw error: `• __all__: Bill party does not match payment party.`.
+- **Root cause:** 
+  1. `PaymentForm` in `ledger/forms.py` did not filter the `bill` queryset by the selected `party_id`, rendering all system bills across all parties in the dropdown.
+  2. `PaymentForm` lacked a `clean()` method validating that `bill.party == party`, so the error was only raised inside `record_payment()` service after form validation.
+  3. `payment_add_view` caught `ValidationError` from `record_payment()` and attached it to `None`, which Django assigns to `__all__`.
+  4. `payment_form.html` displayed `form.errors.items` with raw `<li>{{ field }}: {{ error }}</li>`, displaying `__all__:` verbatim to the end user.
+  5. The template lacked client-side dynamic filtering to update available bills when switching between parties.
+- **How fixed:**
+  1. Updated `PaymentForm` (`ledger/forms.py`):
+     - Scopes `bill` queryset by `party_id` when `party` is provided in form submission, initial data, or instance.
+     - Implemented `PaymentForm.clean()` to validate that the selected bill belongs to the chosen party, attaching error directly to `bill`.
+     - Formatted bill option labels to show invoice number and due balance (e.g., `#1708 — Due: PKR 2,500.00 (Total: 2,500.00)`).
+  2. Updated `payment_add_view` (`ledger/views.py`):
+     - Added support for `?bill=<id>` parameter, automatically pre-filling the bill's party and remaining balance due into the form.
+     - Injects `bills_data` JSON into the template context for instantaneous client-side reactive filtering.
+     - Routes service `ValidationError` on party mismatch specifically to the `bill` field.
+  3. Updated `payment_form.html` (`ledger/templates/ledger/payment_form.html`):
+     - Sanitized form error banner so `__all__:` is never printed.
+     - Added client-side JavaScript that immediately updates the bill dropdown whenever the party changes.
+     - If the party has no bills (like Party 31), displays: `No open bills for this party (will record on-account)` with an informative badge and helper note explaining that the payment will be credited directly to their running ledger (Khata).
+     - Selecting a bill auto-fills the payment amount with the bill's balance due.
+- **Regression test:** 
+  - `tests/test_payments.py::TestPaymentViewsAndEndpoints::test_payment_form_rejects_bill_belonging_to_different_party`
+  - `tests/test_payments.py::TestPaymentViewsAndEndpoints::test_payment_add_view_mismatched_bill_does_not_render_raw_all_error`
+
+---
+
+## BUG-009: SaaS Console Displayed Mock Dummy Data for New Tenants & Demo Account Login Failed
+
+- **Date:** 2026-10-17
+- **Reported by:** user
+- **Severity:** High
+- **What happened:**
+  1. When superadmin viewed the SaaS Console (`/en/accounts/superadmin/`), `demo1` was displayed with mock dummy data (`Lahore Autos & Spares`, `orders@lahoreautos.pk`, fake `Pro` tier, fake `42 / 100 scans` used) alongside an artificially inflated dummy tenant (`Karachi Cash & Carry`).
+  2. The `demo` account failed to log in.
+  3. When new tenants registered via self-service onboarding, `register_owner_user` saved the business name only into `first_name`, leaving `user.business_name` blank.
+  4. Superadmin had no direct method within the SaaS console to provision new tenant accounts without logging out.
+- **Root cause:** 
+  1. `demo1` was previously seeded in `db.sqlite3` with mock dummy data from previous development rather than clean tenant defaults.
+  2. `demo`'s database password was set to `demo123` instead of the expected `demo`.
+  3. `register_owner_user()` in `accounts/services.py` omitted `business_name=business_name`.
+  4. SaaS console header linked to `/accounts/register/`, which redirected logged-in superadmins to the dashboard, blocking them from adding new tenants directly.
+- **How fixed:**
+  1. Cleaned up `demo` and `demo1` in the database to reflect authentic tenant profiles (`demo` with password `demo`, `demo1` with password `demo1`, 0 scans used, 10 free scans quota), and removed the dummy `karachi_cash_carry` mock record.
+  2. Updated `register_owner_user()` in `accounts/services.py` to persist `business_name`, `plan`, and `monthly_scan_quota`.
+  3. Added `superadmin_create_tenant_view` in `accounts/views.py` and `superadmin_create_tenant` URL in `accounts/urls.py` allowing superadmins to provision new tenants directly from the console.
+  4. Added `+ Add New Tenant` modal (`createTenantModalOpen`) directly inside `templates/accounts/superadmin_dashboard.html`.
+- **Regression test:** 
+  - `tests/test_saas_landing_and_registration.py::TestSaaSSelfServiceRegistration::test_successful_registration_creates_user_and_logs_in`
+  - `tests/test_superadmin_dashboard.py::TestSuperadminTenantActions::test_superadmin_can_create_new_tenant`
+
+---
+
+## BUG-010: Staff Management, Landing Settings, and Reset Data Tabs Were Visible to Tenant Accounts
+
+- **Date:** 2026-10-17
+- **Reported by:** user
+- **Severity:** High
+- **What happened:** When tenant user `demo` logged into their shop account and visited Settings (`/en/settings/`), the sub-navigation bar displayed platform-level administration tabs: "Staff Management" (listing all system accounts including superadmins, other tenants, and allowing password resets), "Landing Page & Marketing", and "Reset App Data". In addition, tenant accounts displayed a "Super Admin" badge next to their username.
+- **Root cause:** 
+  1. `templates/settings_app/settings_base.html` used `{% if request.user.is_superuser or request.user.is_superadmin or request.user.role == 'superadmin' %}` for Staff Management, Landing Settings, and Reset App Data.
+  2. Because self-service onboarding assigned `role=User.Role.SUPERADMIN` (intended for in-store authority before SaaS multi-tenancy), tenants matched the condition and saw global platform management tabs.
+  3. The `superadmin_required` decorators in `accounts/views.py` and `settings_app/views.py` allowed access if `user.role == 'superadmin'`, permitting non-superusers to access `/en/settings/staff/`, `/en/settings/landing/`, and `/en/settings/reset/`.
+  4. `templates/base.html` displayed a purple "Super Admin" badge for any account where `request.user.is_superadmin` was True.
+- **How fixed:**
+  1. Updated `templates/settings_app/settings_base.html` so that "Staff Management", "Landing Page & Marketing", and "Reset App Data" are guarded strictly by `{% if request.user.is_superuser %}`.
+  2. Converted template comments for those tabs into Django comments (`{# ... #}`) inside the `{% if %}` blocks to ensure no comment artifacts leak into the rendered HTML.
+  3. Hardened `superadmin_required` in both `accounts/views.py` and `settings_app/views.py` to check `if not user.is_superuser: return HttpResponseForbidden(...)`.
+  4. Updated `templates/base.html` role badge logic: superusers display a purple "Super Admin" badge; tenant business accounts display a blue/green "Business Owner" badge; staff display a "Staff" badge.
+- **Regression test:** 
+  - `tests/test_staff_management.py::TestStaffListView::test_tenant_user_denied_access_to_staff_list`
+  - `tests/test_settings_ui.py::TestSettingsSubNavigationAndShell::test_staff_management_tab_hidden_for_tenant`
+  - `tests/test_settings_ui.py::TestSettingsSubNavigationAndShell::test_reset_data_tab_visible_only_for_superadmin`
+
+
+
 
 

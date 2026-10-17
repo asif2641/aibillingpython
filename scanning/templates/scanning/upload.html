@@ -41,7 +41,7 @@
         {% endif %}
 
         {% if duplicate_detected and duplicate_bill %}
-        <div class="p-5 rounded-3xl bg-amber-50 dark:bg-amber-950/80 border-2 border-amber-400 dark:border-amber-500 shadow-lg text-amber-950 dark:text-amber-100 flex flex-col md:flex-row md:items-center justify-between gap-4" role="alert">
+        <div class="p-5 rounded-3xl bg-amber-50 dark:bg-amber-950/80 border-2 border-amber-400 dark:border-amber-500 text-amber-950 dark:text-amber-100 flex flex-col md:flex-row md:items-center justify-between gap-4" role="alert">
             <div class="flex items-start gap-3.5">
                 <span class="text-3xl mt-0.5">⚠️</span>
                 <div>
@@ -60,7 +60,7 @@
             </div>
             <div class="flex items-center gap-2.5 shrink-0 self-end md:self-center">
                 <a href="{{ existing_review_url|default:existing_detail_url }}" 
-                   class="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-md transition-all flex items-center gap-1.5 whitespace-nowrap">
+                   class="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition-all flex items-center gap-1.5 whitespace-nowrap">
                     <svg class="w-4 h-4 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                     <span>{% trans "View Existing Bill" %}</span>
                 </a>
@@ -80,7 +80,7 @@
                  :class="{ 'border-primary-500 bg-primary-50/20 dark:bg-primary-950/20': isDragging }">
 
                 <div class="max-w-md mx-auto space-y-4">
-                    <div class="w-16 h-16 mx-auto rounded-2xl bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center text-3xl group-hover:scale-105 transition-transform shadow-inner">
+                    <div class="w-16 h-16 mx-auto rounded-2xl bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center text-3xl group-hover:scale-105 transition-transform">
                         📄
                     </div>
 
@@ -99,7 +99,7 @@
 
                         <!-- Mobile / Direct Camera Capture Shortcut (high-visibility, touch-target min 48px, emerald accent) -->
                         <div class="inline-flex items-center">
-                            <button type="button" @click="openCamera()" class="px-5 py-3 min-h-[48px] rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs shadow-md shadow-emerald-600/30 cursor-pointer inline-flex items-center gap-2.5 transition-all hover:scale-105 active:scale-95">
+                            <button type="button" @click="openCamera()" class="px-5 py-3 min-h-[48px] rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs cursor-pointer inline-flex items-center gap-2.5 transition-all hover:scale-105 active:scale-95">
                                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                                 <span>
                                     {% if request.LANGUAGE_CODE == 'ur' %}
@@ -113,7 +113,7 @@
                         </div>
 
                         <!-- Standard File / PDF Picker (Appends new files) -->
-                        <label class="px-5 py-3 min-h-[48px] rounded-2xl bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-bold text-xs shadow-md shadow-primary-500/25 cursor-pointer inline-flex items-center gap-2.5 transition-all hover:scale-105 active:scale-95">
+                        <label class="px-5 py-3 min-h-[48px] rounded-2xl bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-bold text-xs cursor-pointer inline-flex items-center gap-2.5 transition-all hover:scale-105 active:scale-95">
                             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                             <span>
                                 {% if request.LANGUAGE_CODE == 'ur' %}
@@ -127,7 +127,7 @@
                     </div>
 
                     <!-- Mobile Low Memory Safety Advisory -->
-                    <div class="w-full max-w-md mx-auto mt-2 p-3 rounded-2xl bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-[11px] text-amber-900 dark:text-amber-200 flex items-start gap-2.5 text-left rtl:text-right shadow-sm">
+                    <div class="w-full max-w-md mx-auto mt-2 p-3 rounded-2xl bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-[11px] text-amber-900 dark:text-amber-200 flex items-start gap-2.5 text-left rtl:text-right">
                         <span class="text-base shrink-0 select-none">💡</span>
                         <div class="leading-relaxed">
                             {% if request.LANGUAGE_CODE == 'ur' %}
@@ -141,7 +141,7 @@
             </div>
 
             <!-- Multi-Page Selected Files Preview -->
-            <div x-show="selectedFiles.length > 0" class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700/80 p-5 sm:p-6 space-y-4 shadow-sm" style="display: none;">
+            <div x-show="selectedFiles.length > 0" class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700/80 p-5 sm:p-6 space-y-4" style="display: none;">
                 <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/60 pb-3">
                     <div class="flex items-center gap-2">
                         <h3 class="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
@@ -157,19 +157,19 @@
 
                 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5 pt-1">
                     <template x-for="(item, idx) in selectedFiles" :key="item.id || idx">
-                        <div class="relative p-3 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 flex flex-col items-center text-center group transition-all hover:shadow-md hover:border-primary-400 dark:hover:border-primary-600"
+                        <div class="relative p-3 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 flex flex-col items-center text-center group transition-all hover:border-primary-400 dark:hover:border-primary-600"
                              :class="item.qualityWarning ? 'border-rose-400 dark:border-rose-500 bg-rose-50/50 dark:bg-rose-950/20' : (isDuplicate ? 'border-amber-400 dark:border-amber-500 bg-amber-50/40 dark:bg-amber-950/20' : '')">
                             
                             <!-- Remove File Button (Red 'X') -->
                             <button type="button" 
                                     @click.stop="removeFile(idx)"
-                                    class="absolute -top-2.5 -right-2.5 rtl:-right-auto rtl:-left-2.5 w-7 h-7 rounded-full bg-rose-500 hover:bg-rose-600 text-white flex items-center justify-center text-xs shadow-md transition-all hover:scale-110 active:scale-95 focus:outline-none focus:ring-2 focus:ring-rose-400 z-10 cursor-pointer"
+                                    class="absolute -top-2.5 -right-2.5 rtl:-right-auto rtl:-left-2.5 w-7 h-7 rounded-full bg-rose-500 hover:bg-rose-600 text-white flex items-center justify-center text-xs transition-all hover:scale-110 active:scale-95 focus:outline-none focus:ring-2 focus:ring-rose-400 z-10 cursor-pointer"
                                     title="{% trans "Remove this document" %}">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
                             </button>
 
                             <!-- Document Thumbnail / Visual Preview -->
-                            <div class="w-16 h-20 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden flex items-center justify-center mb-2 shadow-inner">
+                            <div class="w-16 h-20 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden flex items-center justify-center mb-2">
                                 <template x-if="item.previewUrl">
                                     <img :src="item.previewUrl" :alt="item.name" class="w-full h-full object-cover">
                                 </template>
@@ -180,7 +180,7 @@
 
                             <!-- Quality Warning Badge -->
                             <template x-if="item.qualityWarning">
-                                <div class="mb-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 shadow-xs flex items-center gap-1 text-center"
+                                <div class="mb-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 flex items-center gap-1 text-center"
                                      :title="item.qualityWarning.message">
                                     <span class="animate-pulse">⚠️</span>
                                     <span x-text="item.qualityWarning.title"></span>
@@ -189,7 +189,7 @@
 
                             <!-- Duplicate Document Badge -->
                             <template x-if="isDuplicate">
-                                <div class="mb-1.5 px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-amber-200 text-amber-950 dark:bg-amber-900 dark:text-amber-100 border border-amber-400 dark:border-amber-600 shadow-xs flex items-center gap-1 text-center animate-pulse">
+                                <div class="mb-1.5 px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-amber-200 text-amber-950 dark:bg-amber-900 dark:text-amber-100 border border-amber-400 dark:border-amber-600 flex items-center gap-1 text-center animate-pulse">
                                     <span>⚠️</span>
                                     <span>{% trans "Duplicate" %}</span>
                                 </div>
@@ -209,7 +209,7 @@
                                     &larr;
                                 </button>
 
-                                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-primary-100 text-primary-700 dark:bg-primary-950 dark:text-primary-300 shadow-xs" x-text="'{% trans "Page" %} ' + (idx + 1)"></span>
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-primary-100 text-primary-700 dark:bg-primary-950 dark:text-primary-300" x-text="'{% trans "Page" %} ' + (idx + 1)"></span>
 
                                 <button type="button" 
                                         x-show="idx < selectedFiles.length - 1" 
@@ -225,7 +225,7 @@
                     <!-- Snap Next Page with Camera Tile -->
                     <div class="p-3 rounded-2xl border-2 border-dashed border-emerald-300 dark:border-emerald-700/60 hover:border-emerald-500 hover:bg-emerald-50/20 dark:hover:bg-emerald-950/20 bg-white dark:bg-slate-800 flex flex-col items-center justify-center text-center cursor-pointer transition-all min-h-[140px] group"
                          @click="openCamera()">
-                        <div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl font-bold group-hover:scale-110 transition-transform mb-1 shadow-inner">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl font-bold group-hover:scale-110 transition-transform mb-1">
                             📷
                         </div>
                         <span class="text-xs font-bold text-slate-800 dark:text-slate-200">
@@ -247,7 +247,7 @@
 
                     <!-- Add More Pages Tile (Gallery / PDF) -->
                     <label class="p-3 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-primary-500 hover:bg-primary-50/20 dark:hover:bg-primary-950/20 bg-white dark:bg-slate-800 flex flex-col items-center justify-center text-center cursor-pointer transition-all min-h-[140px] group">
-                        <div class="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center text-xl font-bold group-hover:scale-110 transition-transform mb-1 shadow-inner">
+                        <div class="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center text-xl font-bold group-hover:scale-110 transition-transform mb-1">
                             +
                         </div>
                         <span class="text-xs font-bold text-slate-800 dark:text-slate-200">
@@ -271,7 +271,7 @@
 
             <!-- Pre-AI Quality Warning Alert Banner -->
             <div x-show="selectedFiles.some(f => f.qualityWarning)" x-transition
-                 class="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border-2 border-rose-300 dark:border-rose-800 text-rose-900 dark:text-rose-200 text-xs shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                 class="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border-2 border-rose-300 dark:border-rose-800 text-rose-900 dark:text-rose-200 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div class="flex items-center gap-3">
                     <span class="text-xl">⚠️</span>
                     <div>
@@ -295,7 +295,7 @@
 
             <!-- Prominent Duplicate Alert Box (Client-Side) -->
             <div x-show="isDuplicate" x-transition
-                 class="p-4 sm:p-5 rounded-2xl bg-amber-50 dark:bg-amber-950/80 border-2 border-amber-400 dark:border-amber-500 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 text-amber-950 dark:text-amber-100">
+                 class="p-4 sm:p-5 rounded-2xl bg-amber-50 dark:bg-amber-950/80 border-2 border-amber-400 dark:border-amber-500 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 text-amber-950 dark:text-amber-100">
                 <div class="flex items-start gap-3">
                     <span class="text-3xl mt-0.5 animate-bounce">⚠️</span>
                     <div>
@@ -323,7 +323,7 @@
                 </div>
                 <div class="flex items-center gap-2 shrink-0 self-end sm:self-center">
                     <a :href="duplicateInfo?.review_url || duplicateInfo?.detail_url" 
-                       class="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-md transition-all flex items-center gap-1.5 whitespace-nowrap">
+                       class="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition-all flex items-center gap-1.5 whitespace-nowrap">
                         <svg class="w-4 h-4 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                         <span>{% trans "View Existing Bill" %}</span>
                     </a>
@@ -340,7 +340,7 @@
                 <input type="hidden" name="force_rescan" :value="isDuplicate ? '1' : '0'">
 
                 <button type="submit" 
-                        class="px-8 py-3 min-h-[44px] inline-flex items-center gap-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs shadow-md shadow-primary-500/25 transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
+                        class="px-8 py-3 min-h-[44px] inline-flex items-center gap-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
                         :disabled="isUploading || selectedFiles.length === 0">
                     <template x-if="!isUploading">
                         <span class="flex items-center gap-2">
@@ -363,7 +363,7 @@
              class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5"
              style="display: none;">
             <div @click.away="closeCamera()"
-                 class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
+                 class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-lg overflow-hidden flex flex-col max-h-[92vh]">
                 
                 <!-- Modal Header -->
                 <div class="px-4 py-3 bg-slate-800/80 border-b border-slate-700/60 flex items-center justify-between text-white">
@@ -422,7 +422,7 @@
                         <span class="text-3xl text-rose-400">⚠️</span>
                         <p class="text-xs text-rose-200 font-medium" x-text="cameraError"></p>
                         <div class="flex flex-col gap-2 pt-2 w-full max-w-xs">
-                            <button type="button" @click="fallbackToNativeCamera()" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md">
+                            <button type="button" @click="fallbackToNativeCamera()" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs">
                                 {% if request.LANGUAGE_CODE == 'ur' %}
                                 فون کا کیمرہ ایپ کھولیں
                                 {% else %}
@@ -449,7 +449,7 @@
                         
                         <!-- Shutter Button -->
                         <button type="button" @click="captureLivePhoto()"
-                                class="w-16 h-16 rounded-full bg-emerald-500 hover:bg-emerald-400 active:scale-95 border-4 border-white shadow-xl shadow-emerald-500/40 flex items-center justify-center transition-all">
+                                class="w-16 h-16 rounded-full bg-emerald-500 hover:bg-emerald-400 active:scale-95 border-4 border-white flex items-center justify-center transition-all">
                             <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-emerald-600 font-black text-xl">
                                 📸
                             </div>

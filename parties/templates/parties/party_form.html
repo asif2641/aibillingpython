@@ -28,7 +28,7 @@
         </div>
 
         <!-- Form Card -->
-        <form method="post" class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm p-6 sm:p-8 space-y-6">
+        <form method="post" class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-6 sm:p-8 space-y-6">
             {% csrf_token %}
 
             {% if form.errors %}
@@ -149,7 +149,7 @@
                     {% trans "Cancel" %}
                 </a>
                 <button type="submit" 
-                        class="px-6 py-2.5 min-h-[44px] inline-flex items-center rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs shadow-sm shadow-primary-500/25 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
+                        class="px-6 py-2.5 min-h-[44px] inline-flex items-center rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
                     {% trans "Save Party" %}
                 </button>
             </div>

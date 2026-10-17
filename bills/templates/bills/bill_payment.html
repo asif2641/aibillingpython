@@ -40,7 +40,7 @@
         </div>
 
         <!-- Form Card -->
-        <form method="post" class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm p-6 sm:p-8 space-y-5">
+        <form method="post" class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-6 sm:p-8 space-y-5">
             {% csrf_token %}
             <input type="hidden" name="party" value="{{ bill.party.pk }}">
             <input type="hidden" name="bill" value="{{ bill.pk }}">
@@ -78,7 +78,7 @@
                     {% trans "Reference / Cheque # / Slip #" %}
                 </label>
                 <input type="text" name="reference" id="id_reference" 
-                       class="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors">
+                        class="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors">
             </div>
 
             <div>
@@ -95,7 +95,7 @@
                     {% trans "Cancel" %}
                 </a>
                 <button type="submit" 
-                        class="px-6 py-2.5 min-h-[44px] inline-flex items-center rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-sm shadow-emerald-500/25 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                        class="px-6 py-2.5 min-h-[44px] inline-flex items-center rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500">
                     {% trans "Record Payment" %}
                 </button>
             </div>

@@ -96,6 +96,35 @@ class TestSettingsSubNavigationAndShell:
         assert response_staff.status_code == 200
         assert "Reset App Data" not in response_staff.content.decode("utf-8")
 
+    def test_staff_management_tab_hidden_for_tenant(self, client, superadmin_user):
+        """Staff Management and Landing Page tabs appear only for superadmin, not tenant."""
+        client.force_login(superadmin_user)
+        response_admin = client.get(reverse("shop_profile"))
+        assert response_admin.status_code == 200
+        content_admin = response_admin.content.decode("utf-8")
+        assert "Staff Management" in content_admin
+        assert "Landing Page & Marketing" in content_admin
+
+        # Create a tenant user (is_superuser=False)
+        tenant = User.objects.create_user(
+            username="shop_owner_1",
+            email="owner@example.com",
+            password="TestPassword123!",
+            role=User.Role.SUPERADMIN,
+            is_staff=False,
+            is_superuser=False,
+            business_name="My Shop",
+            can_manage_shop=True,
+        )
+        client.force_login(tenant)
+        response_tenant = client.get(reverse("shop_profile"))
+        assert response_tenant.status_code == 200
+        content_tenant = response_tenant.content.decode("utf-8")
+        assert "Staff Management" not in content_tenant
+        assert "Landing Page & Marketing" not in content_tenant
+        assert "Reset App Data" not in content_tenant
+        assert "Shop Profile" in content_tenant
+
 
 @pytest.mark.django_db
 class TestSettingsBilingualAndRTL:

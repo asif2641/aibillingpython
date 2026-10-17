@@ -30,6 +30,11 @@ urlpatterns = [
         name="superadmin_toggle_tenant_status",
     ),
     path(
+        "superadmin/tenant/create/",
+        views.superadmin_create_tenant_view,
+        name="superadmin_create_tenant",
+    ),
+    path(
         "superadmin/tenant/<int:user_id>/add-bonus-scans/",
         views.superadmin_add_bonus_scans_view,
         name="superadmin_add_bonus_scans",

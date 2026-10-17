@@ -864,3 +864,6 @@ msgstr "تفصیل"
 msgid "All Actions"
 msgstr "تمام کارروائیاں"
 
+msgid "Business Owner"
+msgstr "کاروباری مالک"
+

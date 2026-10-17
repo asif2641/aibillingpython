@@ -6,6 +6,7 @@
 
 {% block content %}
 <div class="space-y-6" x-data="{
+    createTenantModalOpen: false,
     planModalOpen: false,
     bonusModalOpen: false,
     selectedTenantId: null,
@@ -30,9 +31,9 @@
 }">
 
     <!-- TOP HEADER & INTRO -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-gradient-to-r from-purple-900/10 via-indigo-900/10 to-transparent dark:from-purple-950/40 dark:via-indigo-950/30 p-6 rounded-2xl border border-purple-200 dark:border-purple-900/50">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-amber-50/70 dark:bg-amber-950/20 p-6 rounded-2xl border border-amber-200 dark:border-amber-900/50">
         <div class="space-y-1">
-            <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-800 dark:bg-purple-900/60 dark:text-purple-300">
+            <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
                 <span>{% trans "Platform Master Control" %}</span>
             </div>
@@ -44,21 +45,24 @@
             </p>
         </div>
         <div class="flex items-center gap-3 shrink-0">
-            <a href="{% url 'admin:index' %}" class="inline-flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-semibold rounded-xl bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm transition-colors">
+            <a href="{% url 'admin:index' %}" class="inline-flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-semibold rounded-xl bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                 <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                 <span>{% trans "Django Admin" %}</span>
             </a>
-            <a href="{% url 'accounts:register' %}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-semibold rounded-xl bg-purple-600 hover:bg-purple-700 text-white shadow-sm transition-colors">
+            <button
+                type="button"
+                @click="createTenantModalOpen = true"
+                class="inline-flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-semibold rounded-xl bg-amber-600 hover:bg-amber-700 text-white transition-colors shadow-sm">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
-                <span>{% trans "Test New Tenant" %}</span>
-            </a>
+                <span>{% trans "+ Add New Tenant" %}</span>
+            </button>
         </div>
     </div>
 
     <!-- KPI STATS CARDS -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- Card 1: Total Tenants -->
-        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700/80 shadow-sm relative overflow-hidden">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700/80 relative overflow-hidden">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     {% trans "Total Tenants" %}
@@ -71,14 +75,14 @@
                 <div class="text-3xl font-extrabold text-slate-900 dark:text-white">{{ total_tenants }}</div>
                 <div class="mt-1 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                     <span class="font-medium text-slate-700 dark:text-slate-300">{{ free_count }} {% trans "Free" %}</span> &bull;
-                    <span class="font-medium text-purple-600 dark:text-purple-400">{{ pro_count }} {% trans "Pro" %}</span> &bull;
+                    <span class="font-medium text-blue-600 dark:text-blue-400">{{ pro_count }} {% trans "Pro" %}</span> &bull;
                     <span class="font-medium text-amber-600 dark:text-amber-400">{{ business_count }} {% trans "Biz" %}</span>
                 </div>
             </div>
         </div>
 
         <!-- Card 2: Estimated MRR -->
-        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700/80 shadow-sm relative overflow-hidden">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700/80 relative overflow-hidden">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     {% trans "Estimated MRR" %}
@@ -98,7 +102,7 @@
         </div>
 
         <!-- Card 3: AI Scans Used -->
-        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700/80 shadow-sm relative overflow-hidden">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700/80 relative overflow-hidden">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     {% trans "AI Scans Consumed" %}
@@ -116,7 +120,7 @@
         </div>
 
         <!-- Card 4: Bills Processed -->
-        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700/80 shadow-sm relative overflow-hidden">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700/80 relative overflow-hidden">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     {% trans "Platform Invoices" %}
@@ -135,7 +139,7 @@
     </div>
 
     <!-- SEARCH & FILTERS -->
-    <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700/80 shadow-sm">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700/80">
         <form method="get" class="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div class="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 <!-- Search Input -->
@@ -148,14 +152,14 @@
                         name="q"
                         value="{{ q }}"
                         placeholder="{% trans 'Search by business name, username, or email...' %}"
-                        class="w-full min-h-[42px] ltr:pl-10 ltr:pr-4 rtl:pr-10 rtl:pl-4 py-2 text-sm bg-slate-50 dark:bg-slate-700/60 text-slate-900 dark:text-slate-100 placeholder-slate-400 rounded-xl border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white dark:focus:bg-slate-800 transition-all">
+                        class="w-full min-h-[42px] ltr:pl-10 ltr:pr-4 rtl:pr-10 rtl:pl-4 py-2 text-sm bg-slate-50 dark:bg-slate-700/60 text-slate-900 dark:text-slate-100 placeholder-slate-400 rounded-xl border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white dark:focus:bg-slate-800 transition-all">
                 </div>
 
                 <!-- Plan Filter Dropdown -->
                 <div class="w-full sm:w-48">
                     <select
                         name="plan"
-                        class="w-full min-h-[42px] px-3 py-2 text-sm bg-slate-50 dark:bg-slate-700/60 text-slate-900 dark:text-slate-100 rounded-xl border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all">
+                        class="w-full min-h-[42px] px-3 py-2 text-sm bg-slate-50 dark:bg-slate-700/60 text-slate-900 dark:text-slate-100 rounded-xl border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all">
                         <option value="">{% trans "All Subscription Tiers" %}</option>
                         <option value="free" {% if selected_plan == 'free' %}selected{% endif %}>{% trans "Free Trial (10 scans)" %}</option>
                         <option value="pro" {% if selected_plan == 'pro' %}selected{% endif %}>{% trans "Pro Tier (100 scans)" %}</option>
@@ -166,7 +170,7 @@
                 <!-- Submit / Filter Button -->
                 <button
                     type="submit"
-                    class="px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 shrink-0">
+                    class="px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-amber-600 hover:bg-amber-700 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 shrink-0">
                     {% trans "Filter" %}
                 </button>
 
@@ -186,7 +190,7 @@
     </div>
 
     <!-- TENANTS TABLE -->
-    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm overflow-hidden">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-left rtl:text-right text-sm">
                 <thead class="bg-slate-50 dark:bg-slate-900/60 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
@@ -205,7 +209,7 @@
                         <!-- Tenant / Business Info -->
                         <td class="px-5 py-4">
                             <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 font-bold flex items-center justify-center text-sm shrink-0 border border-purple-200 dark:border-purple-800">
+                                <div class="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-bold flex items-center justify-center text-sm shrink-0 border border-amber-200 dark:border-amber-800">
                                     {{ tenant.business_name|default:tenant.username|make_list|first|upper }}
                                 </div>
                                 <div class="min-w-0">
@@ -233,7 +237,7 @@
                                 <span>{% trans "Business (500/mo)" %}</span>
                             </span>
                             {% elif tenant.plan == 'pro' %}
-                            <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-900 dark:bg-purple-950/70 dark:text-purple-300 border border-purple-300 dark:border-purple-800">
+                            <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-900 dark:bg-blue-950/70 dark:text-blue-300 border border-blue-300 dark:border-blue-800">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                                 <span>{% trans "Pro (100/mo)" %}</span>
                             </span>
@@ -256,7 +260,7 @@
                                     </span>
                                 </div>
                                 <div class="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
-                                    <div class="{% if tenant.remaining_scans <= 2 %}bg-rose-500{% elif tenant.remaining_scans <= 10 %}bg-amber-500{% else %}bg-purple-600{% endif %} h-2 rounded-full transition-all"
+                                    <div class="{% if tenant.remaining_scans <= 2 %}bg-rose-500{% elif tenant.remaining_scans <= 10 %}bg-amber-500{% else %}bg-amber-600{% endif %} h-2 rounded-full transition-all"
                                          style="width: {% widthratio tenant.scans_used_this_month tenant.monthly_scan_quota 100 %}%;"></div>
                                 </div>
                             </div>
@@ -291,7 +295,7 @@
                                 <button
                                     type="button"
                                     @click="openPlanModal({{ tenant.pk }}, '{{ tenant.business_name|default:tenant.username|escapejs }}', '{{ tenant.plan }}', {{ tenant.monthly_scan_quota }})"
-                                    class="p-1.5 rounded-lg text-slate-600 hover:text-purple-600 dark:text-slate-300 dark:hover:text-purple-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                                    class="p-1.5 rounded-lg text-slate-600 hover:text-amber-600 dark:text-slate-300 dark:hover:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                                     title="{% trans 'Change Subscription Plan & Quota' %}">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                 </button>
@@ -372,7 +376,7 @@
         @keydown.escape.window="planModalOpen = false">
         <div
             @click.away="planModalOpen = false"
-            class="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4">
+            class="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-700 space-y-4">
             <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
                 <h3 class="text-lg font-bold text-slate-900 dark:text-white">
                     {% trans "Update Tenant Subscription" %}
@@ -396,7 +400,7 @@
                         name="plan"
                         x-model="selectedPlan"
                         @change="if (selectedPlan === 'free') { selectedQuota = 10; } else if (selectedPlan === 'pro') { selectedQuota = 100; } else if (selectedPlan === 'business') { selectedQuota = 500; }"
-                        class="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-700 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500">
+                        class="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-700 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500">
                         <option value="free">{% trans "Free Trial (PKR 0 / 10 scans)" %}</option>
                         <option value="pro">{% trans "Pro Tier (PKR 1,500 / 100 scans)" %}</option>
                         <option value="business">{% trans "Business Tier (PKR 4,000 / 500 scans)" %}</option>
@@ -412,7 +416,7 @@
                         name="monthly_scan_quota"
                         x-model="selectedQuota"
                         min="1"
-                        class="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-700 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500">
+                        class="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-700 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500">
                     <span class="text-[11px] text-slate-500 mt-1 block">
                         {% trans "Can be customized above standard plan limits." %}
                     </span>
@@ -427,7 +431,7 @@
                     </button>
                     <button
                         type="submit"
-                        class="px-4 py-2 text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-xl shadow-sm transition-colors">
+                        class="px-4 py-2 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-xl transition-colors">
                         {% trans "Save Changes" %}
                     </button>
                 </div>
@@ -443,7 +447,7 @@
         @keydown.escape.window="bonusModalOpen = false">
         <div
             @click.away="bonusModalOpen = false"
-            class="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4">
+            class="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-700 space-y-4">
             <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
                 <h3 class="text-lg font-bold text-slate-900 dark:text-white">
                     {% trans "Grant Bonus AI Scans" %}
@@ -465,10 +469,10 @@
                         {% trans "Bonus Scans Amount" %}
                     </label>
                     <div class="grid grid-cols-4 gap-2 mb-2">
-                        <button type="button" @click="bonusAmount = 10" class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-purple-50 dark:hover:bg-purple-950/40 text-slate-700 dark:text-slate-300" :class="bonusAmount === 10 ? 'bg-purple-100 dark:bg-purple-950/70 border-purple-500 text-purple-700' : ''">+10</button>
-                        <button type="button" @click="bonusAmount = 25" class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-purple-50 dark:hover:bg-purple-950/40 text-slate-700 dark:text-slate-300" :class="bonusAmount === 25 ? 'bg-purple-100 dark:bg-purple-950/70 border-purple-500 text-purple-700' : ''">+25</button>
-                        <button type="button" @click="bonusAmount = 50" class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-purple-50 dark:hover:bg-purple-950/40 text-slate-700 dark:text-slate-300" :class="bonusAmount === 50 ? 'bg-purple-100 dark:bg-purple-950/70 border-purple-500 text-purple-700' : ''">+50</button>
-                        <button type="button" @click="bonusAmount = 100" class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-purple-50 dark:hover:bg-purple-950/40 text-slate-700 dark:text-slate-300" :class="bonusAmount === 100 ? 'bg-purple-100 dark:bg-purple-950/70 border-purple-500 text-purple-700' : ''">+100</button>
+                        <button type="button" @click="bonusAmount = 10" class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-amber-50 dark:hover:bg-amber-950/40 text-slate-700 dark:text-slate-300" :class="bonusAmount === 10 ? 'bg-amber-100 dark:bg-amber-950/70 border-amber-500 text-amber-800' : ''">+10</button>
+                        <button type="button" @click="bonusAmount = 25" class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-amber-50 dark:hover:bg-amber-950/40 text-slate-700 dark:text-slate-300" :class="bonusAmount === 25 ? 'bg-amber-100 dark:bg-amber-950/70 border-amber-500 text-amber-800' : ''">+25</button>
+                        <button type="button" @click="bonusAmount = 50" class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-amber-50 dark:hover:bg-amber-950/40 text-slate-700 dark:text-slate-300" :class="bonusAmount === 50 ? 'bg-amber-100 dark:bg-amber-950/70 border-amber-500 text-amber-800' : ''">+50</button>
+                        <button type="button" @click="bonusAmount = 100" class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-amber-50 dark:hover:bg-amber-950/40 text-slate-700 dark:text-slate-300" :class="bonusAmount === 100 ? 'bg-amber-100 dark:bg-amber-950/70 border-amber-500 text-amber-800' : ''">+100</button>
                     </div>
                     <input
                         type="number"
@@ -488,8 +492,130 @@
                     </button>
                     <button
                         type="submit"
-                        class="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-sm transition-colors">
+                        class="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors">
                         {% trans "Grant Scans" %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 3: CREATE NEW TENANT -->
+    <div
+        x-show="createTenantModalOpen"
+        x-cloak
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+        @keydown.escape.window="createTenantModalOpen = false">
+        <div
+            @click.away="createTenantModalOpen = false"
+            class="bg-white dark:bg-slate-800 rounded-2xl max-w-lg w-full p-6 border border-slate-200 dark:border-slate-700 space-y-4 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center text-sm font-bold">
+                        +
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white">
+                        {% trans "Create New Tenant Account" %}
+                    </h3>
+                </div>
+                <button @click="createTenantModalOpen = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <p class="text-xs text-slate-500 dark:text-slate-400">
+                {% trans "Provision a dedicated tenant business profile with custom credentials and subscription tier." %}
+            </p>
+
+            <form action="{% url 'accounts:superadmin_create_tenant' %}" method="post" class="space-y-4">
+                {% csrf_token %}
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            {% trans "Business / Shop Name" %} <span class="text-amber-600">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            name="business_name"
+                            required
+                            placeholder="{% trans "e.g. Al-Madina Store or demo1" %}"
+                            class="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-700 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            {% trans "Username" %} <span class="text-amber-600">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            name="username"
+                            required
+                            placeholder="{% trans "e.g. demo1" %}"
+                            class="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-700 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            {% trans "Password" %} <span class="text-amber-600">*</span>
+                        </label>
+                        <input
+                            type="password"
+                            name="password"
+                            required
+                            placeholder="••••••••"
+                            class="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-700 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            {% trans "Email (Optional)" %}
+                        </label>
+                        <input
+                            type="email"
+                            name="email"
+                            placeholder="owner@example.com"
+                            class="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-700 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            {% trans "Initial Subscription Tier" %}
+                        </label>
+                        <select
+                            name="plan"
+                            class="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-700 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500">
+                            <option value="free">{% trans "Free Trial (10 scans/mo)" %}</option>
+                            <option value="pro">{% trans "Pro (100 scans/mo)" %}</option>
+                            <option value="business">{% trans "Business (500 scans/mo)" %}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            {% trans "Custom Monthly Quota (Optional)" %}
+                        </label>
+                        <input
+                            type="number"
+                            name="monthly_scan_quota"
+                            placeholder="{% trans "Default based on tier" %}"
+                            min="1"
+                            class="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-700 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500">
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+                    <button
+                        type="button"
+                        @click="createTenantModalOpen = false"
+                        class="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors">
+                        {% trans "Cancel" %}
+                    </button>
+                    <button
+                        type="submit"
+                        class="px-5 py-2 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-xl transition-colors shadow-sm">
+                        {% trans "Create Tenant" %}
                     </button>
                 </div>
             </form>

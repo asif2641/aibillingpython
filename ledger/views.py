@@ -50,6 +50,28 @@ def ledger_dashboard_view(request: HttpRequest) -> HttpResponse:
 @login_required
 def payment_add_view(request: HttpRequest) -> HttpResponse:
     """Record a payment towards a party or bill."""
+    from decimal import Decimal
+
+    from bills.models import Bill
+
+    bill_qs = Bill.objects.filter(is_deleted=False)
+    if not request.user.is_superuser:
+        from django.db.models import Q
+
+        bill_qs = bill_qs.filter(Q(created_by=request.user) | Q(created_by__isnull=True))
+
+    bills_data = [
+        {
+            "id": b.pk,
+            "party_id": b.party_id,
+            "invoice_no": b.invoice_no or f"#{b.pk}",
+            "grand_total": str(b.grand_total),
+            "amount_due": str(max(Decimal("0.00"), b.grand_total - b.amount_paid)),
+            "label": f"{b.invoice_no or f'#{b.pk}'} (Due: PKR {max(Decimal('0.00'), b.grand_total - b.amount_paid):,.2f})",
+        }
+        for b in bill_qs.select_related("party")
+    ]
+
     if request.method == "POST":
         form = PaymentForm(request.POST, user=request.user)
         if form.is_valid():
@@ -68,16 +90,47 @@ def payment_add_view(request: HttpRequest) -> HttpResponse:
                     return redirect("bills:bill_detail", pk=payment.bill.pk)
                 return redirect("ledger:party_ledger", party_id=payment.party.pk)
             except ValidationError as err:
-                form.add_error(None, err)
-                return render(request, "ledger/payment_form.html", {"form": form}, status=400)
-        return render(request, "ledger/payment_form.html", {"form": form}, status=400)
+                msg = str(err)
+                if "Bill party does not match" in msg:
+                    form.add_error("bill", err)
+                else:
+                    form.add_error(None, err)
+                return render(
+                    request,
+                    "ledger/payment_form.html",
+                    {"form": form, "bills_data": bills_data},
+                    status=400,
+                )
+        return render(
+            request,
+            "ledger/payment_form.html",
+            {"form": form, "bills_data": bills_data},
+            status=400,
+        )
 
     party_id = request.GET.get("party")
+    bill_id = request.GET.get("bill")
     initial = {}
-    if party_id:
+    if bill_id:
+        try:
+            b_obj = bill_qs.get(pk=bill_id)
+            initial["bill"] = b_obj.pk
+            if b_obj.party_id:
+                initial["party"] = b_obj.party_id
+            due = max(Decimal("0.00"), b_obj.grand_total - b_obj.amount_paid)
+            if due > Decimal("0.00"):
+                initial["amount"] = due
+        except (Bill.DoesNotExist, ValueError):
+            pass
+    elif party_id:
         initial["party"] = party_id
+
     form = PaymentForm(initial=initial, user=request.user)
-    return render(request, "ledger/payment_form.html", {"form": form})
+    return render(
+        request,
+        "ledger/payment_form.html",
+        {"form": form, "bills_data": bills_data},
+    )
 
 
 @login_required

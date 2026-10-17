@@ -32,7 +32,15 @@ def landing_page_view(request):
     """
     if request.user.is_authenticated:
         return dashboard_view(request)
-    return render(request, "landing.html", {"title": "ScanBooks — AI Invoicing & Billing"})
+
+    from settings_app.models import LandingPageSettings
+
+    settings_obj = LandingPageSettings.get_solo()
+    context = {
+        "title": f"{settings_obj.site_title} — AI Invoicing & Billing",
+        "site_settings": settings_obj,
+    }
+    return render(request, "landing.html", context)
 
 
 @require_GET

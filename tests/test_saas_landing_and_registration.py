@@ -89,6 +89,7 @@ class TestSaaSSelfServiceRegistration:
         # Verify user was created with superadmin role for full shop management
         new_user = User.objects.get(username="alrehman")
         assert new_user.first_name == "Al-Rehman Traders"
+        assert new_user.business_name == "Al-Rehman Traders"
         assert new_user.role == User.Role.SUPERADMIN
         assert new_user.can_delete_records is True
         assert new_user.can_manage_shop is True

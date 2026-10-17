@@ -52,18 +52,13 @@ def _get_client_ip(request) -> str | None:
 
 
 def superadmin_required(view_func):
-    """Decorator requiring login and Super Admin permissions."""
+    """Decorator requiring login and Super Admin (is_superuser) permissions."""
 
     @wraps(view_func)
     @login_required
     def _wrapped_view(request, *args, **kwargs):
         user = request.user
-        is_super = (
-            user.is_superuser
-            or getattr(user, "is_superadmin", False)
-            or getattr(user, "role", "") == "superadmin"
-        )
-        if not is_super:
+        if not user.is_superuser:
             return HttpResponseForbidden("Only super admins are allowed to access this page.")
         return view_func(request, *args, **kwargs)
 
@@ -358,3 +353,36 @@ def reset_data_view(request):
 
     context = _get_reset_summary_context(request)
     return render(request, "settings_app/reset_data.html", context)
+
+
+@superadmin_required
+def landing_settings_view(request):
+    """View and update public landing page and marketing content configuration."""
+    from .forms import LandingPageSettingsForm
+    from .models import LandingPageSettings
+
+    settings_obj = LandingPageSettings.get_solo()
+
+    if request.method == "POST":
+        form = LandingPageSettingsForm(request.POST, instance=settings_obj)
+        if form.is_valid():
+            form.save()
+            log_activity(
+                user=request.user,
+                action="update_landing_settings",
+                target_type="LandingPageSettings",
+                target_id=settings_obj.pk,
+                description="Updated landing page content, video URL, contact details, or pricing.",
+                ip_address=_get_client_ip(request),
+            )
+            messages.success(request, _("Landing page content updated successfully!"))
+            return redirect("landing_settings")
+    else:
+        form = LandingPageSettingsForm(instance=settings_obj)
+
+    context = {
+        "form": form,
+        "landing_settings": settings_obj,
+        "active_tab": "landing",
+    }
+    return render(request, "settings_app/landing_settings.html", context)

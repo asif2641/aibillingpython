@@ -26,6 +26,19 @@ LOCKOUT_ERROR_MESSAGE = _(
 class CustomAuthenticationForm(AuthenticationForm):
     """Authentication form enforcing the 5-attempt account lockout policy."""
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["username"].widget.attrs.update(
+            {
+                "placeholder": _("Enter your username"),
+            }
+        )
+        self.fields["password"].widget.attrs.update(
+            {
+                "placeholder": "••••••••",
+            }
+        )
+
     def clean(self):
         """Validate credentials and enforce account lockout rules."""
         username = self.cleaned_data.get("username")

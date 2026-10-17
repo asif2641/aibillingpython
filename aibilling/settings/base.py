@@ -106,6 +106,8 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 # Makes the current language available in every template.
                 "django.template.context_processors.i18n",
+                # Global site marketing settings and shop profile singleton
+                "settings_app.context_processors.site_settings",
             ],
         },
     },

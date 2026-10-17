@@ -13,6 +13,8 @@ from settings_app import views
 urlpatterns = [
     # Shop profile
     path("shop/", views.shop_profile_view, name="shop_profile"),
+    # Public Landing Page Marketing & CMS settings (Superadmin only)
+    path("landing/", views.landing_settings_view, name="landing_settings"),
     # Staff management
     path("staff/", accounts_views.staff_list_view, name="staff_list"),
     path("staff/add/", accounts_views.staff_add_view, name="staff_add"),

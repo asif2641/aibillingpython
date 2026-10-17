@@ -93,18 +93,13 @@ class LogoutView(auth_views.LogoutView):
 
 
 def superadmin_required(view_func):
-    """Decorator requiring an authenticated user with Super Admin privileges."""
+    """Decorator requiring an authenticated user with Super Admin (is_superuser) privileges."""
 
     @wraps(view_func)
     @login_required
     def _wrapped_view(request, *args, **kwargs):
         user = request.user
-        is_super = (
-            user.is_superuser
-            or getattr(user, "is_superadmin", False)
-            or getattr(user, "role", "") == "superadmin"
-        )
-        if not is_super:
+        if not user.is_superuser:
             return HttpResponseForbidden("You do not have permission to access this resource.")
         return view_func(request, *args, **kwargs)
 
@@ -326,6 +321,57 @@ def superadmin_dashboard_view(request):
         "plan_choices": User.Plan.choices,
     }
     return render(request, "accounts/superadmin_dashboard.html", context)
+
+
+@superadmin_required
+def superadmin_create_tenant_view(request):
+    """Allow superadmin to provision a new tenant directly from the SaaS console."""
+    if request.method != "POST":
+        return redirect("accounts:superadmin_dashboard")
+
+    User = get_user_model()
+    business_name = request.POST.get("business_name", "").strip()
+    username = request.POST.get("username", "").strip()
+    email = request.POST.get("email", "").strip()
+    password = request.POST.get("password", "")
+    plan = request.POST.get("plan", User.Plan.FREE).strip().lower()
+    quota_raw = request.POST.get("monthly_scan_quota")
+
+    if not username:
+        messages.error(request, _("Username is required."))
+        return redirect("accounts:superadmin_dashboard")
+
+    if not password:
+        messages.error(request, _("Password is required."))
+        return redirect("accounts:superadmin_dashboard")
+
+    if User.objects.filter(username=username).exists():
+        messages.error(
+            request,
+            _("A user with username '%(username)s' already exists.") % {"username": username},
+        )
+        return redirect("accounts:superadmin_dashboard")
+
+    monthly_quota = int(quota_raw) if (quota_raw and str(quota_raw).isdigit()) else None
+
+    tenant = register_owner_user(
+        username=username,
+        password=password,
+        business_name=business_name or username,
+        email=email,
+        plan=plan,
+        monthly_scan_quota=monthly_quota,
+    )
+    messages.success(
+        request,
+        _("New tenant '%(username)s' created successfully (%(plan)s tier, %(quota)d scans/month).")
+        % {
+            "username": tenant.username,
+            "plan": tenant.get_plan_display(),
+            "quota": tenant.monthly_scan_quota,
+        },
+    )
+    return redirect("accounts:superadmin_dashboard")
 
 
 @superadmin_required

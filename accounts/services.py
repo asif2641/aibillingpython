@@ -168,17 +168,36 @@ def register_owner_user(
     password: str,
     business_name: str,
     email: str = "",
+    plan: str | None = None,
+    monthly_scan_quota: int | None = None,
 ) -> User:
     """Create and return a new business owner user for SaaS onboarding."""
     from django.contrib.auth import get_user_model
 
     User = get_user_model()
+    target_plan = (
+        plan if plan in (User.Plan.FREE, User.Plan.PRO, User.Plan.BUSINESS) else User.Plan.FREE
+    )
+    if monthly_scan_quota is None:
+        if target_plan == User.Plan.PRO:
+            target_quota = 100
+        elif target_plan == User.Plan.BUSINESS:
+            target_quota = 500
+        else:
+            target_quota = 10
+    else:
+        target_quota = max(1, int(monthly_scan_quota))
+
     return User.objects.create_user(
         username=username,
         email=email,
         password=password,
         first_name=business_name,
+        business_name=business_name,
         role=User.Role.SUPERADMIN,
+        plan=target_plan,
+        monthly_scan_quota=target_quota,
+        scans_used_this_month=0,
         can_delete_records=True,
         can_manage_shop=True,
         can_manage_categories=True,

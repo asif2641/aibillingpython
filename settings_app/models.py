@@ -203,3 +203,210 @@ class ActivityLog(models.Model):
 
     def __str__(self) -> str:
         return f"{self.action} by {self.user or 'System'} at {self.created_at}"
+
+
+class LandingPageSettings(models.Model):
+    """Singleton model representing public landing page content, video demo, and marketing configuration."""
+
+    # 1. Branding & Identity
+    site_title = models.CharField(
+        max_length=150,
+        default="ScanBooks",
+        verbose_name=_("site title / brand"),
+        help_text=_("Brand name displayed in the navbar, hero, and footer."),
+    )
+
+    # 2. Hero Section
+    hero_badge_en = models.CharField(
+        max_length=255,
+        default="✨ Automated AI Invoicing & Smart Khata",
+        verbose_name=_("hero badge (English)"),
+    )
+    hero_badge_ur = models.CharField(
+        max_length=255,
+        default="✨ جدید ترین AI کے ذریعے رسیدیں اور کھاتہ خودکار بنائیں",
+        verbose_name=_("hero badge (Urdu)"),
+    )
+    hero_title_en = models.CharField(
+        max_length=255,
+        default="Turn Paper Bills into Smart Accounts in 5 Seconds",
+        verbose_name=_("hero title (English)"),
+    )
+    hero_title_ur = models.CharField(
+        max_length=255,
+        default="کاغذی بلوں اور پرچیوں سے نجات۔ صرف 5 سیکنڈ میں خودکار ڈیجیٹل کھاتہ!",
+        verbose_name=_("hero title (Urdu)"),
+    )
+    hero_subtitle_en = models.TextField(
+        default="Snap a photo of any handwritten or printed receipt. ScanBooks extracts line items, updates customer ledgers, and generates instant WhatsApp bills without manual typing.",
+        verbose_name=_("hero subtitle (English)"),
+    )
+    hero_subtitle_ur = models.TextField(
+        default="موبائل کیمرے سے کسی بھی ہاتھ سے لکھے یا پرنٹ شدہ بل کی تصویر لیں۔ ہمارا AI خودکار اشیاء، ریٹس اور ٹوٹل نکال کر گاہک کا کھاتہ اور واٹس ایپ رپورٹ فوراً تیار کر دیتا ہے۔",
+        verbose_name=_("hero subtitle (Urdu)"),
+    )
+    hero_cta_text_en = models.CharField(
+        max_length=100,
+        default="Start 10 Free Scans",
+        verbose_name=_("hero primary CTA text (English)"),
+    )
+    hero_cta_text_ur = models.CharField(
+        max_length=100,
+        default="10 بلز مفت اسکین کریں",
+        verbose_name=_("hero primary CTA text (Urdu)"),
+    )
+    free_scans_badge_count = models.PositiveIntegerField(
+        default=10,
+        verbose_name=_("free trial scans count"),
+        help_text=_("Number of free trial scans highlighted on buttons and badges."),
+    )
+
+    # 3. Demo Video Settings
+    demo_video_url = models.CharField(
+        max_length=500,
+        blank=True,
+        default="",
+        verbose_name=_("demo video URL"),
+        help_text=_(
+            "YouTube link, Vimeo link, or MP4 video URL. If left empty, interactive animated demo will be displayed."
+        ),
+    )
+    video_button_text_en = models.CharField(
+        max_length=100,
+        default="Watch 45s Video Demo",
+        verbose_name=_("video button text (English)"),
+    )
+    video_button_text_ur = models.CharField(
+        max_length=100,
+        default="45 سیکنڈ کی ویڈیو دیکھیں",
+        verbose_name=_("video button text (Urdu)"),
+    )
+
+    # 4. Contact & Support Information
+    support_phone = models.CharField(
+        max_length=50,
+        blank=True,
+        default="+92 300 1234567",
+        verbose_name=_("support phone number"),
+        help_text=_("Official phone number displayed for customer assistance."),
+    )
+    support_email = models.EmailField(
+        blank=True,
+        default="support@scanbooks.pk",
+        verbose_name=_("support email address"),
+        help_text=_("Official email address for customer inquiries and help."),
+    )
+    whatsapp_number = models.CharField(
+        max_length=50,
+        blank=True,
+        default="+923001234567",
+        verbose_name=_("WhatsApp number"),
+        help_text=_("WhatsApp contact number with country code (e.g. +923001234567)."),
+    )
+    contact_address = models.CharField(
+        max_length=255,
+        blank=True,
+        default="Lahore, Pakistan",
+        verbose_name=_("office address / city"),
+    )
+    contact_hours = models.CharField(
+        max_length=100,
+        blank=True,
+        default="Mon - Sat: 9:00 AM - 8:00 PM",
+        verbose_name=_("support working hours"),
+    )
+
+    # 5. Social Media Links
+    facebook_url = models.URLField(blank=True, default="", verbose_name=_("Facebook URL"))
+    twitter_url = models.URLField(blank=True, default="", verbose_name=_("Twitter / X URL"))
+    linkedin_url = models.URLField(blank=True, default="", verbose_name=_("LinkedIn URL"))
+    instagram_url = models.URLField(blank=True, default="", verbose_name=_("Instagram URL"))
+    youtube_url = models.URLField(blank=True, default="", verbose_name=_("YouTube URL"))
+
+    # 6. Pricing Packages
+    starter_price_pkr = models.CharField(
+        max_length=50, default="0", verbose_name=_("Starter price (PKR)")
+    )
+    starter_price_usd = models.CharField(
+        max_length=50, default="0", verbose_name=_("Starter price (USD)")
+    )
+    starter_scans = models.PositiveIntegerField(default=10, verbose_name=_("Starter monthly scans"))
+
+    pro_price_pkr = models.CharField(
+        max_length=50, default="1,499", verbose_name=_("Pro price (PKR)")
+    )
+    pro_price_usd = models.CharField(
+        max_length=50, default="9.99", verbose_name=_("Pro price (USD)")
+    )
+    pro_scans = models.PositiveIntegerField(default=150, verbose_name=_("Pro monthly scans"))
+
+    business_price_pkr = models.CharField(
+        max_length=50, default="3,999", verbose_name=_("Business price (PKR)")
+    )
+    business_price_usd = models.CharField(
+        max_length=50, default="24.99", verbose_name=_("Business price (USD)")
+    )
+    business_scans = models.PositiveIntegerField(
+        default=500, verbose_name=_("Business monthly scans")
+    )
+
+    # 7. Footer & Legal
+    footer_text_en = models.CharField(
+        max_length=255,
+        default="All rights reserved.",
+        verbose_name=_("footer copyright notice (English)"),
+    )
+    footer_text_ur = models.CharField(
+        max_length=255,
+        default="تمام جملہ حقوق محفوظ ہیں۔",
+        verbose_name=_("footer copyright notice (Urdu)"),
+    )
+
+    class Meta:
+        verbose_name = _("landing page settings")
+        verbose_name_plural = _("landing page settings")
+
+    def __str__(self) -> str:
+        return f"{self.site_title} Landing Page Settings"
+
+    def save(self, *args, **kwargs) -> None:
+        """Enforce singleton constraint by ensuring pk=1."""
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_solo(cls) -> LandingPageSettings:
+        """Retrieve existing singleton instance or create default."""
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    @property
+    def embed_video_url(self) -> str:
+        """Convert standard YouTube / Vimeo link to iframe embeddable URL."""
+        url = (self.demo_video_url or "").strip()
+        if not url:
+            return ""
+        if "youtube.com/watch" in url:
+            import urllib.parse
+
+            parsed = urllib.parse.urlparse(url)
+            qs = urllib.parse.parse_qs(parsed.query)
+            vid = qs.get("v", [""])[0]
+            if vid:
+                return f"https://www.youtube.com/embed/{vid}?autoplay=1"
+        elif "youtu.be/" in url:
+            vid = url.split("youtu.be/")[1].split("?")[0].split("/")[0]
+            if vid:
+                return f"https://www.youtube.com/embed/{vid}?autoplay=1"
+        elif "vimeo.com/" in url and "player.vimeo.com" not in url:
+            vid = url.split("vimeo.com/")[1].split("?")[0].split("/")[0]
+            if vid:
+                return f"https://player.vimeo.com/video/{vid}?autoplay=1"
+        return url
+
+    @property
+    def clean_whatsapp(self) -> str:
+        """Return digits only for wa.me link."""
+        import re
+
+        return re.sub(r"[^\d]", "", self.whatsapp_number or "")

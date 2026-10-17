@@ -26,7 +26,7 @@
                 </a>
                 {% endif %}
                 <a href="{% url 'bills:bill_add' %}" 
-                   class="inline-flex items-center gap-2 px-4 py-2 min-h-[44px] rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs shadow-sm shadow-primary-500/25 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
+                   class="inline-flex items-center gap-2 px-4 py-2 min-h-[44px] rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     <span>{% trans "New Bill" %}</span>
                 </a>
@@ -35,7 +35,7 @@
 
         <!-- Pending Review Alert Banner -->
         {% if needs_review_count > 0 and status_filter != 'NeedsReview' %}
-        <div class="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+        <div class="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div class="flex items-center gap-3">
                 <span class="text-2xl">⏳</span>
                 <div>
@@ -47,14 +47,14 @@
                     </p>
                 </div>
             </div>
-            <a href="{% url 'bills:bill_list' %}?status=NeedsReview" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-sm transition-colors whitespace-nowrap">
+            <a href="{% url 'bills:bill_list' %}?status=NeedsReview" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold transition-colors whitespace-nowrap">
                 <span>🔍 {% trans "Review Pending Scans" %} ({{ needs_review_count }})</span>
             </a>
         </div>
         {% endif %}
 
         <!-- Filter / Search Card -->
-        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm p-4 sm:p-5">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-4 sm:p-5">
             <form method="get" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
                 <!-- Search input -->
                 <div>
@@ -133,16 +133,16 @@
 
         <!-- Summary KPI Cards -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-4 shadow-sm">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-4">
                 <span class="text-[11px] font-semibold uppercase text-slate-400">{% trans "Total Bills" %}</span>
                 <p class="text-xl font-bold text-slate-900 dark:text-white mt-1">{{ total_count }}</p>
             </div>
-            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-4 shadow-sm">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-4">
                 <span class="text-[11px] font-semibold uppercase text-slate-400">{% trans "Total Amount" %}</span>
                 <p class="text-xl font-bold text-primary-600 dark:text-primary-400 font-mono mt-1">Rs. {{ total_amount|floatformat:2 }}</p>
             </div>
             {% if selected_party %}
-            <div class="col-span-2 bg-primary-50/70 dark:bg-primary-950/40 rounded-2xl border border-primary-200 dark:border-primary-900/50 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-sm">
+            <div class="col-span-2 bg-primary-50/70 dark:bg-primary-950/40 rounded-2xl border border-primary-200 dark:border-primary-900/50 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                     <span class="text-[11px] font-semibold uppercase text-primary-600 dark:text-primary-400">{% trans "Party Ledger (Khata)" %}</span>
                     <p class="text-sm font-bold text-slate-900 dark:text-white mt-0.5">
@@ -152,7 +152,7 @@
                         {% endif %}
                     </p>
                 </div>
-                <a href="{% url 'ledger:party_ledger' selected_party.pk %}" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold shadow-sm transition-colors whitespace-nowrap">
+                <a href="{% url 'ledger:party_ledger' selected_party.pk %}" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold transition-colors whitespace-nowrap">
                     <span>📖 {% trans "View Full Khata Ledger" %}</span>
                 </a>
             </div>
@@ -160,7 +160,7 @@
         </div>
 
         <!-- Table Card -->
-        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm overflow-hidden">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full text-left rtl:text-right border-collapse">
                     <thead>
@@ -238,7 +238,7 @@
                                     {% with job=bill.scan_jobs.first %}
                                         {% if bill.status == 'NeedsReview' and job %}
                                             <a href="{% url 'scanning:review' job.pk %}" 
-                                               class="px-2.5 py-1 min-h-[36px] inline-flex items-center rounded-lg text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white shadow-sm transition-colors">
+                                               class="px-2.5 py-1 min-h-[36px] inline-flex items-center rounded-lg text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white transition-colors">
                                                 {% trans "Review & Approve" %}
                                             </a>
                                         {% else %}

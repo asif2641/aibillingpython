@@ -501,3 +501,39 @@ class TestPaymentViewsAndEndpoints:
 
         admin_resp = superadmin_client.get(self._add_payment_url())
         assert admin_resp.status_code == 200
+
+    def test_payment_form_rejects_bill_belonging_to_different_party(
+        self, sample_vendor, sample_customer, sample_bill
+    ):
+        """Form must reject a bill that belongs to a different party and flag the bill field."""
+        from ledger.forms import PaymentForm
+
+        # sample_bill belongs to sample_vendor. We try to associate it with sample_customer.
+        form = PaymentForm(
+            data={
+                "party": sample_customer.pk,
+                "bill": sample_bill.pk,
+                "amount": "250.00",
+                "payment_date": timezone.now().date().strftime("%Y-%m-%d"),
+                "payment_method": "cash",
+            }
+        )
+        assert not form.is_valid()
+        assert "bill" in form.errors
+
+    def test_payment_add_view_mismatched_bill_does_not_render_raw_all_error(
+        self, staff_client, sample_vendor, sample_customer, sample_bill
+    ):
+        """Posting mismatched bill to payment_add must not show raw '__all__:' text."""
+        payload = {
+            "party": sample_customer.pk,
+            "bill": sample_bill.pk,
+            "amount": "250.00",
+            "payment_date": timezone.now().date().strftime("%Y-%m-%d"),
+            "payment_method": "cash",
+        }
+        response = staff_client.post(self._add_payment_url(), payload)
+        assert response.status_code == 400
+        content = response.content.decode("utf-8")
+        assert "__all__:" not in content
+        assert "bill" in response.context["form"].errors
