@@ -171,13 +171,12 @@ if "DATABASES" in _prod_settings:
 if "MEDIA_ROOT" in _prod_settings:
     MEDIA_ROOT = _prod_settings["MEDIA_ROOT"]
     BACKUP_DIR = _prod_settings["BACKUP_DIR"]
-if bool(os.environ.get("VERCEL") or os.environ.get("VERCEL_URL")):
-    STORAGES = {
-        "default": {
-            "BACKEND": "django.core.files.storage.FileSystemStorage",
-        },
-        "staticfiles": {
-            "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
-        },
-    }
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+    },
+}
 WHITENOISE_MANIFEST_STRICT = False

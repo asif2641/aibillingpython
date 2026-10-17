@@ -10,6 +10,8 @@ if python3 -m venv .build_venv 2>/dev/null; then
     source .build_venv/bin/activate
     python -m pip install --upgrade pip --quiet
     python -m pip install -r requirements.txt --quiet
+    echo "=== Running database migrations ==="
+    python manage.py migrate --noinput || true
     echo "=== Collecting static files ==="
     BUILD_MODE=True python manage.py collectstatic --noinput --clear || true
     deactivate
@@ -21,6 +23,8 @@ else
     if [ -n "$USER_SITE" ]; then
         export PYTHONPATH="$USER_SITE:$PYTHONPATH"
     fi
+    echo "=== Running database migrations ==="
+    python3 manage.py migrate --noinput || true
     echo "=== Collecting static files ==="
     BUILD_MODE=True python3 manage.py collectstatic --noinput --clear || true
 fi

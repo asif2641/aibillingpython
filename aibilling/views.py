@@ -30,14 +30,22 @@ def landing_page_view(request):
 
     If the user is already authenticated, render their private dashboard directly.
     """
-    if request.user.is_authenticated:
-        return dashboard_view(request)
+    try:
+        if request.user.is_authenticated:
+            return dashboard_view(request)
+    except Exception:  # noqa: S110
+        pass
 
     from settings_app.models import LandingPageSettings
 
-    settings_obj = LandingPageSettings.get_solo()
+    try:
+        settings_obj = LandingPageSettings.get_solo()
+    except Exception:
+        settings_obj = LandingPageSettings(pk=1)
+
+    site_title = getattr(settings_obj, "site_title", "ScanBooks")
     context = {
-        "title": f"{settings_obj.site_title} — AI Invoicing & Billing",
+        "title": f"{site_title} — AI Invoicing & Billing",
         "site_settings": settings_obj,
     }
     return render(request, "landing.html", context)

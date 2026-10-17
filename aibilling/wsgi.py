@@ -31,3 +31,41 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", default_settings)
 
 application = get_wsgi_application()
 app = application
+
+# Auto-apply database migrations and seed administrative users on Vercel boot
+if os.environ.get("VERCEL"):
+    try:
+        from django.core.management import call_command
+
+        call_command("migrate", interactive=False)
+    except Exception as _migrate_exc:  # noqa: S110
+        import logging
+
+        logging.getLogger(__name__).warning("Startup migration failed or skipped: %s", _migrate_exc)
+
+    try:
+        from django.contrib.auth import get_user_model
+
+        User = get_user_model()
+        if not User.objects.filter(is_superuser=True).exists():
+            admin_pass = os.environ.get("DJANGO_SUPERUSER_PASSWORD", "AdminPass123!")
+            User.objects.create_superuser(
+                username="superadmin",
+                email="admin@scanbooks.local",
+                password=admin_pass,
+            )
+
+        from accounts.services import register_owner_user
+
+        if not User.objects.filter(username="demo").exists():
+            register_owner_user(
+                username="demo",
+                password="demo",
+                business_name="Demo Shop",
+                email="demo@scanbooks.local",
+                plan=User.Plan.BUSINESS,
+            )
+    except Exception as _seed_exc:  # noqa: S110
+        import logging
+
+        logging.getLogger(__name__).warning("Initial user seed failed or skipped: %s", _seed_exc)

@@ -140,8 +140,11 @@ class ShopProfile(models.Model):
     @classmethod
     def get_solo(cls) -> ShopProfile:
         """Retrieve the existing singleton instance or create the default."""
-        obj, _ = cls.objects.get_or_create(pk=1)
-        return obj
+        try:
+            obj, _ = cls.objects.get_or_create(pk=1)
+            return obj
+        except Exception:
+            return cls(pk=1, name="ScanBooks Shop")
 
 
 class ActivityLog(models.Model):
@@ -377,8 +380,11 @@ class LandingPageSettings(models.Model):
     @classmethod
     def get_solo(cls) -> LandingPageSettings:
         """Retrieve existing singleton instance or create default."""
-        obj, _ = cls.objects.get_or_create(pk=1)
-        return obj
+        try:
+            obj, _ = cls.objects.get_or_create(pk=1)
+            return obj
+        except Exception:
+            return cls(pk=1)
 
     @property
     def embed_video_url(self) -> str:

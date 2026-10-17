@@ -225,21 +225,14 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Django 4.2+ STORAGES setting: WhiteNoise serves compressed static files.
-# On Vercel serverless, use CompressedStaticFilesStorage without manifest hashing
-# so Vercel's edge CDN serves static assets directly without hash mismatches.
 STORAGES = {
     "default": {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
     },
     "staticfiles": {
-        "BACKEND": (
-            "whitenoise.storage.CompressedStaticFilesStorage"
-            if bool(os.environ.get("VERCEL") or os.environ.get("VERCEL_URL"))
-            else "whitenoise.storage.CompressedManifestStaticFilesStorage"
-        ),
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
     },
 }
-# Prevent missing manifest entries from raising 500 errors in serverless environments
 WHITENOISE_MANIFEST_STRICT = False
 
 
