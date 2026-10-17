@@ -69,8 +69,8 @@ if os.environ.get("VERCEL"):
 
         # Guarantee 'admin' user also has valid credentials
         admin_u = User.objects.filter(username="admin").first()
-        if admin_u and not admin_u.check_password(admin_pass):
-            admin_u.set_password(admin_pass)
+        if admin_u and not (admin_u.check_password("admin") or admin_u.check_password(admin_pass)):
+            admin_u.set_password("admin")
             admin_u.is_superuser = True
             admin_u.is_staff = True
             admin_u.is_active = True
@@ -81,14 +81,39 @@ if os.environ.get("VERCEL"):
 
         from accounts.services import register_owner_user
 
-        if not User.objects.filter(username="demo").exists():
+        demo_u = User.objects.filter(username="demo").first()
+        if not demo_u:
             register_owner_user(
                 username="demo",
                 password="demo",
-                business_name="Demo Shop",
-                email="demo@scanbooks.local",
-                plan=User.Plan.BUSINESS,
+                business_name="Demo Business",
+                email="demo@example.com",
+                plan=User.Plan.PRO,
             )
+        elif not (demo_u.check_password("demo") or demo_u.check_password("DemoPass123!")):
+            demo_u.set_password("demo")
+            demo_u.is_active = True
+            demo_u.is_locked = False
+            demo_u.failed_login_attempts = 0
+            demo_u.locked_until = None
+            demo_u.save()
+
+        demo1_u = User.objects.filter(username="demo1").first()
+        if not demo1_u:
+            register_owner_user(
+                username="demo1",
+                password="demo1",
+                business_name="demo1",
+                email="demo1@example.com",
+                plan=User.Plan.FREE,
+            )
+        elif not (demo1_u.check_password("demo1") or demo1_u.check_password("DemoPass123!")):
+            demo1_u.set_password("demo1")
+            demo1_u.is_active = True
+            demo1_u.is_locked = False
+            demo1_u.failed_login_attempts = 0
+            demo1_u.locked_until = None
+            demo1_u.save()
     except Exception as _seed_exc:  # noqa: S110
         import logging
 
