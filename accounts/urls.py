@@ -39,4 +39,14 @@ urlpatterns = [
         views.superadmin_add_bonus_scans_view,
         name="superadmin_add_bonus_scans",
     ),
+    path(
+        "superadmin/payments/<int:request_id>/approve/",
+        views.superadmin_approve_payment_request_view,
+        name="superadmin_approve_payment_request",
+    ),
+    path(
+        "superadmin/payments/<int:request_id>/reject/",
+        views.superadmin_reject_payment_request_view,
+        name="superadmin_reject_payment_request",
+    ),
 ]

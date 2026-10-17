@@ -228,23 +228,55 @@ def staff_reset_password_view(request, user_id: int):
 def subscription_view(request):
     """View and manage SaaS subscription plan and scan quota."""
     user = request.user
+    from settings_app.models import LandingPageSettings
+
+    site_settings = LandingPageSettings.get_solo()
+
     if request.method == "POST":
-        new_plan = request.POST.get("plan")
-        if new_plan in (user.Plan.FREE, user.Plan.PRO, user.Plan.BUSINESS):
-            user.plan = new_plan
-            if new_plan == user.Plan.FREE:
-                user.monthly_scan_quota = 10
-            elif new_plan == user.Plan.PRO:
-                user.monthly_scan_quota = 100
-            elif new_plan == user.Plan.BUSINESS:
-                user.monthly_scan_quota = 500
+        action = request.POST.get("action", "")
+        plan_selected = request.POST.get("plan", "")
+
+        # Immediate downgrade to free trial
+        if action == "downgrade_free" or plan_selected == user.Plan.FREE:
+            user.plan = user.Plan.FREE
+            user.monthly_scan_quota = getattr(site_settings, "starter_scans", 10) or 10
             user.save(update_fields=["plan", "monthly_scan_quota"])
             messages.success(
                 request,
-                _("Your subscription has been updated to %(plan)s (%(quota)d scans/month)!")
-                % {"plan": user.get_plan_display(), "quota": user.monthly_scan_quota},
+                _("Your subscription has been switched to Free Trial (%(quota)d scans/month).")
+                % {"quota": user.monthly_scan_quota},
             )
             return redirect("accounts:subscription")
+
+        # Upgrade Payment submission
+        from .forms import SubscriptionPaymentSubmissionForm
+
+        form = SubscriptionPaymentSubmissionForm(request.POST, request.FILES)
+        if form.is_valid():
+            req_obj = form.save(commit=False)
+            req_obj.user = user
+            req_obj.status = req_obj.Status.PENDING
+            req_obj.save()
+            messages.success(
+                request,
+                _(
+                    "Payment proof submitted for %(plan)s! Our team will review and activate your quota shortly. You can also send the receipt directly on WhatsApp for instant activation."
+                )
+                % {"plan": req_obj.get_plan_display()},
+            )
+            return redirect("accounts:subscription")
+        messages.error(request, _("Please provide payment details or valid transaction reference."))
+
+    from .forms import SubscriptionPaymentSubmissionForm
+    from .models import SubscriptionPaymentRequest
+
+    pending_request = (
+        SubscriptionPaymentRequest.objects.filter(
+            user=user, status=SubscriptionPaymentRequest.Status.PENDING
+        )
+        .order_by("-created_at")
+        .first()
+    )
 
     usage_percent = 0
     if user.monthly_scan_quota > 0:
@@ -255,6 +287,9 @@ def subscription_view(request):
         "user": user,
         "usage_percent": usage_percent,
         "remaining_scans": user.remaining_scans,
+        "site_settings": site_settings,
+        "pending_request": pending_request,
+        "payment_form": SubscriptionPaymentSubmissionForm(),
     }
     return render(request, "accounts/subscription.html", context)
 
@@ -304,6 +339,15 @@ def superadmin_dashboard_view(request):
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
+    from .models import SubscriptionPaymentRequest
+
+    pending_payment_requests = (
+        SubscriptionPaymentRequest.objects.filter(status=SubscriptionPaymentRequest.Status.PENDING)
+        .select_related("user")
+        .order_by("-created_at")
+    )
+    pending_payments_count = pending_payment_requests.count()
+
     context = {
         "title": _("SaaS Super Admin Console"),
         "total_tenants": total_tenants,
@@ -319,6 +363,8 @@ def superadmin_dashboard_view(request):
         "q": q,
         "selected_plan": selected_plan,
         "plan_choices": User.Plan.choices,
+        "pending_payment_requests": pending_payment_requests,
+        "pending_payments_count": pending_payments_count,
     }
     return render(request, "accounts/superadmin_dashboard.html", context)
 
@@ -466,3 +512,71 @@ def superadmin_add_bonus_scans_view(request, user_id: int):
         messages.error(request, _("Invalid bonus scan value entered."))
 
     return redirect(request.META.get("HTTP_REFERER") or "accounts:superadmin_dashboard")
+
+
+@superadmin_required
+def superadmin_approve_payment_request_view(request, request_id: int):
+    """Approve tenant payment request and activate their subscription plan and quota."""
+    if request.method != "POST":
+        return redirect("accounts:superadmin_dashboard")
+
+    from django.utils import timezone
+
+    from settings_app.models import LandingPageSettings
+
+    from .models import SubscriptionPaymentRequest
+
+    payment_req = get_object_or_404(SubscriptionPaymentRequest, pk=request_id)
+    site_settings = LandingPageSettings.get_solo()
+    tenant = payment_req.user
+
+    tenant.plan = payment_req.plan
+    if payment_req.plan == tenant.Plan.PRO:
+        tenant.monthly_scan_quota = getattr(site_settings, "pro_scans", 100) or 100
+    elif payment_req.plan == tenant.Plan.BUSINESS:
+        tenant.monthly_scan_quota = getattr(site_settings, "business_scans", 500) or 500
+    tenant.save(update_fields=["plan", "monthly_scan_quota"])
+
+    payment_req.status = SubscriptionPaymentRequest.Status.APPROVED
+    payment_req.reviewed_by = request.user
+    payment_req.reviewed_at = timezone.now()
+    payment_req.save(update_fields=["status", "reviewed_by", "reviewed_at"])
+
+    messages.success(
+        request,
+        _(
+            "Payment approved! Tenant %(username)s is now active on %(plan)s (%(quota)d scans/month)."
+        )
+        % {
+            "username": tenant.username,
+            "plan": tenant.get_plan_display(),
+            "quota": tenant.monthly_scan_quota,
+        },
+    )
+    return redirect("accounts:superadmin_dashboard")
+
+
+@superadmin_required
+def superadmin_reject_payment_request_view(request, request_id: int):
+    """Reject tenant payment request with reason."""
+    if request.method != "POST":
+        return redirect("accounts:superadmin_dashboard")
+
+    from django.utils import timezone
+
+    from .models import SubscriptionPaymentRequest
+
+    payment_req = get_object_or_404(SubscriptionPaymentRequest, pk=request_id)
+    notes = request.POST.get("admin_notes", "").strip()
+
+    payment_req.status = SubscriptionPaymentRequest.Status.REJECTED
+    payment_req.admin_notes = notes
+    payment_req.reviewed_by = request.user
+    payment_req.reviewed_at = timezone.now()
+    payment_req.save(update_fields=["status", "admin_notes", "reviewed_by", "reviewed_at"])
+
+    messages.warning(
+        request,
+        _("Payment request for %(username)s rejected.") % {"username": payment_req.user.username},
+    )
+    return redirect("accounts:superadmin_dashboard")

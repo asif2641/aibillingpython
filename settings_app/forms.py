@@ -98,8 +98,16 @@ class LandingPageSettingsForm(forms.ModelForm):
             "youtube_url",
             "footer_text_en",
             "footer_text_ur",
+            "bank_name",
+            "bank_account_title",
+            "bank_account_number",
+            "bank_iban",
+            "jazzcash_number",
+            "easypaisa_number",
+            "payment_instructions_note",
         ]
         widgets = {
             "hero_subtitle_en": forms.Textarea(attrs={"rows": 2}),
             "hero_subtitle_ur": forms.Textarea(attrs={"rows": 2}),
+            "payment_instructions_note": forms.Textarea(attrs={"rows": 2}),
         }

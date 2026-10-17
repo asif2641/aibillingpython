@@ -14,6 +14,12 @@
     selectedPlan: 'free',
     selectedQuota: 10,
     bonusAmount: 10,
+    previewModalOpen: false,
+    previewImageUrl: '',
+    openImageModal(url) {
+        this.previewImageUrl = url;
+        this.previewModalOpen = true;
+    },
     openPlanModal(id, name, plan, quota) {
         this.selectedTenantId = id;
         this.selectedTenantName = name;
@@ -137,6 +143,113 @@
             </div>
         </div>
     </div>
+
+    <!-- PENDING UPGRADE & PAYMENT REQUESTS -->
+    {% if pending_payment_requests %}
+    <div class="bg-white dark:bg-slate-800 rounded-2xl border-2 border-amber-500/70 dark:border-amber-500/50 shadow-md overflow-hidden">
+        <div class="p-5 bg-amber-50/70 dark:bg-amber-950/40 border-b border-amber-200 dark:border-amber-800 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 flex items-center justify-center font-bold text-lg">
+                    💰
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <span>{% trans "Pending Payment & Upgrade Requests" %}</span>
+                        <span class="px-2 py-0.5 rounded-full text-xs font-extrabold bg-amber-500 text-white">
+                            {{ pending_payments_count }}
+                        </span>
+                    </h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                        {% trans "Tenants who submitted payment proof via Bank Transfer, Raast, or JazzCash for account activation." %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-start text-xs">
+                <thead class="bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 uppercase tracking-wider font-semibold border-b border-slate-200 dark:border-slate-700">
+                    <tr>
+                        <th class="px-5 py-3 text-start">{% trans "Tenant" %}</th>
+                        <th class="px-5 py-3 text-start">{% trans "Requested Tier" %}</th>
+                        <th class="px-5 py-3 text-start">{% trans "Amount" %}</th>
+                        <th class="px-5 py-3 text-start">{% trans "Method & Reference / TID" %}</th>
+                        <th class="px-5 py-3 text-start">{% trans "Proof Screenshot" %}</th>
+                        <th class="px-5 py-3 text-start">{% trans "Date" %}</th>
+                        <th class="px-5 py-3 text-end">{% trans "Actions" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+                    {% for req in pending_payment_requests %}
+                    <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-700/40 transition-colors">
+                        <td class="px-5 py-3.5">
+                            <div class="font-bold text-slate-900 dark:text-white">{{ req.user.username }}</div>
+                            <div class="text-[11px] text-slate-500 dark:text-slate-400">{{ req.user.business_name|default:req.user.email }}</div>
+                        </td>
+                        <td class="px-5 py-3.5">
+                            {% if req.plan == 'pro' %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-900 dark:bg-blue-950/70 dark:text-blue-300 border border-blue-200">
+                                Pro (100 scans)
+                            </span>
+                            {% elif req.plan == 'business' %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200">
+                                Business (500 scans)
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-800">
+                                {{ req.get_plan_display }}
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-5 py-3.5 font-bold text-slate-900 dark:text-white">
+                            PKR {{ req.amount }}
+                        </td>
+                        <td class="px-5 py-3.5">
+                            <div class="font-semibold text-slate-800 dark:text-slate-200">{{ req.get_payment_method_display }}</div>
+                            <div class="font-mono text-[11px] text-slate-500 dark:text-slate-400 select-all">{{ req.transaction_id|default:"No TID" }}</div>
+                            {% if req.customer_notes %}
+                            <div class="text-[10px] text-slate-500 italic mt-0.5 max-w-xs truncate" title="{{ req.customer_notes }}">"{{ req.customer_notes }}"</div>
+                            {% endif %}
+                        </td>
+                        <td class="px-5 py-3.5">
+                            {% if req.receipt_image %}
+                            <button 
+                                type="button" 
+                                @click="openImageModal('{{ req.receipt_image.url }}')"
+                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 transition-colors">
+                                <span>🖼️</span>
+                                <span>{% trans "View Proof" %}</span>
+                            </button>
+                            {% else %}
+                            <span class="text-slate-400 italic">{% trans "Via WhatsApp" %}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-5 py-3.5 text-slate-500 dark:text-slate-400 text-[11px]">
+                            {{ req.created_at|date:"M d, H:i" }}
+                        </td>
+                        <td class="px-5 py-3.5 text-end">
+                            <div class="flex items-center justify-end gap-2">
+                                <form method="post" action="{% url 'accounts:superadmin_approve_payment_request' req.id %}" onsubmit="return confirm('{% trans "Approve payment and activate tenant subscription?" %}');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="px-3 py-1.5 text-xs font-bold rounded-xl text-white bg-emerald-600 hover:bg-emerald-700 transition-colors shadow-sm">
+                                        ✓ {% trans "Approve" %}
+                                    </button>
+                                </form>
+                                <form method="post" action="{% url 'accounts:superadmin_reject_payment_request' req.id %}" onsubmit="return confirm('{% trans "Reject this payment request?" %}');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="px-3 py-1.5 text-xs font-bold rounded-xl text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 transition-colors">
+                                        ✕ {% trans "Reject" %}
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- SEARCH & FILTERS -->
     <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700/80">
@@ -622,5 +735,30 @@
         </div>
     </div>
 
+    <!-- MODAL 4: RECEIPT PROOF IMAGE PREVIEW -->
+    <div
+        x-show="previewModalOpen"
+        x-cloak
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm"
+        @keydown.escape.window="previewModalOpen = false">
+        <div
+            @click.away="previewModalOpen = false"
+            class="bg-white dark:bg-slate-900 rounded-3xl max-w-2xl w-full p-4 border border-slate-200 dark:border-slate-700 shadow-2xl space-y-3">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+                <h4 class="text-xs font-bold text-slate-800 dark:text-slate-200">{% trans "Payment Proof Screenshot" %}</h4>
+                <button @click="previewModalOpen = false" type="button" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg">✕</button>
+            </div>
+            <div class="max-h-[75vh] overflow-auto flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-2 rounded-2xl">
+                <img :src="previewImageUrl" alt="Proof" class="max-w-full max-h-[70vh] object-contain rounded-xl">
+            </div>
+            <div class="flex justify-end">
+                <a :href="previewImageUrl" target="_blank" class="px-4 py-1.5 text-xs font-semibold text-primary-600 dark:text-primary-400 hover:underline">
+                    {% trans "Open Full Original in New Tab" %} ↗
+                </a>
+            </div>
+        </div>
+    </div>
+
 </div>
 {% endblock %}
+

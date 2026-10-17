@@ -171,3 +171,96 @@ class User(AbstractUser):
         self.scans_used_this_month += 1
         self.save(update_fields=["scans_used_this_month"])
         return self.scans_used_this_month
+
+
+class SubscriptionPaymentRequest(models.Model):
+    """Model tracking tenant payment submissions for plan upgrades."""
+
+    class Status(models.TextChoices):
+        PENDING = "pending", _("Pending Verification")
+        APPROVED = "approved", _("Approved & Activated")
+        REJECTED = "rejected", _("Rejected")
+
+    class PaymentMethod(models.TextChoices):
+        BANK_TRANSFER = "bank_transfer", _("Bank Transfer / Raast")
+        JAZZCASH = "jazzcash", _("JazzCash")
+        EASYPAISA = "easypaisa", _("EasyPaisa")
+        OTHER = "other", _("Other / Cash")
+
+    user = models.ForeignKey(
+        "accounts.User",
+        on_delete=models.CASCADE,
+        related_name="payment_requests",
+        verbose_name=_("tenant"),
+    )
+    plan = models.CharField(
+        max_length=20,
+        choices=User.Plan.choices,
+        verbose_name=_("requested plan"),
+    )
+    amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name=_("amount (PKR)"),
+    )
+    payment_method = models.CharField(
+        max_length=30,
+        choices=PaymentMethod.choices,
+        default=PaymentMethod.BANK_TRANSFER,
+        verbose_name=_("payment method"),
+    )
+    transaction_id = models.CharField(
+        max_length=100,
+        blank=True,
+        default="",
+        verbose_name=_("transaction ID / TID"),
+    )
+    receipt_image = models.ImageField(
+        upload_to="payment_proofs/%Y/%m/",
+        blank=True,
+        null=True,
+        verbose_name=_("payment proof screenshot"),
+    )
+    customer_notes = models.TextField(
+        blank=True,
+        default="",
+        verbose_name=_("customer notes"),
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+        db_index=True,
+        verbose_name=_("status"),
+    )
+    admin_notes = models.TextField(
+        blank=True,
+        default="",
+        verbose_name=_("admin notes / rejection reason"),
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        db_index=True,
+        verbose_name=_("submitted at"),
+    )
+    reviewed_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        verbose_name=_("reviewed at"),
+    )
+    reviewed_by = models.ForeignKey(
+        "accounts.User",
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="reviewed_payment_requests",
+        verbose_name=_("reviewed by"),
+    )
+
+    class Meta:
+        verbose_name = _("subscription payment request")
+        verbose_name_plural = _("subscription payment requests")
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"{self.user.username} - {self.get_plan_display()} ({self.get_status_display()})"

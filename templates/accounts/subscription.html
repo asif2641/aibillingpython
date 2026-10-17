@@ -5,13 +5,61 @@
 {% block page_title %}{% trans "Subscription & Plans" %}{% endblock %}
 
 {% block content %}
-<div class="max-w-5xl mx-auto space-y-8 py-4">
+<div 
+    x-data="{ 
+        paymentModalOpen: false, 
+        selectedPlan: 'pro', 
+        selectedPlanName: 'Pro Trader', 
+        selectedPlanPrice: '1,500', 
+        selectedPlanScans: '100',
+        copySuccess: '',
+        copyToClipboard(text, label) {
+            navigator.clipboard.writeText(text);
+            this.copySuccess = label;
+            setTimeout(() => { this.copySuccess = ''; }, 2500);
+        }
+    }" 
+    class="max-w-5xl mx-auto space-y-8 py-4">
+
+    <!-- Pending Review Alert (If user has submitted proof) -->
+    {% if pending_request %}
+    <div class="rounded-2xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+        <div class="flex items-start sm:items-center gap-3.5">
+            <div class="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 flex items-center justify-center text-xl shrink-0">
+                ⏳
+            </div>
+            <div>
+                <h4 class="text-sm font-bold text-amber-900 dark:text-amber-200">
+                    {% blocktrans with plan=pending_request.get_plan_display %}Upgrade Request Pending Review: {{ plan }}{% endblocktrans %}
+                </h4>
+                <p class="text-xs text-amber-700 dark:text-amber-300/90 mt-0.5">
+                    {% blocktrans with tid=pending_request.transaction_id|default:"N/A" method=pending_request.get_payment_method_display date=pending_request.created_at|date:"M d, Y H:i" %}
+                    Submitted via {{ method }} (Ref/TID: {{ tid }}) on {{ date }}. Our team is verifying your payment.
+                    {% endblocktrans %}
+                </p>
+            </div>
+        </div>
+        <div class="shrink-0">
+            {% if site_settings.clean_whatsapp %}
+            <a 
+                href="https://wa.me/{{ site_settings.clean_whatsapp }}?text={% filter urlencode %}Assalam-o-Alaikum, I have submitted an upgrade request for ScanBooks {{ pending_request.get_plan_display }}. Username: {{ user.username }}, Ref: {{ pending_request.transaction_id }}. Please verify and activate my account.{% endfilter %}"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition-all">
+                <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.312.045-.634.075-1.29-.191-.741-.301-1.639-1.049-2.376-1.785-.826-.827-1.397-1.802-1.579-2.221-.183-.418-.021-.645.105-.795.111-.132.253-.332.38-.475.126-.143.169-.238.253-.4.085-.162.042-.304-.021-.428s-.571-1.378-.782-1.888c-.206-.497-.417-.43-.573-.438-.148-.008-.318-.009-.488-.009s-.445.064-.678.318c-.233.254-.89 0.869-.89 2.12s.911 2.457 1.038 2.628c.127.171 1.792 2.736 4.341 3.836 2.55 1.1 2.55.733 3.01.691.46-.042 1.482-.605 1.693-1.19.211-.585.211-1.086.148-1.191-.063-.105-.233-.169-.487-.295z"/></svg>
+                <span>{% trans "WhatsApp Support" %}</span>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Current Plan Banner -->
-    <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-700 relative overflow-hidden">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-700 relative overflow-hidden shadow-sm">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
             <div>
                 <div class="flex items-center gap-3 mb-2">
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-primary-100 text-primary-800 dark:bg-primary-950/70 dark:text-primary-300 border border-primary-200 dark:border-primary-800">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-100 text-amber-900 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                         {{ user.get_plan_display }}
                     </span>
                     {% if user.business_name %}
@@ -59,21 +107,21 @@
     <div>
         <div class="text-center mb-8">
             <h3 class="text-xl font-bold text-slate-900 dark:text-white">
-                {% trans "Upgrade Your Plan" %}
+                {% trans "Choose Your Plan" %}
             </h3>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                {% trans "Choose the right plan for your business volume. Instant activation." %}
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                {% trans "Choose the right plan for your business volume. Quick manual activation via Bank Transfer, Raast, JazzCash or WhatsApp." %}
             </p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <!-- Free Tier -->
-            <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border {% if user.plan == 'free' %}border-primary-500 ring-2 ring-primary-500/20{% else %}border-slate-200 dark:border-slate-700{% endif %} flex flex-col justify-between">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border {% if user.plan == 'free' %}border-slate-300 dark:border-slate-600 ring-2 ring-slate-400/20{% else %}border-slate-200 dark:border-slate-700{% endif %} flex flex-col justify-between shadow-sm">
                 <div>
                     <div class="flex justify-between items-center mb-4">
                         <h4 class="text-lg font-bold text-slate-900 dark:text-white">{% trans "Free Trial" %}</h4>
                         {% if user.plan == 'free' %}
-                        <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary-100 dark:bg-primary-900/60 text-primary-700 dark:text-primary-300">
+                        <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
                             {% trans "Current" %}
                         </span>
                         {% endif %}
@@ -85,7 +133,7 @@
                     <ul class="space-y-3 text-sm text-slate-600 dark:text-slate-300 mb-6">
                         <li class="flex items-center gap-2">
                             <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                            <span><strong>10</strong> {% trans "AI Scans per month" %}</span>
+                            <span><strong>{{ site_settings.starter_scans|default:10 }}</strong> {% trans "AI Scans per month" %}</span>
                         </li>
                         <li class="flex items-center gap-2">
                             <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
@@ -98,9 +146,9 @@
                     </ul>
                 </div>
                 {% if user.plan != 'free' %}
-                <form method="post" action="{% url 'accounts:subscription' %}">
+                <form method="post" action="{% url 'accounts:subscription' %}" onsubmit="return confirm('{% trans "Are you sure you want to downgrade to Free Trial (10 scans/mo)?" %}');">
                     {% csrf_token %}
-                    <input type="hidden" name="plan" value="free">
+                    <input type="hidden" name="action" value="downgrade_free">
                     <button type="submit" class="w-full py-2.5 px-4 rounded-xl text-xs font-semibold border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors">
                         {% trans "Downgrade to Free" %}
                     </button>
@@ -113,7 +161,7 @@
             </div>
 
             <!-- Pro Tier (Popular) -->
-            <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border-2 border-primary-500 dark:border-primary-400 relative flex flex-col justify-between">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border-2 border-primary-500 dark:border-primary-400 relative flex flex-col justify-between shadow-sm">
                 <div class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-primary-600 text-white text-[10px] font-bold uppercase tracking-wider">
                     {% trans "Most Popular" %}
                 </div>
@@ -121,19 +169,19 @@
                     <div class="flex justify-between items-center mb-4">
                         <h4 class="text-lg font-bold text-slate-900 dark:text-white">{% trans "Pro Trader" %}</h4>
                         {% if user.plan == 'pro' %}
-                        <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary-100 dark:bg-primary-900/60 text-primary-700 dark:text-primary-300">
+                        <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300">
                             {% trans "Current" %}
                         </span>
                         {% endif %}
                     </div>
                     <div class="mb-4">
-                        <span class="text-3xl font-extrabold text-slate-900 dark:text-white">Rs. 1,500</span>
+                        <span class="text-3xl font-extrabold text-slate-900 dark:text-white">Rs. {{ site_settings.pro_price_pkr|default:"1,500" }}</span>
                         <span class="text-xs text-slate-500 dark:text-slate-400">/{% trans "month" %}</span>
                     </div>
                     <ul class="space-y-3 text-sm text-slate-600 dark:text-slate-300 mb-6">
                         <li class="flex items-center gap-2">
                             <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                            <span><strong>100</strong> {% trans "AI Scans per month" %}</span>
+                            <span><strong>{{ site_settings.pro_scans|default:100 }}</strong> {% trans "AI Scans per month" %}</span>
                         </li>
                         <li class="flex items-center gap-2">
                             <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
@@ -150,39 +198,38 @@
                     </ul>
                 </div>
                 {% if user.plan != 'pro' %}
-                <form method="post" action="{% url 'accounts:subscription' %}">
-                    {% csrf_token %}
-                    <input type="hidden" name="plan" value="pro">
-                    <button type="submit" class="w-full py-2.5 px-4 rounded-xl text-xs font-semibold bg-primary-600 hover:bg-primary-700 text-white transition-colors">
-                        {% trans "Upgrade to Pro" %}
-                    </button>
-                </form>
+                <button 
+                    type="button" 
+                    @click="selectedPlan = 'pro'; selectedPlanName = '{% trans "Pro Trader" %}'; selectedPlanPrice = '{{ site_settings.pro_price_pkr|default:"1,500" }}'; selectedPlanScans = '{{ site_settings.pro_scans|default:100 }}'; paymentModalOpen = true;"
+                    class="w-full py-2.5 px-4 rounded-xl text-xs font-semibold bg-primary-600 hover:bg-primary-700 text-white transition-colors cursor-pointer shadow-sm">
+                    {% trans "Upgrade to Pro" %}
+                </button>
                 {% else %}
-                <button disabled class="w-full py-2.5 px-4 rounded-xl text-xs font-semibold bg-primary-50 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400 border border-primary-200 dark:border-primary-800 cursor-default">
+                <button disabled class="w-full py-2.5 px-4 rounded-xl text-xs font-semibold bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 cursor-default">
                     {% trans "Active Plan" %}
                 </button>
                 {% endif %}
             </div>
 
             <!-- Business Tier -->
-            <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border {% if user.plan == 'business' %}border-primary-500 ring-2 ring-primary-500/20{% else %}border-slate-200 dark:border-slate-700{% endif %} flex flex-col justify-between">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border {% if user.plan == 'business' %}border-amber-500 ring-2 ring-amber-500/20{% else %}border-slate-200 dark:border-slate-700{% endif %} flex flex-col justify-between shadow-sm">
                 <div>
                     <div class="flex justify-between items-center mb-4">
                         <h4 class="text-lg font-bold text-slate-900 dark:text-white">{% trans "Business" %}</h4>
                         {% if user.plan == 'business' %}
-                        <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary-100 dark:bg-primary-900/60 text-primary-700 dark:text-primary-300">
+                        <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300">
                             {% trans "Current" %}
                         </span>
                         {% endif %}
                     </div>
                     <div class="mb-4">
-                        <span class="text-3xl font-extrabold text-slate-900 dark:text-white">Rs. 4,000</span>
+                        <span class="text-3xl font-extrabold text-slate-900 dark:text-white">Rs. {{ site_settings.business_price_pkr|default:"4,000" }}</span>
                         <span class="text-xs text-slate-500 dark:text-slate-400">/{% trans "month" %}</span>
                     </div>
                     <ul class="space-y-3 text-sm text-slate-600 dark:text-slate-300 mb-6">
                         <li class="flex items-center gap-2">
                             <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                            <span><strong>500</strong> {% trans "AI Scans per month" %}</span>
+                            <span><strong>{{ site_settings.business_scans|default:500 }}</strong> {% trans "AI Scans per month" %}</span>
                         </li>
                         <li class="flex items-center gap-2">
                             <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
@@ -199,19 +246,197 @@
                     </ul>
                 </div>
                 {% if user.plan != 'business' %}
-                <form method="post" action="{% url 'accounts:subscription' %}">
-                    {% csrf_token %}
-                    <input type="hidden" name="plan" value="business">
-                    <button type="submit" class="w-full py-2.5 px-4 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 transition-colors">
-                        {% trans "Upgrade to Business" %}
-                    </button>
-                </form>
+                <button 
+                    type="button" 
+                    @click="selectedPlan = 'business'; selectedPlanName = '{% trans "Business" %}'; selectedPlanPrice = '{{ site_settings.business_price_pkr|default:"4,000" }}'; selectedPlanScans = '{{ site_settings.business_scans|default:500 }}'; paymentModalOpen = true;"
+                    class="w-full py-2.5 px-4 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 transition-colors cursor-pointer shadow-sm">
+                    {% trans "Upgrade to Business" %}
+                </button>
                 {% else %}
                 <button disabled class="w-full py-2.5 px-4 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-700/60 text-slate-400 cursor-default">
                     {% trans "Active Plan" %}
                 </button>
                 {% endif %}
             </div>
+        </div>
+    </div>
+
+    <!-- Upgrade & Payment Instructions Modal -->
+    <div 
+        x-show="paymentModalOpen" 
+        x-cloak 
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+        <div 
+            @click.away="paymentModalOpen = false"
+            class="bg-white dark:bg-slate-800 rounded-3xl max-w-xl w-full p-6 sm:p-7 border border-slate-200 dark:border-slate-700 space-y-5 shadow-2xl my-8">
+            
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-4">
+                <div>
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-primary-600 dark:text-primary-400">
+                        {% trans "Subscription Upgrade" %}
+                    </span>
+                    <h3 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <span x-text="selectedPlanName"></span>
+                        <span class="text-primary-600 dark:text-primary-400 font-extrabold" x-text="'— Rs. ' + selectedPlanPrice"></span>
+                    </h3>
+                </div>
+                <button @click="paymentModalOpen = false" type="button" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <!-- Step 1: Payment Instructions & Account Details -->
+            <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                    <h4 class="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
+                        1. {% trans "Transfer Payment to Our Account" %}
+                    </h4>
+                    <span x-show="copySuccess" x-text="copySuccess + ' {% trans "copied!" %}'" class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 animate-pulse"></span>
+                </div>
+
+                <!-- Bank / Raast Card -->
+                <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-700/60 border border-slate-200 dark:border-slate-600 space-y-2 text-xs">
+                    <div class="flex items-center justify-between font-semibold text-slate-800 dark:text-slate-100">
+                        <span>🏦 {{ site_settings.bank_name|default:"Meezan Bank" }}</span>
+                        <span class="text-[11px] text-slate-500 dark:text-slate-400">{{ site_settings.bank_account_title|default:"ScanBooks Billing" }}</span>
+                    </div>
+                    
+                    <div class="flex items-center justify-between bg-white dark:bg-slate-800 p-2 rounded-xl border border-slate-200 dark:border-slate-700">
+                        <div class="font-mono text-slate-700 dark:text-slate-300">
+                            <span class="text-slate-400 select-none">Account/Raast:</span> {{ site_settings.bank_account_number|default:"01020304050607" }}
+                        </div>
+                        <button 
+                            type="button" 
+                            @click="copyToClipboard('{{ site_settings.bank_account_number|default:"01020304050607" }}', 'Account')"
+                            class="px-2 py-1 text-[11px] font-semibold text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/50 rounded-lg transition-colors">
+                            {% trans "Copy" %}
+                        </button>
+                    </div>
+
+                    {% if site_settings.bank_iban %}
+                    <div class="flex items-center justify-between bg-white dark:bg-slate-800 p-2 rounded-xl border border-slate-200 dark:border-slate-700">
+                        <div class="font-mono text-slate-700 dark:text-slate-300 truncate pe-2">
+                            <span class="text-slate-400 select-none">IBAN:</span> {{ site_settings.bank_iban }}
+                        </div>
+                        <button 
+                            type="button" 
+                            @click="copyToClipboard('{{ site_settings.bank_iban }}', 'IBAN')"
+                            class="px-2 py-1 text-[11px] font-semibold text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/50 rounded-lg transition-colors shrink-0">
+                            {% trans "Copy" %}
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- JazzCash & EasyPaisa Card -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-700/60 border border-slate-200 dark:border-slate-600 text-xs flex items-center justify-between">
+                        <div>
+                            <span class="font-bold text-red-600 dark:text-red-400">JazzCash</span>
+                            <div class="font-mono text-slate-700 dark:text-slate-300 mt-0.5">{{ site_settings.jazzcash_number|default:site_settings.whatsapp_number }}</div>
+                        </div>
+                        <button 
+                            type="button" 
+                            @click="copyToClipboard('{{ site_settings.jazzcash_number|default:site_settings.whatsapp_number }}', 'JazzCash')"
+                            class="px-2 py-1 text-[11px] font-semibold text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/50 rounded-lg">
+                            {% trans "Copy" %}
+                        </button>
+                    </div>
+
+                    <div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-700/60 border border-slate-200 dark:border-slate-600 text-xs flex items-center justify-between">
+                        <div>
+                            <span class="font-bold text-emerald-600 dark:text-emerald-400">EasyPaisa</span>
+                            <div class="font-mono text-slate-700 dark:text-slate-300 mt-0.5">{{ site_settings.easypaisa_number|default:site_settings.whatsapp_number }}</div>
+                        </div>
+                        <button 
+                            type="button" 
+                            @click="copyToClipboard('{{ site_settings.easypaisa_number|default:site_settings.whatsapp_number }}', 'EasyPaisa')"
+                            class="px-2 py-1 text-[11px] font-semibold text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/50 rounded-lg">
+                            {% trans "Copy" %}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fast Action: WhatsApp Instant Verification -->
+            {% if site_settings.clean_whatsapp %}
+            <div class="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-emerald-900 dark:text-emerald-200">
+                        ⚡ {% trans "Fastest Way: WhatsApp Instant Verification" %}
+                    </span>
+                    <span class="text-[10px] bg-emerald-200 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 rounded-full font-bold">
+                        {% trans "Recommended" %}
+                    </span>
+                </div>
+                <p class="text-xs text-emerald-700 dark:text-emerald-300/90 leading-relaxed">
+                    {% trans "After transferring payment, click below to send your screenshot or receipt number directly on WhatsApp. We activate accounts within 5 minutes!" %}
+                </p>
+                <a 
+                    :href="'https://wa.me/{{ site_settings.clean_whatsapp }}?text=' + encodeURIComponent('Assalam-o-Alaikum, I have transferred payment for ScanBooks ' + selectedPlanName + ' (Rs. ' + selectedPlanPrice + '). My Username: {{ user.username }}. Please activate my account.')"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 flex items-center justify-center gap-2 shadow-sm transition-all">
+                    <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.312.045-.634.075-1.29-.191-.741-.301-1.639-1.049-2.376-1.785-.826-.827-1.397-1.802-1.579-2.221-.183-.418-.021-.645.105-.795.111-.132.253-.332.38-.475.126-.143.169-.238.253-.4.085-.162.042-.304-.021-.428s-.571-1.378-.782-1.888c-.206-.497-.417-.43-.573-.438-.148-.008-.318-.009-.488-.009s-.445.064-.678.318c-.233.254-.89 0.869-.89 2.12s.911 2.457 1.038 2.628c.127.171 1.792 2.736 4.341 3.836 2.55 1.1 2.55.733 3.01.691.46-.042 1.482-.605 1.693-1.19.211-.585.211-1.086.148-1.191-.063-.105-.233-.169-.487-.295z"/></svg>
+                    <span>{% trans "Send Screenshot via WhatsApp" %}</span>
+                </a>
+            </div>
+            {% endif %}
+
+            <!-- Step 2: Submit Proof in Portal Form -->
+            <form method="post" enctype="multipart/form-data" action="{% url 'accounts:subscription' %}" class="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-700">
+                {% csrf_token %}
+                <input type="hidden" name="plan" :value="selectedPlan">
+                <input type="hidden" name="amount" :value="selectedPlanPrice.replace(',', '')">
+
+                <h4 class="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
+                    2. {% trans "Or Submit Reference / Screenshot in Portal" %}
+                </h4>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                            {% trans "Payment Method" %} <span class="text-red-500">*</span>
+                        </label>
+                        {{ payment_form.payment_method }}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                            {% trans "Transaction ID (TID) / Ref #" %} <span class="text-red-500">*</span>
+                        </label>
+                        {{ payment_form.transaction_id }}
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        {% trans "Receipt Screenshot (Optional)" %}
+                    </label>
+                    {{ payment_form.receipt_image }}
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        {% trans "Notes / Sender Account Title (Optional)" %}
+                    </label>
+                    {{ payment_form.customer_notes }}
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-2">
+                    <button 
+                        type="button" 
+                        @click="paymentModalOpen = false" 
+                        class="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors">
+                        {% trans "Cancel" %}
+                    </button>
+                    <button 
+                        type="submit" 
+                        class="px-5 py-2.5 text-xs font-bold text-white bg-primary-600 hover:bg-primary-700 rounded-xl transition-colors shadow-sm cursor-pointer">
+                        {% trans "Submit Upgrade Request" %}
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

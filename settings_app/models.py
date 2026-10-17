@@ -365,6 +365,49 @@ class LandingPageSettings(models.Model):
         verbose_name=_("footer copyright notice (Urdu)"),
     )
 
+    # 8. Subscription Payment & Bank Details
+    bank_name = models.CharField(
+        max_length=150,
+        blank=True,
+        default="Meezan Bank",
+        verbose_name=_("bank name"),
+    )
+    bank_account_title = models.CharField(
+        max_length=150,
+        blank=True,
+        default="ScanBooks Billing",
+        verbose_name=_("bank account title"),
+    )
+    bank_account_number = models.CharField(
+        max_length=100,
+        blank=True,
+        default="01020304050607",
+        verbose_name=_("account / Raast ID"),
+    )
+    bank_iban = models.CharField(
+        max_length=100,
+        blank=True,
+        default="PK00MEZN0001020304050607",
+        verbose_name=_("IBAN"),
+    )
+    jazzcash_number = models.CharField(
+        max_length=50,
+        blank=True,
+        default="03001234567",
+        verbose_name=_("JazzCash account number"),
+    )
+    easypaisa_number = models.CharField(
+        max_length=50,
+        blank=True,
+        default="03001234567",
+        verbose_name=_("EasyPaisa account number"),
+    )
+    payment_instructions_note = models.TextField(
+        blank=True,
+        default="Please send payment with your username as reference and WhatsApp us the screenshot for instant activation.",
+        verbose_name=_("payment instructions note"),
+    )
+
     class Meta:
         verbose_name = _("landing page settings")
         verbose_name_plural = _("landing page settings")

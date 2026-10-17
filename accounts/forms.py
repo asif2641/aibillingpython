@@ -253,3 +253,48 @@ class UserRegistrationForm(forms.Form):
             self.add_error("password_confirm", _("Passwords do not match."))
 
         return cleaned_data
+
+
+class SubscriptionPaymentSubmissionForm(forms.ModelForm):
+    """Form for tenants to submit payment proof for subscription upgrades."""
+
+    class Meta:
+        from .models import SubscriptionPaymentRequest
+
+        model = SubscriptionPaymentRequest
+        fields = [
+            "plan",
+            "amount",
+            "payment_method",
+            "transaction_id",
+            "receipt_image",
+            "customer_notes",
+        ]
+        widgets = {
+            "plan": forms.HiddenInput(),
+            "amount": forms.HiddenInput(),
+            "payment_method": forms.Select(
+                attrs={
+                    "class": "w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500",
+                }
+            ),
+            "transaction_id": forms.TextInput(
+                attrs={
+                    "class": "w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500",
+                    "placeholder": _("e.g. TID-982341 or Raast Ref #"),
+                }
+            ),
+            "receipt_image": forms.FileInput(
+                attrs={
+                    "class": "w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 dark:file:bg-slate-700 dark:file:text-slate-200",
+                    "accept": "image/*",
+                }
+            ),
+            "customer_notes": forms.Textarea(
+                attrs={
+                    "rows": 2,
+                    "class": "w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 px-3.5 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500",
+                    "placeholder": _("Optional notes or sender account title"),
+                }
+            ),
+        }
