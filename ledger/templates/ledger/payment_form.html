@@ -28,7 +28,7 @@
         </div>
 
         <!-- Form Card -->
-        <form method="post" class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm p-6 sm:p-8 space-y-6">
+        <form method="post" class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-6 sm:p-8 space-y-6">
             {% csrf_token %}
 
             {% if form.errors %}
@@ -37,7 +37,12 @@
                 <ul class="list-disc list-inside space-y-0.5 text-xs">
                     {% for field, errors in form.errors.items %}
                         {% for error in errors %}
-                            <li>{{ field }}: {{ error }}</li>
+                            <li>
+                                {% if field and field != '__all__' %}
+                                    <span class="font-semibold capitalize">{{ field }}:</span>
+                                {% endif %}
+                                {{ error }}
+                            </li>
                         {% endfor %}
                     {% endfor %}
                 </ul>
@@ -58,10 +63,14 @@
 
                 <!-- Bill Selection -->
                 <div>
-                    <label for="{{ form.bill.id_for_label }}" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                        {% trans "Associated Bill / Invoice" %} <span class="text-slate-400 font-normal">({% trans "Optional — leave empty for on-account credit" %})</span>
-                    </label>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label for="{{ form.bill.id_for_label }}" class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                            {% trans "Associated Bill / Invoice" %} <span class="text-slate-400 font-normal">({% trans "Optional — leave empty for on-account credit" %})</span>
+                        </label>
+                        <span id="bill-count-badge" class="text-[11px] font-medium text-slate-500 dark:text-slate-400 hidden"></span>
+                    </div>
                     {{ form.bill }}
+                    <p id="bill-helper-note" class="text-xs text-slate-500 dark:text-slate-400 mt-1 hidden"></p>
                     {% if form.bill.errors %}
                         <p class="text-xs text-red-600 dark:text-red-400 mt-1">{{ form.bill.errors.0 }}</p>
                     {% endif %}
@@ -132,11 +141,137 @@
                     {% trans "Cancel" %}
                 </a>
                 <button type="submit" 
-                        class="px-6 py-2.5 min-h-[44px] inline-flex items-center rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-sm shadow-emerald-500/25 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                        class="px-6 py-2.5 min-h-[44px] inline-flex items-center rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500">
                     {% trans "Record Payment" %}
                 </button>
             </div>
         </form>
     </div>
 </div>
+
+{% if bills_data is not None %}
+    {{ bills_data|json_script:"bills-data" }}
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const partySelect = document.getElementById('{{ form.party.id_for_label }}');
+    const billSelect = document.getElementById('{{ form.bill.id_for_label }}');
+    const amountInput = document.getElementById('{{ form.amount.id_for_label }}');
+    const countBadge = document.getElementById('bill-count-badge');
+    const helperNote = document.getElementById('bill-helper-note');
+
+    let billsData = [];
+    const billsScript = document.getElementById('bills-data');
+    if (billsScript) {
+        try {
+            billsData = JSON.parse(billsScript.textContent);
+        } catch (e) {
+            billsData = [];
+        }
+    }
+
+    const billsMap = {};
+    billsData.forEach(function(b) {
+        billsMap[b.id] = b;
+    });
+
+    function updateBillOptions() {
+        if (!partySelect || !billSelect) return;
+        const selectedPartyId = partySelect.value;
+        const currentBillVal = billSelect.value;
+
+        // Remember previous selection if valid
+        billSelect.innerHTML = '';
+
+        if (!selectedPartyId) {
+            const defaultOpt = document.createElement('option');
+            defaultOpt.value = '';
+            defaultOpt.textContent = '--- {% trans "Select a party first" %} ---';
+            billSelect.appendChild(defaultOpt);
+            if (countBadge) countBadge.classList.add('hidden');
+            if (helperNote) {
+                helperNote.classList.remove('hidden');
+                helperNote.textContent = '{% trans "Select a vendor or customer above to see their open bills." %}';
+            }
+            return;
+        }
+
+        const matchingBills = billsData.filter(function(b) {
+            return String(b.party_id) === String(selectedPartyId);
+        });
+
+        if (matchingBills.length === 0) {
+            const emptyOpt = document.createElement('option');
+            emptyOpt.value = '';
+            emptyOpt.textContent = '{% trans "No open bills for this party (will record on-account)" %}';
+            billSelect.appendChild(emptyOpt);
+            if (countBadge) {
+                countBadge.textContent = '0 {% trans "bills" %}';
+                countBadge.classList.remove('hidden');
+            }
+            if (helperNote) {
+                helperNote.classList.remove('hidden');
+                helperNote.innerHTML = 'ℹ️ {% trans "This party has no open bills. This payment will be credited directly to their running ledger (Khata)." %}';
+            }
+        } else {
+            const defaultOpt = document.createElement('option');
+            defaultOpt.value = '';
+            defaultOpt.textContent = '--- {% trans "Optional: On-account credit (no specific bill)" %} ---';
+            billSelect.appendChild(defaultOpt);
+
+            let billStillSelected = false;
+            matchingBills.forEach(function(b) {
+                const opt = document.createElement('option');
+                opt.value = b.id;
+                opt.textContent = b.label;
+                if (String(b.id) === String(currentBillVal)) {
+                    opt.selected = true;
+                    billStillSelected = true;
+                }
+                billSelect.appendChild(opt);
+            });
+
+            if (!billStillSelected && currentBillVal) {
+                billSelect.value = '';
+            }
+
+            if (countBadge) {
+                countBadge.textContent = matchingBills.length + ' {% trans "bills available" %}';
+                countBadge.classList.remove('hidden');
+            }
+            if (helperNote) {
+                helperNote.classList.add('hidden');
+            }
+        }
+    }
+
+    if (billSelect) {
+        billSelect.addEventListener('change', function() {
+            const b = billsMap[billSelect.value];
+            if (b && amountInput && (!amountInput.value || amountInput.value === '0' || amountInput.dataset.autofilled === 'true')) {
+                amountInput.value = b.amount_due;
+                amountInput.dataset.autofilled = 'true';
+            }
+        });
+    }
+
+    if (amountInput) {
+        amountInput.addEventListener('input', function() {
+            amountInput.dataset.autofilled = 'false';
+        });
+    }
+
+    if (partySelect) {
+        partySelect.addEventListener('change', function() {
+            updateBillOptions();
+        });
+    }
+
+    // Run on initial page load if billsData exists
+    if (billsData.length > 0) {
+        updateBillOptions();
+    }
+});
+</script>
 {% endblock %}

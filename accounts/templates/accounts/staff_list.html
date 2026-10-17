@@ -5,14 +5,14 @@
 
 {% block settings_header_actions %}
 <a href="{% url 'staff_add' %}" 
-   class="inline-flex items-center gap-2 px-4 py-2 min-h-[44px] rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs shadow-sm shadow-primary-500/25 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
+   class="inline-flex items-center gap-2 px-4 py-2 min-h-[44px] rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
     <span>{% trans "Add Staff Member" %}</span>
 </a>
 {% endblock %}
 
 {% block settings_content %}
-<div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm overflow-hidden">
+<div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 overflow-hidden">
     <!-- Header -->
     <div class="p-6 border-b border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

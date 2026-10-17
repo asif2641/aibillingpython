@@ -45,6 +45,16 @@
                         urdu: ["'Jameel Noori Nastaleeq'", "'Noto Sans Arabic'", 'Tahoma', 'sans-serif'],
                         arabic: ["'Jameel Noori Nastaleeq'", "'Noto Sans Arabic'", 'Tahoma', 'sans-serif'],
                     },
+                    boxShadow: {
+                        none: 'none',
+                        sm: 'none',
+                        DEFAULT: 'none',
+                        md: 'none',
+                        lg: 'none',
+                        xl: 'none',
+                        '2xl': 'none',
+                        inner: 'none',
+                    },
                 },
             },
         };
@@ -143,6 +153,20 @@
         .htmx-request.htmx-indicator {
             display: inline-flex;
         }
+
+        /* Universal Flat Design - Strictly eliminate box-shadows and gradients */
+        *, *::before, *::after {
+            --tw-shadow: 0 0 #0000 !important;
+            --tw-shadow-colored: 0 0 #0000 !important;
+            box-shadow: none !important;
+        }
+        [class*="bg-gradient-"] {
+            background-image: none !important;
+        }
+        :focus-visible {
+            outline: 2px solid #6366f1 !important;
+            outline-offset: 1px !important;
+        }
     </style>
 
     {% block extra_head %}{% endblock %}
@@ -186,7 +210,7 @@
                     x-transition:leave="transition ease-in-out duration-300 transform"
                     x-transition:leave-start="translate-x-0"
                     x-transition:leave-end="{% if LANGUAGE_BIDI %}translate-x-full{% else %}-translate-x-full{% endif %}"
-                    class="relative flex-1 flex flex-col max-w-xs w-full bg-white dark:bg-slate-800 shadow-2xl border-r border-slate-200 dark:border-slate-700">
+                    class="relative flex-1 flex flex-col max-w-xs w-full bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700">
                     
                     <!-- Drawer header -->
                     <div class="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
@@ -253,20 +277,35 @@
                             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                             <span>{% trans "Settings" %}</span>
                         </a>
+                        <a href="{% url 'accounts:subscription' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium {% if 'subscription' in request.path %}bg-primary-50 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400 border border-primary-100 dark:border-primary-900/50{% else %}text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors{% endif %}">
+                            <svg class="w-5 h-5 flex-shrink-0 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                            <span>{% trans "Subscription & Quota" %}</span>
+                        </a>
+                        {% if request.user.is_superuser %}
+                        <div class="pt-2 pb-1">
+                            <div class="px-3 text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                                {% trans "SaaS Admin" %}
+                            </div>
+                        </div>
+                        <a href="{% url 'accounts:superadmin_dashboard' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium {% if 'superadmin' in request.path %}bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800{% else %}text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-colors{% endif %}">
+                            <svg class="w-5 h-5 flex-shrink-0 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                            <span>{% trans "SaaS Console" %}</span>
+                        </a>
+                        {% endif %}
                     </nav>
 
                     <!-- Mobile Drawer Footer: User Profile & Sign Out -->
                     <div class="p-3.5 border-t border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-900/40 flex items-center justify-between">
                         <div class="flex items-center gap-2.5 overflow-hidden">
-                            <div class="w-8 h-8 rounded-full bg-primary-600 text-white font-semibold flex items-center justify-center text-xs shrink-0 shadow-sm">
+                            <div class="w-8 h-8 rounded-full bg-primary-600 text-white font-semibold flex items-center justify-center text-xs shrink-0">
                                 {{ request.user.username|make_list|first|upper }}
                             </div>
                             <div class="flex flex-col min-w-0">
                                 <span class="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
                                     {{ request.user.first_name|default:request.user.username }}
                                 </span>
-                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold w-fit {% if request.user.is_superadmin %}bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300{% else %}bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300{% endif %}">
-                                    {{ request.user.get_role_display|default:"Staff" }}
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold w-fit {% if request.user.is_superuser %}bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800{% else %}bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300{% endif %}">
+                                    {% if request.user.is_superuser %}{% trans "Super Admin" %}{% elif request.user.business_name %}{% trans "Business Owner" %}{% else %}{{ request.user.get_role_display|default:"Staff" }}{% endif %}
                                 </span>
                             </div>
                         </div>
@@ -363,6 +402,21 @@
                         <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                         <span x-show="!sidebarCollapsed" class="whitespace-nowrap">{% trans "Settings" %}</span>
                     </a>
+                    <a href="{% url 'accounts:subscription' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors {% if 'subscription' in request.path %}bg-primary-50 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400 border border-primary-100 dark:border-primary-900/50{% else %}text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60{% endif %}" title="{% trans "Subscription & Quota" %}">
+                        <svg class="w-5 h-5 flex-shrink-0 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        <span x-show="!sidebarCollapsed" class="whitespace-nowrap">{% trans "Subscription & Quota" %}</span>
+                    </a>
+                    {% if request.user.is_superuser %}
+                    <div class="pt-2 pb-1" x-show="!sidebarCollapsed">
+                        <div class="px-3 text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                            {% trans "SaaS Admin" %}
+                        </div>
+                    </div>
+                    <a href="{% url 'accounts:superadmin_dashboard' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors {% if 'superadmin' in request.path %}bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800{% else %}text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/30{% endif %}" title="{% trans 'SaaS Console' %}">
+                        <svg class="w-5 h-5 flex-shrink-0 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                        <span x-show="!sidebarCollapsed" class="whitespace-nowrap">{% trans "SaaS Console" %}</span>
+                    </a>
+                    {% endif %}
                 </nav>
             </aside>
 
@@ -473,11 +527,25 @@
                             </svg>
                         </button>
 
+                        <!-- Quota Badge for Tenants -->
+                        {% if not request.user.is_superuser %}
+                        <a href="{% url 'accounts:subscription' %}" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900 transition-colors" title="{% trans 'Manage Subscription' %}">
+                            <svg class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                            <span>{{ request.user.scans_used_this_month }}/{{ request.user.monthly_scan_quota }} {% trans "Scans" %}</span>
+                            <span class="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-200 dark:bg-emerald-800 text-emerald-900 dark:text-emerald-100">{% trans "Upgrade" %}</span>
+                        </a>
+                        {% else %}
+                        <a href="{% url 'accounts:superadmin_dashboard' %}" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900 transition-colors" title="{% trans 'SaaS Console' %}">
+                            <svg class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                            <span>{% trans "SaaS Console" %}</span>
+                        </a>
+                        {% endif %}
+
                         <div class="h-6 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
 
                         <!-- User Profile & Role Badge in Top Bar -->
                         <div class="flex items-center gap-2">
-                            <div class="w-8 h-8 rounded-full bg-primary-600 text-white font-semibold flex items-center justify-center text-xs shadow-sm ring-2 ring-white dark:ring-slate-800 shrink-0" title="{{ request.user.get_full_name|default:request.user.username }}">
+                            <div class="w-8 h-8 rounded-full bg-primary-600 text-white font-semibold flex items-center justify-center text-xs ring-2 ring-white dark:ring-slate-800 shrink-0" title="{{ request.user.get_full_name|default:request.user.username }}">
                                 {{ request.user.username|make_list|first|upper }}
                             </div>
                             <div class="hidden sm:flex flex-col text-left">
@@ -489,9 +557,8 @@
                                 </span>
                             </div>
 
-                            <!-- Role badge hidden on small screens (< md), shown in drawer on mobile -->
-                            <span class="hidden md:inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold {% if request.user.is_superadmin %}bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800{% else %}bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800{% endif %}">
-                                {{ request.user.get_role_display|default:"Staff" }}
+                            <span class="hidden md:inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold {% if request.user.is_superuser %}bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800{% else %}bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800{% endif %}">
+                                {% if request.user.is_superuser %}{% trans "Super Admin" %}{% elif request.user.business_name %}{% trans "Business Owner" %}{% else %}{{ request.user.get_role_display|default:"Staff" }}{% endif %}
                             </span>
 
                             <form action="{% url 'accounts:logout' %}" method="post" class="hidden sm:inline">
@@ -518,7 +585,7 @@
                     x-transition:leave="transition ease-in duration-100"
                     x-transition:leave-start="opacity-100 translate-y-0"
                     x-transition:leave-end="opacity-0 -translate-y-2"
-                    class="sm:hidden px-4 py-2.5 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 shadow-sm sticky top-16 z-19">
+                    class="sm:hidden px-4 py-2.5 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-16 z-19">
                     <form action="{% url 'global_search' %}" method="get" class="relative flex items-center" role="search">
                         <label for="mobile-global-search" class="sr-only">{% trans "Global Search" %}</label>
                         <svg class="w-4 h-4 text-slate-400 absolute ltr:left-3 rtl:right-3 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -562,7 +629,7 @@
                         <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                         <span class="text-[10px]">{% trans "Bills" %}</span>
                     </a>
-                    <a href="{% url 'scanning:upload' %}?camera=1" class="flex flex-col items-center justify-center -mt-5 min-w-[52px] min-h-[52px] w-13 h-13 bg-primary-600 hover:bg-primary-700 text-white rounded-full shadow-lg shadow-primary-500/40 ring-4 ring-white dark:ring-slate-900 focus:outline-none focus:ring-primary-500 transition-transform active:scale-95" title="{% trans "Take Photo / Scan Bill" %}">
+                    <a href="{% url 'scanning:upload' %}?camera=1" class="flex flex-col items-center justify-center -mt-5 min-w-[52px] min-h-[52px] w-13 h-13 bg-primary-600 hover:bg-primary-700 text-white rounded-full ring-4 ring-white dark:ring-slate-900 focus:outline-none focus:ring-primary-500 transition-transform active:scale-95" title="{% trans "Take Photo / Scan Bill" %}">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                         <span class="sr-only">{% trans "Scan Bill" %}</span>
                     </a>

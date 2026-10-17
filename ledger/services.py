@@ -9,6 +9,7 @@ from decimal import Decimal
 from typing import Any, Dict, List
 
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
@@ -189,10 +190,13 @@ def generate_ledger_csv(party: Party) -> str:
 
 
 def get_all_parties_ledger_summary(
-    party_type_filter: str = "all", search_query: str = ""
+    party_type_filter: str = "all", search_query: str = "", user=None
 ) -> Dict[str, Any]:
     """Calculate aggregated ledger balances (receivables, payables) across active parties."""
-    parties_qs = Party.objects.filter(is_active=True).order_by("name")
+    parties_qs = Party.objects.filter(is_active=True)
+    if user is not None and not getattr(user, "is_superuser", False):
+        parties_qs = parties_qs.filter(Q(user=user) | Q(user__isnull=True))
+    parties_qs = parties_qs.order_by("name")
 
     total_receivable = Decimal("0.00")
     total_payable = Decimal("0.00")

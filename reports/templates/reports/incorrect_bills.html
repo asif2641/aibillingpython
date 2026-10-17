@@ -21,11 +21,11 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-3">
-            <a href="{% url 'reports:incorrect_bills_csv' %}?range={{ range_key }}&start_date={{ start_date }}&end_date={{ end_date }}&party_type={{ party_type }}&party={{ party_id }}&resolution={{ resolution_status }}&q={{ query }}" class="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
+            <a href="{% url 'reports:incorrect_bills_csv' %}?range={{ range_key }}&start_date={{ start_date }}&end_date={{ end_date }}&party_type={{ party_type }}&party={{ party_id }}&resolution={{ resolution_status }}&q={{ query }}" class="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
                 <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                 <span>{% trans "Export CSV" %}</span>
             </a>
-            <a href="{% url 'bills:bill_list' %}?status=discrepant" class="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-semibold shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
+            <a href="{% url 'bills:bill_list' %}?status=discrepant" class="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 <span>{% trans "Manage in Bills List" %}</span>
             </a>
@@ -35,7 +35,7 @@
     <!-- 4 High-Level KPI Summary Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         <!-- Total Incorrect Bills Ever Recorded -->
-        <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 relative overflow-hidden">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">{% trans "Total Recorded Incorrect" %}</span>
                 <span class="px-2 py-0.5 text-xs font-bold rounded-full bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">{{ report.total_count }}</span>
@@ -49,7 +49,7 @@
         </div>
 
         <!-- Still Unresolved / Active -->
-        <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-amber-200 dark:border-amber-900/60 shadow-sm relative overflow-hidden">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-amber-200 dark:border-amber-900/60 relative overflow-hidden">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">{% trans "Active Discrepancies" %}</span>
                 <span class="px-2 py-0.5 text-xs font-bold rounded-full bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300">{{ report.unresolved_count }}</span>
@@ -61,7 +61,7 @@
         </div>
 
         <!-- Corrected & Resolved -->
-        <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-emerald-200 dark:border-emerald-900/60 shadow-sm relative overflow-hidden">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-emerald-200 dark:border-emerald-900/60 relative overflow-hidden">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">{% trans "Corrected & Resolved" %}</span>
                 <span class="px-2 py-0.5 text-xs font-bold rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">{{ report.resolved_count }}</span>
@@ -73,7 +73,7 @@
         </div>
 
         <!-- Discrepancy Variance -->
-        <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-rose-200 dark:border-rose-900/60 shadow-sm">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-rose-200 dark:border-rose-900/60">
             <span class="text-xs font-semibold uppercase tracking-wider text-rose-600 dark:text-rose-400">{% trans "Total Discrepancy Variance" %}</span>
             <div class="mt-3 text-2xl sm:text-3xl font-bold text-rose-600 dark:text-rose-400">
                 PKR {{ report.total_difference|stringformat:".2f" }}
@@ -83,22 +83,22 @@
     </div>
 
     <!-- Filters & Search Controls -->
-    <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 space-y-4">
         <!-- Status & Party Type Filter Tabs -->
         <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-700/60 pb-3">
             <div class="flex flex-wrap items-center gap-3">
                 <!-- Resolution status tabs -->
                 <div class="inline-flex p-1 bg-slate-100 dark:bg-slate-900 rounded-xl">
                     <a href="?resolution=all&party_type={{ party_type }}&range={{ range_key }}&start_date={{ start_date }}&end_date={{ end_date }}&q={{ query }}"
-                       class="px-3 py-1 rounded-lg text-xs font-semibold transition-colors {% if resolution_status == 'all' %}bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white{% endif %}">
+                       class="px-3 py-1 rounded-lg text-xs font-semibold transition-colors {% if resolution_status == 'all' %}bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white{% endif %}">
                         {% trans "All Recorded" %} ({{ report.total_count }})
                     </a>
                     <a href="?resolution=unresolved&party_type={{ party_type }}&range={{ range_key }}&start_date={{ start_date }}&end_date={{ end_date }}&q={{ query }}"
-                       class="px-3 py-1 rounded-lg text-xs font-semibold transition-colors {% if resolution_status == 'unresolved' %}bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-400 shadow-sm{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white{% endif %}">
+                       class="px-3 py-1 rounded-lg text-xs font-semibold transition-colors {% if resolution_status == 'unresolved' %}bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-400 border border-slate-200 dark:border-slate-700{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white{% endif %}">
                         ⚠️ {% trans "Unresolved" %} ({{ report.unresolved_count }})
                     </a>
                     <a href="?resolution=resolved&party_type={{ party_type }}&range={{ range_key }}&start_date={{ start_date }}&end_date={{ end_date }}&q={{ query }}"
-                       class="px-3 py-1 rounded-lg text-xs font-semibold transition-colors {% if resolution_status == 'resolved' %}bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white{% endif %}">
+                       class="px-3 py-1 rounded-lg text-xs font-semibold transition-colors {% if resolution_status == 'resolved' %}bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 border border-slate-200 dark:border-slate-700{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white{% endif %}">
                         ✓ {% trans "Corrected" %} ({{ report.resolved_count }})
                     </a>
                 </div>
@@ -106,15 +106,15 @@
                 <!-- Party type filter tabs -->
                 <div class="inline-flex p-1 bg-slate-100 dark:bg-slate-900 rounded-xl">
                     <a href="?party_type=all&resolution={{ resolution_status }}&range={{ range_key }}&start_date={{ start_date }}&end_date={{ end_date }}&q={{ query }}"
-                       class="px-3 py-1 rounded-lg text-xs font-semibold transition-colors {% if party_type == 'all' %}bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white{% endif %}">
+                       class="px-3 py-1 rounded-lg text-xs font-semibold transition-colors {% if party_type == 'all' %}bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white{% endif %}">
                         {% trans "All Roles" %}
                     </a>
                     <a href="?party_type=vendor&resolution={{ resolution_status }}&range={{ range_key }}&start_date={{ start_date }}&end_date={{ end_date }}&q={{ query }}"
-                       class="px-3 py-1 rounded-lg text-xs font-semibold transition-colors {% if party_type == 'vendor' %}bg-white dark:bg-slate-800 text-primary-600 dark:text-primary-400 shadow-sm{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white{% endif %}">
+                       class="px-3 py-1 rounded-lg text-xs font-semibold transition-colors {% if party_type == 'vendor' %}bg-white dark:bg-slate-800 text-primary-600 dark:text-primary-400 border border-slate-200 dark:border-slate-700{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white{% endif %}">
                         🏭 {% trans "Vendors" %}
                     </a>
                     <a href="?party_type=customer&resolution={{ resolution_status }}&range={{ range_key }}&start_date={{ start_date }}&end_date={{ end_date }}&q={{ query }}"
-                       class="px-3 py-1 rounded-lg text-xs font-semibold transition-colors {% if party_type == 'customer' %}bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white{% endif %}">
+                       class="px-3 py-1 rounded-lg text-xs font-semibold transition-colors {% if party_type == 'customer' %}bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 border border-slate-200 dark:border-slate-700{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white{% endif %}">
                         👥 {% trans "Customers" %}
                     </a>
                 </div>
@@ -186,7 +186,7 @@
 
             <!-- Action Buttons -->
             <div class="flex items-center gap-2">
-                <button type="submit" class="flex-1 px-4 py-2 min-h-[42px] bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl shadow-sm transition-colors">
+                <button type="submit" class="flex-1 px-4 py-2 min-h-[42px] bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl transition-colors">
                     {% trans "Apply Filter" %}
                 </button>
                 {% if party_id or start_date or end_date or query or range_key != 'all' or party_type != 'all' %}
@@ -199,7 +199,7 @@
     </div>
 
     <!-- Records Table -->
-    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm overflow-hidden">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 overflow-hidden">
         <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700/60 flex items-center justify-between">
             <div>
                 <h2 class="text-base font-semibold text-slate-900 dark:text-white">

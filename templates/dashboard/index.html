@@ -24,7 +24,7 @@
                 </div>
                 <div class="flex items-center justify-center sm:justify-end gap-1.5 sm:gap-2.5 w-full sm:w-auto">
                     <!-- Direct Mobile Camera Shortcut -->
-                    <a href="{% url 'scanning:upload' %}?camera=1" class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2.5 min-h-[44px] min-w-0 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-sm shadow-emerald-500/20 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 whitespace-nowrap">
+                    <a href="{% url 'scanning:upload' %}?camera=1" class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2.5 min-h-[44px] min-w-0 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl text-xs sm:text-sm font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 whitespace-nowrap">
                         <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                         <span class="truncate">
                             {% if request.LANGUAGE_CODE == 'ur' %}
@@ -35,11 +35,11 @@
                             {% endif %}
                         </span>
                     </a>
-                    <a href="{% url 'scanning:upload' %}" class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2.5 min-h-[44px] min-w-0 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-sm shadow-primary-500/20 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 whitespace-nowrap">
+                    <a href="{% url 'scanning:upload' %}" class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2.5 min-h-[44px] min-w-0 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-xs sm:text-sm font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 whitespace-nowrap">
                         <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                         <span class="truncate">{% trans "Scan Bill" %}</span>
                     </a>
-                    <a href="{% url 'bills:bill_add' %}" class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2.5 min-h-[44px] min-w-0 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/60 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 whitespace-nowrap">
+                    <a href="{% url 'bills:bill_add' %}" class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2.5 min-h-[44px] min-w-0 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/60 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 whitespace-nowrap">
                         <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                         <span class="truncate">{% trans "Add Bill" %}</span>
                     </a>
@@ -49,7 +49,7 @@
             <!-- ================================================================= -->
             {% if pending_count > 0 %}
             <!-- Pending Verification Alert Banner -->
-            <div class="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+            <div class="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
@@ -63,7 +63,7 @@
                         </p>
                     </div>
                 </div>
-                <a href="{% url 'bills:bill_list' %}?status=NeedsReview" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white shadow-sm transition-colors whitespace-nowrap self-start sm:self-auto">
+                <a href="{% url 'bills:bill_list' %}?status=NeedsReview" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white transition-colors whitespace-nowrap self-start sm:self-auto">
                     <span>{% trans "Review Bills" %}</span>
                     <svg class="w-4 h-4 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                 </a>
@@ -76,7 +76,7 @@
             <section aria-label="Summary Statistics" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 
                 <!-- Card 1: Total Spend -->
-                <div class="bg-white dark:bg-slate-800/80 rounded-2xl p-5 border border-slate-200 dark:border-slate-700/80 shadow-sm relative overflow-hidden group hover:border-primary-300 dark:hover:border-primary-700 transition-colors">
+                <div class="bg-white dark:bg-slate-800/80 rounded-2xl p-5 border border-slate-200 dark:border-slate-700/80 relative overflow-hidden group hover:border-primary-300 dark:hover:border-primary-700 transition-colors">
                     <div class="flex items-center justify-between">
                         <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                             {% trans "Total Spend" %}
@@ -97,7 +97,7 @@
                 </div>
 
                 <!-- Card 2: Verified Bills -->
-                <div class="bg-white dark:bg-slate-800/80 rounded-2xl p-5 border border-slate-200 dark:border-slate-700/80 shadow-sm relative overflow-hidden group hover:border-primary-300 dark:hover:border-primary-700 transition-colors">
+                <div class="bg-white dark:bg-slate-800/80 rounded-2xl p-5 border border-slate-200 dark:border-slate-700/80 relative overflow-hidden group hover:border-primary-300 dark:hover:border-primary-700 transition-colors">
                     <div class="flex items-center justify-between">
                         <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                             {% trans "Verified Bills" %}
@@ -117,7 +117,7 @@
                 </div>
 
                 <!-- Card 3: Pending Review (Separate Card for unverified / pending bills) -->
-                <a href="{% url 'bills:bill_list' %}?status=NeedsReview" class="bg-white dark:bg-slate-800/80 rounded-2xl p-5 border {% if pending_count > 0 %}border-amber-300 dark:border-amber-700/80 ring-1 ring-amber-400/20{% else %}border-slate-200 dark:border-slate-700/80{% endif %} shadow-sm relative overflow-hidden group hover:border-amber-400 dark:hover:border-amber-600 transition-all block">
+                <a href="{% url 'bills:bill_list' %}?status=NeedsReview" class="bg-white dark:bg-slate-800/80 rounded-2xl p-5 border {% if pending_count > 0 %}border-amber-300 dark:border-amber-700/80 ring-1 ring-amber-400/20{% else %}border-slate-200 dark:border-slate-700/80{% endif %} relative overflow-hidden group hover:border-amber-400 dark:hover:border-amber-600 transition-all block">
                     <div class="flex items-center justify-between">
                         <span class="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
                             <span>{% trans "Pending Review" %}</span>
@@ -145,7 +145,7 @@
                 </a>
 
                 <!-- Card 4: Outstanding Credit -->
-                <div class="bg-white dark:bg-slate-800/80 rounded-2xl p-5 border border-slate-200 dark:border-slate-700/80 shadow-sm relative overflow-hidden group hover:border-primary-300 dark:hover:border-primary-700 transition-colors">
+                <div class="bg-white dark:bg-slate-800/80 rounded-2xl p-5 border border-slate-200 dark:border-slate-700/80 relative overflow-hidden group hover:border-primary-300 dark:hover:border-primary-700 transition-colors">
                     <div class="flex items-center justify-between">
                         <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                             {% trans "Outstanding Credit" %}
@@ -165,12 +165,12 @@
                 </div>
 
                 <!-- Card 5: Average Bill -->
-                <div class="bg-white dark:bg-slate-800/80 rounded-2xl p-5 border border-slate-200 dark:border-slate-700/80 shadow-sm relative overflow-hidden group hover:border-primary-300 dark:hover:border-primary-700 transition-colors">
+                <div class="bg-white dark:bg-slate-800/80 rounded-2xl p-5 border border-slate-200 dark:border-slate-700/80 relative overflow-hidden group hover:border-primary-300 dark:hover:border-primary-700 transition-colors">
                     <div class="flex items-center justify-between">
                         <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                             {% trans "Average Bill" %}
                         </span>
-                        <div class="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                        <div class="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
                         </div>
                     </div>
@@ -192,7 +192,7 @@
             <!-- ================================================================= -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 min-w-0 w-full max-w-full">
                 <!-- Line Chart: Spending Over Time -->
-                <div class="lg:col-span-2 bg-white dark:bg-slate-800/80 rounded-2xl p-4 sm:p-6 border border-slate-200 dark:border-slate-700/80 shadow-sm flex flex-col justify-between min-w-0">
+                <div class="lg:col-span-2 bg-white dark:bg-slate-800/80 rounded-2xl p-4 sm:p-6 border border-slate-200 dark:border-slate-700/80 flex flex-col justify-between min-w-0">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-base font-bold text-slate-900 dark:text-white">
                             {% trans "Spending Over Time" %}
@@ -207,7 +207,7 @@
                 </div>
 
                 <!-- Donut Chart: Category Breakdown -->
-                <div class="bg-white dark:bg-slate-800/80 rounded-2xl p-4 sm:p-6 border border-slate-200 dark:border-slate-700/80 shadow-sm flex flex-col justify-between min-w-0">
+                <div class="bg-white dark:bg-slate-800/80 rounded-2xl p-4 sm:p-6 border border-slate-200 dark:border-slate-700/80 flex flex-col justify-between min-w-0">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-base font-bold text-slate-900 dark:text-white">
                             {% trans "By Category" %}
@@ -228,7 +228,7 @@
 
                 {% if recent_bills %}
                 <!-- Recent Bills Card (2 columns wide on desktop) -->
-                <div class="lg:col-span-2 bg-white dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm flex flex-col justify-between overflow-hidden min-w-0">
+                <div class="lg:col-span-2 bg-white dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700/80 flex flex-col justify-between overflow-hidden min-w-0">
                     <div>
                         <div class="flex items-center justify-between p-5 pb-3 border-b border-slate-100 dark:border-slate-700/60">
                             <div>
@@ -302,7 +302,7 @@
                                         <td class="py-3 px-5 text-right rtl:text-left whitespace-nowrap">
                                             {% with job=bill.scan_jobs.first %}
                                                 {% if bill.status == 'NeedsReview' and job %}
-                                                    <a href="{% url 'scanning:review' job.pk %}" class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition-colors">
+                                                    <a href="{% url 'scanning:review' job.pk %}" class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white transition-colors">
                                                         {% trans "Review" %}
                                                     </a>
                                                 {% else %}
@@ -327,8 +327,8 @@
                 </div>
                 {% else %}
                 <!-- Empty State Card (2 columns wide on desktop) -->
-                <div class="lg:col-span-2 bg-white dark:bg-slate-800/80 rounded-2xl p-8 border border-slate-200 dark:border-slate-700/80 shadow-sm flex flex-col items-center justify-center text-center">
-                    <div class="w-16 h-16 rounded-2xl bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center text-3xl mb-4 shadow-inner">
+                <div class="lg:col-span-2 bg-white dark:bg-slate-800/80 rounded-2xl p-8 border border-slate-200 dark:border-slate-700/80 flex flex-col items-center justify-center text-center">
+                    <div class="w-16 h-16 rounded-2xl bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center text-3xl mb-4">
                         📄
                     </div>
                     <h3 class="text-lg font-bold text-slate-900 dark:text-white">
@@ -346,7 +346,7 @@
                         {% endif %}
                     </p>
                     <div class="flex flex-wrap items-center justify-center gap-3">
-                        <a href="{% url 'scanning:upload' %}" class="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-semibold shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
+                        <a href="{% url 'scanning:upload' %}" class="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/></svg>
                             <span>{% trans "Scan Bill" %}</span>
                         </a>
@@ -359,7 +359,7 @@
                 {% endif %}
 
                 <!-- Recent Activity Card (1 column wide) -->
-                <div class="bg-white dark:bg-slate-800/80 rounded-2xl p-4 sm:p-6 border border-slate-200 dark:border-slate-700/80 shadow-sm flex flex-col justify-between min-w-0">
+                <div class="bg-white dark:bg-slate-800/80 rounded-2xl p-4 sm:p-6 border border-slate-200 dark:border-slate-700/80 flex flex-col justify-between min-w-0">
                     <div>
                         <div class="flex items-center justify-between mb-4">
                             <h4 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">

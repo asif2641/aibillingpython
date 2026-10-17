@@ -67,8 +67,9 @@ def get_spending_summary(
     date_range_key: str = "all",
     custom_start=None,
     custom_end=None,
+    user=None,
 ) -> Dict[str, Any]:
-    """Calculate high-level spending KPIs for purchase bills."""
+    """Calculate high-level spending KPIs for purchase bills scoped to user."""
     start_date, end_date = get_date_range(date_range_key, custom_start, custom_end)
 
     bills = Bill.objects.filter(
@@ -76,6 +77,9 @@ def get_spending_summary(
         bill_type=Bill.BillType.PURCHASE,
         status=Bill.Status.VERIFIED,
     )
+    if user is not None and not getattr(user, "is_superuser", False):
+        bills = bills.filter(Q(created_by=user) | Q(created_by__isnull=True))
+
     if start_date:
         bills = bills.filter(bill_date__gte=start_date)
     if end_date:
@@ -114,6 +118,9 @@ def get_spending_summary(
         is_deleted=False,
         status__in=[Bill.Status.NEEDS_REVIEW, Bill.Status.DRAFT],
     )
+    if user is not None and not getattr(user, "is_superuser", False):
+        pending_bills = pending_bills.filter(Q(created_by=user) | Q(created_by__isnull=True))
+
     if start_date:
         pending_bills = pending_bills.filter(bill_date__gte=start_date)
     if end_date:
@@ -135,13 +142,16 @@ def get_spending_summary(
     }
 
 
-def get_spending_by_category(start_date=None, end_date=None) -> List[Dict[str, Any]]:
+def get_spending_by_category(start_date=None, end_date=None, user=None) -> List[Dict[str, Any]]:
     """Aggregate spending by expense category with percentages for verified bills."""
     bills = Bill.objects.filter(
         is_deleted=False,
         bill_type=Bill.BillType.PURCHASE,
         status=Bill.Status.VERIFIED,
     )
+    if user is not None and not getattr(user, "is_superuser", False):
+        bills = bills.filter(Q(created_by=user) | Q(created_by__isnull=True))
+
     if start_date:
         bills = bills.filter(bill_date__gte=start_date)
     if end_date:
@@ -185,6 +195,7 @@ def get_top_vendors(
     limit: int = 10,
     start_date=None,
     end_date=None,
+    user=None,
 ) -> List[Dict[str, Any]]:
     """Aggregate purchase bills by vendor and rank by total spent for verified bills."""
     bills = Bill.objects.filter(
@@ -193,6 +204,9 @@ def get_top_vendors(
         party__isnull=False,
         status=Bill.Status.VERIFIED,
     )
+    if user is not None and not getattr(user, "is_superuser", False):
+        bills = bills.filter(Q(created_by=user) | Q(created_by__isnull=True))
+
     if start_date:
         bills = bills.filter(bill_date__gte=start_date)
     if end_date:
@@ -227,6 +241,7 @@ def get_spending_over_time(
     interval: str = "day",
     start_date=None,
     end_date=None,
+    user=None,
 ) -> Dict[str, Any]:
     """Format chronological interval data for Chart.js for verified bills."""
     bills = Bill.objects.filter(
@@ -234,6 +249,9 @@ def get_spending_over_time(
         bill_type=Bill.BillType.PURCHASE,
         status=Bill.Status.VERIFIED,
     )
+    if user is not None and not getattr(user, "is_superuser", False):
+        bills = bills.filter(Q(created_by=user) | Q(created_by__isnull=True))
+
     if start_date:
         bills = bills.filter(bill_date__gte=start_date)
     if end_date:
@@ -254,7 +272,7 @@ def get_spending_over_time(
     }
 
 
-def get_item_price_history(item_name: str) -> Dict[str, Any]:
+def get_item_price_history(item_name: str, user=None) -> Dict[str, Any]:
     """Track item purchase price fluctuations chronologically."""
     items_qs = (
         BillItem.objects.filter(
@@ -265,6 +283,8 @@ def get_item_price_history(item_name: str) -> Dict[str, Any]:
         .select_related("bill", "bill__party")
         .order_by("bill__bill_date", "bill__id", "id")
     )
+    if user is not None and not getattr(user, "is_superuser", False):
+        items_qs = items_qs.filter(Q(bill__created_by=user) | Q(bill__created_by__isnull=True))
 
     items = list(items_qs)
     if not items:
@@ -322,12 +342,15 @@ def get_item_price_history(item_name: str) -> Dict[str, Any]:
     }
 
 
-def get_all_items_price_summary() -> List[Dict[str, Any]]:
+def get_all_items_price_summary(user=None) -> List[Dict[str, Any]]:
     """Generate price summary for all purchased items."""
     items_qs = BillItem.objects.filter(
         bill__is_deleted=False,
         bill__bill_type=Bill.BillType.PURCHASE,
-    ).order_by("bill__bill_date", "bill__id", "id")
+    )
+    if user is not None and not getattr(user, "is_superuser", False):
+        items_qs = items_qs.filter(Q(bill__created_by=user) | Q(bill__created_by__isnull=True))
+    items_qs = items_qs.order_by("bill__bill_date", "bill__id", "id")
 
     grouped_items: Dict[str, List[Decimal]] = defaultdict(list)
     for it in items_qs:
@@ -371,7 +394,7 @@ def get_all_items_price_summary() -> List[Dict[str, Any]]:
     return summary_list
 
 
-def generate_spending_csv(start_date=None, end_date=None) -> str:
+def generate_spending_csv(start_date=None, end_date=None, user=None) -> str:
     """Export purchase bills to RFC-compliant CSV string."""
     bills = (
         Bill.objects.filter(
@@ -382,6 +405,8 @@ def generate_spending_csv(start_date=None, end_date=None) -> str:
         .select_related("party", "category")
         .order_by("-bill_date", "-id")
     )
+    if user is not None and not getattr(user, "is_superuser", False):
+        bills = bills.filter(Q(created_by=user) | Q(created_by__isnull=True))
     if start_date:
         bills = bills.filter(bill_date__gte=start_date)
     if end_date:
@@ -431,6 +456,7 @@ def get_incorrect_bills_report(
     party_id: int | str | None = None,
     query: str | None = None,
     resolution_status: str = "all",
+    user=None,
 ) -> Dict[str, Any]:
     """Retrieve and aggregate records of all bills with calculation discrepancies or missing prices.
 
@@ -460,6 +486,9 @@ def get_incorrect_bills_report(
         .distinct()
         .order_by("-bill_date", "-id")
     )
+
+    if user is not None and not getattr(user, "is_superuser", False):
+        qs = qs.filter(Q(created_by=user) | Q(created_by__isnull=True))
 
     if start_date:
         qs = qs.filter(bill_date__gte=start_date)
@@ -579,6 +608,7 @@ def generate_incorrect_bills_csv(
     party_id: int | str | None = None,
     query: str | None = None,
     resolution_status: str = "all",
+    user=None,
 ) -> str:
     """Generate RFC-compliant CSV content of incorrect / discrepant bills."""
     data = get_incorrect_bills_report(
@@ -588,6 +618,7 @@ def generate_incorrect_bills_csv(
         party_id=party_id,
         query=query,
         resolution_status=resolution_status,
+        user=user,
     )
     output = io.StringIO()
     writer = csv.writer(output)

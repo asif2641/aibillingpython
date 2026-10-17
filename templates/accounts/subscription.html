@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Subscription & Scan Quota" %} — ScanBooks{% endblock %}
+{% block page_title %}{% trans "Subscription & Plans" %}{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-8 py-4">
+    <!-- Current Plan Banner -->
+    <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-700 relative overflow-hidden">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+            <div>
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-primary-100 text-primary-800 dark:bg-primary-950/70 dark:text-primary-300 border border-primary-200 dark:border-primary-800">
+                        {{ user.get_plan_display }}
+                    </span>
+                    {% if user.business_name %}
+                    <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                        {{ user.business_name }}
+                    </span>
+                    {% endif %}
+                </div>
+                <h2 class="text-2xl font-bold text-slate-900 dark:text-white">
+                    {% trans "Monthly AI Scan Quota" %}
+                </h2>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                    {% blocktrans with used=user.scans_used_this_month quota=user.monthly_scan_quota %}
+                    You have used {{ used }} of your {{ quota }} available scans for this billing cycle.
+                    {% endblocktrans %}
+                </p>
+            </div>
+
+            <div class="sm:text-right shrink-0">
+                <div class="text-3xl font-extrabold text-slate-900 dark:text-white">
+                    {{ remaining_scans }}
+                </div>
+                <div class="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    {% trans "Scans Remaining" %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Quota Progress Bar -->
+        <div class="mt-6">
+            <div class="w-full bg-slate-100 dark:bg-slate-700 h-3 rounded-full overflow-hidden">
+                <div 
+                    class="h-full rounded-full transition-all duration-500 {% if usage_percent >= 90 %}bg-red-500{% elif usage_percent >= 70 %}bg-amber-500{% else %}bg-primary-600{% endif %}"
+                    style="width: {{ usage_percent }}%;">
+                </div>
+            </div>
+            <div class="flex justify-between text-xs text-slate-500 dark:text-slate-400 mt-2 font-medium">
+                <span>{{ user.scans_used_this_month }} {% trans "used" %} ({{ usage_percent }}%)</span>
+                <span>{{ user.monthly_scan_quota }} {% trans "monthly limit" %}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Available Plans Grid -->
+    <div>
+        <div class="text-center mb-8">
+            <h3 class="text-xl font-bold text-slate-900 dark:text-white">
+                {% trans "Upgrade Your Plan" %}
+            </h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {% trans "Choose the right plan for your business volume. Instant activation." %}
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Free Tier -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border {% if user.plan == 'free' %}border-primary-500 ring-2 ring-primary-500/20{% else %}border-slate-200 dark:border-slate-700{% endif %} flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="text-lg font-bold text-slate-900 dark:text-white">{% trans "Free Trial" %}</h4>
+                        {% if user.plan == 'free' %}
+                        <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary-100 dark:bg-primary-900/60 text-primary-700 dark:text-primary-300">
+                            {% trans "Current" %}
+                        </span>
+                        {% endif %}
+                    </div>
+                    <div class="mb-4">
+                        <span class="text-3xl font-extrabold text-slate-900 dark:text-white">Rs. 0</span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400">/{% trans "month" %}</span>
+                    </div>
+                    <ul class="space-y-3 text-sm text-slate-600 dark:text-slate-300 mb-6">
+                        <li class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            <span><strong>10</strong> {% trans "AI Scans per month" %}</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            <span>{% trans "Full Ledger & Khatas" %}</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            <span>{% trans "Urdu & English support" %}</span>
+                        </li>
+                    </ul>
+                </div>
+                {% if user.plan != 'free' %}
+                <form method="post" action="{% url 'accounts:subscription' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="plan" value="free">
+                    <button type="submit" class="w-full py-2.5 px-4 rounded-xl text-xs font-semibold border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors">
+                        {% trans "Downgrade to Free" %}
+                    </button>
+                </form>
+                {% else %}
+                <button disabled class="w-full py-2.5 px-4 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-700/60 text-slate-400 cursor-default">
+                    {% trans "Active Plan" %}
+                </button>
+                {% endif %}
+            </div>
+
+            <!-- Pro Tier (Popular) -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border-2 border-primary-500 dark:border-primary-400 relative flex flex-col justify-between">
+                <div class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-primary-600 text-white text-[10px] font-bold uppercase tracking-wider">
+                    {% trans "Most Popular" %}
+                </div>
+                <div>
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="text-lg font-bold text-slate-900 dark:text-white">{% trans "Pro Trader" %}</h4>
+                        {% if user.plan == 'pro' %}
+                        <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary-100 dark:bg-primary-900/60 text-primary-700 dark:text-primary-300">
+                            {% trans "Current" %}
+                        </span>
+                        {% endif %}
+                    </div>
+                    <div class="mb-4">
+                        <span class="text-3xl font-extrabold text-slate-900 dark:text-white">Rs. 1,500</span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400">/{% trans "month" %}</span>
+                    </div>
+                    <ul class="space-y-3 text-sm text-slate-600 dark:text-slate-300 mb-6">
+                        <li class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            <span><strong>100</strong> {% trans "AI Scans per month" %}</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            <span>{% trans "Priority AI OCR Vision" %}</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            <span>{% trans "Automatic Math Reconciliation" %}</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            <span>{% trans "CSV & Financial Exports" %}</span>
+                        </li>
+                    </ul>
+                </div>
+                {% if user.plan != 'pro' %}
+                <form method="post" action="{% url 'accounts:subscription' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="plan" value="pro">
+                    <button type="submit" class="w-full py-2.5 px-4 rounded-xl text-xs font-semibold bg-primary-600 hover:bg-primary-700 text-white transition-colors">
+                        {% trans "Upgrade to Pro" %}
+                    </button>
+                </form>
+                {% else %}
+                <button disabled class="w-full py-2.5 px-4 rounded-xl text-xs font-semibold bg-primary-50 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400 border border-primary-200 dark:border-primary-800 cursor-default">
+                    {% trans "Active Plan" %}
+                </button>
+                {% endif %}
+            </div>
+
+            <!-- Business Tier -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border {% if user.plan == 'business' %}border-primary-500 ring-2 ring-primary-500/20{% else %}border-slate-200 dark:border-slate-700{% endif %} flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="text-lg font-bold text-slate-900 dark:text-white">{% trans "Business" %}</h4>
+                        {% if user.plan == 'business' %}
+                        <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary-100 dark:bg-primary-900/60 text-primary-700 dark:text-primary-300">
+                            {% trans "Current" %}
+                        </span>
+                        {% endif %}
+                    </div>
+                    <div class="mb-4">
+                        <span class="text-3xl font-extrabold text-slate-900 dark:text-white">Rs. 4,000</span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400">/{% trans "month" %}</span>
+                    </div>
+                    <ul class="space-y-3 text-sm text-slate-600 dark:text-slate-300 mb-6">
+                        <li class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            <span><strong>500</strong> {% trans "AI Scans per month" %}</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            <span>{% trans "Multi-user staff logins" %}</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            <span>{% trans "Dedicated phone & WhatsApp support" %}</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            <span>{% trans "Unlimited historical data retention" %}</span>
+                        </li>
+                    </ul>
+                </div>
+                {% if user.plan != 'business' %}
+                <form method="post" action="{% url 'accounts:subscription' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="plan" value="business">
+                    <button type="submit" class="w-full py-2.5 px-4 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 transition-colors">
+                        {% trans "Upgrade to Business" %}
+                    </button>
+                </form>
+                {% else %}
+                <button disabled class="w-full py-2.5 px-4 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-700/60 text-slate-400 cursor-default">
+                    {% trans "Active Plan" %}
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -33,11 +33,16 @@ def spending_report_view(request: HttpRequest) -> HttpResponse:
     start, end = get_date_range(range_key, start_date, end_date)
 
     summary = get_spending_summary(
-        date_range_key=range_key, custom_start=start_date, custom_end=end_date
+        date_range_key=range_key,
+        custom_start=start_date,
+        custom_end=end_date,
+        user=request.user,
     )
-    category_breakdown = get_spending_by_category(start_date=start, end_date=end)
-    top_vendors = get_top_vendors(limit=10, start_date=start, end_date=end)
-    chart_data = get_spending_over_time(interval="day", start_date=start, end_date=end)
+    category_breakdown = get_spending_by_category(start_date=start, end_date=end, user=request.user)
+    top_vendors = get_top_vendors(limit=10, start_date=start, end_date=end, user=request.user)
+    chart_data = get_spending_over_time(
+        interval="day", start_date=start, end_date=end, user=request.user
+    )
 
     context = {
         "title": "Spending Reports",
@@ -60,7 +65,7 @@ def export_spending_csv_view(request: HttpRequest) -> HttpResponse:
     end_date = request.GET.get("end_date")
 
     start, end = get_date_range(range_key, start_date, end_date)
-    csv_content = generate_spending_csv(start_date=start, end_date=end)
+    csv_content = generate_spending_csv(start_date=start, end_date=end, user=request.user)
 
     today_str = timezone.now().date().strftime("%Y-%m-%d")
     response = HttpResponse(csv_content, content_type="text/csv")
@@ -72,11 +77,11 @@ def export_spending_csv_view(request: HttpRequest) -> HttpResponse:
 def price_history_view(request: HttpRequest) -> HttpResponse:
     """Render repeat purchase item index and price fluctuation trends."""
     item_query = request.GET.get("item", "").strip()
-    items_summary = get_all_items_price_summary()
+    items_summary = get_all_items_price_summary(user=request.user)
 
     item_report = None
     if item_query:
-        item_report = get_item_price_history(item_query)
+        item_report = get_item_price_history(item_query, user=request.user)
 
     context = {
         "title": "Price History",
@@ -107,18 +112,22 @@ def incorrect_bills_report_view(request: HttpRequest) -> HttpResponse:
         party_id=party_id,
         query=query,
         resolution_status=resolution_status,
+        user=request.user,
     )
 
     parties_qs = Party.objects.filter(is_active=True)
+    if not request.user.is_superuser:
+        parties_qs = parties_qs.filter(user=request.user)
     if party_type == "vendor":
         parties_qs = parties_qs.filter(party_type__in=["vendor", "both"])
     elif party_type == "customer":
         parties_qs = parties_qs.filter(party_type__in=["customer", "both"])
     parties = parties_qs.order_by("name")
 
-    selected_party = None
-    if party_id:
-        selected_party = Party.objects.filter(pk=party_id).first()
+    party_filter = {"pk": party_id}
+    if not request.user.is_superuser:
+        party_filter["user"] = request.user
+    selected_party = Party.objects.filter(**party_filter).first() if party_id else None
 
     context = {
         "title": "Incorrect & Discrepant Bills Report",
@@ -156,6 +165,7 @@ def export_incorrect_bills_csv_view(request: HttpRequest) -> HttpResponse:
         party_id=party_id,
         query=query,
         resolution_status=resolution_status,
+        user=request.user,
     )
 
     today_str = timezone.now().date().strftime("%Y-%m-%d")

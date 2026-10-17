@@ -16,7 +16,7 @@ from typing import Any
 from django.core.exceptions import ImproperlyConfigured
 
 from .base import *  # noqa: F401, F403
-from .base import parse_database_url
+from .base import BASE_DIR, parse_database_url
 
 DEFAULT_INSECURE_SECRET_KEY = "dev-only-insecure-key-change-in-production"
 
@@ -143,7 +143,7 @@ def configure_production_settings(env: dict[str, str] | None = None) -> dict[str
         try:
             config["MEDIA_ROOT"].mkdir(parents=True, exist_ok=True)
             config["BACKUP_DIR"].mkdir(parents=True, exist_ok=True)
-        except Exception:
+        except Exception:  # noqa: S110
             pass
 
     return config

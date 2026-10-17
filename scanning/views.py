@@ -53,6 +53,27 @@ def upload_view(request: HttpRequest) -> HttpResponse:
     }
 
     if request.method == "POST":
+        # 0. Enforce tenant scan quota
+        if not request.user.has_scans_remaining:
+            error_msg = _(
+                "You have reached your monthly scan limit (%(used)d / %(quota)d scans). "
+                "Please upgrade your plan to scan more bills."
+            ) % {
+                "used": request.user.scans_used_this_month,
+                "quota": request.user.monthly_scan_quota,
+            }
+            messages.error(request, error_msg)
+            return render(
+                request,
+                "scanning/upload.html",
+                {
+                    **context,
+                    "quota_exceeded": True,
+                    "error": error_msg,
+                },
+                status=403,
+            )
+
         files = request.FILES.getlist("files")
         if not files:
             messages.error(request, _("Please select at least one document or photo to scan."))
@@ -78,9 +99,16 @@ def upload_view(request: HttpRequest) -> HttpResponse:
                 )
 
             # 2. Server-Side Pre-Scan Duplicate Gate:
-            # Check if any uploaded document is already scanned before creating ScanJob or invoking AI
+            # Check if any uploaded document is already scanned by this user before creating ScanJob or invoking AI
             is_forced = request.POST.get("force_rescan") == "1"
             if not is_forced:
+                bill_file_filter = {
+                    "bill__isnull": False,
+                    "bill__is_deleted": False,
+                }
+                if not request.user.is_superuser:
+                    bill_file_filter["bill__created_by"] = request.user
+
                 for (
                     uploaded_file,
                     _page_idx,
@@ -91,20 +119,19 @@ def upload_view(request: HttpRequest) -> HttpResponse:
                     existing_file = (
                         BillFile.objects.filter(
                             Q(file_hash=file_hash) | Q(raw_hash=file_hash),
-                            bill__isnull=False,
-                            bill__is_deleted=False,
+                            **bill_file_filter,
                         )
                         .select_related("bill__party", "scan_job")
                         .order_by("-id")
                         .first()
                     )
+
                     if not existing_file and uploaded_file.name:
                         clean_name = os.path.basename(uploaded_file.name)
                         existing_file = (
                             BillFile.objects.filter(
                                 file__icontains=clean_name,
-                                bill__isnull=False,
-                                bill__is_deleted=False,
+                                **bill_file_filter,
                             )
                             .select_related("bill__party", "scan_job")
                             .order_by("-id")
@@ -167,6 +194,7 @@ def upload_view(request: HttpRequest) -> HttpResponse:
 
             # 5. Process scanning pipeline
             process_scan_job(job)
+            request.user.increment_scans_used()
             return redirect("scanning:review", job_id=job.pk)
 
         except (ValidationError, ScanQuotaExceededError) as err:
@@ -194,8 +222,12 @@ def check_duplicate_view(request: HttpRequest) -> JsonResponse:
         return JsonResponse({"is_duplicate": False})
 
     query = Q(raw_hash=file_hash) | Q(file_hash=file_hash)
+    bill_file_filter = {"bill__isnull": False, "bill__is_deleted": False}
+    if not request.user.is_superuser:
+        bill_file_filter["bill__created_by"] = request.user
+
     existing_file = (
-        BillFile.objects.filter(query, bill__isnull=False, bill__is_deleted=False)
+        BillFile.objects.filter(query, **bill_file_filter)
         .select_related("bill__party", "scan_job")
         .order_by("-id")
         .first()
@@ -207,8 +239,7 @@ def check_duplicate_view(request: HttpRequest) -> JsonResponse:
         existing_file = (
             BillFile.objects.filter(
                 file__icontains=clean_name,
-                bill__isnull=False,
-                bill__is_deleted=False,
+                **bill_file_filter,
             )
             .select_related("bill__party", "scan_job")
             .order_by("-id")
@@ -244,7 +275,10 @@ def check_duplicate_view(request: HttpRequest) -> JsonResponse:
 @login_required
 def review_view(request: HttpRequest, job_id: int) -> HttpResponse:
     """Split-screen review interface: document viewer + editable bill with error alerts."""
-    job = get_object_or_404(ScanJob, pk=job_id)
+    job_filter = {"pk": job_id}
+    if not request.user.is_superuser:
+        job_filter["created_by"] = request.user
+    job = get_object_or_404(ScanJob, **job_filter)
     bill = job.bill
 
     if not bill:

@@ -125,6 +125,21 @@ class TestStaffListing:
         response = client.get(self.STAFF_LIST_URL)
         assert response.status_code in [403, 302]
 
+    def test_tenant_user_denied_access_to_staff_list(self, client, db):
+        """Tenant users (is_superuser=False) cannot access staff management."""
+        tenant_user = User.objects.create_user(
+            username="tenant_owner",
+            email="tenant@example.com",
+            password="TestPass123!",
+            role=User.Role.SUPERADMIN,
+            is_staff=False,
+            is_superuser=False,
+            business_name="Tenant Shop",
+        )
+        client.force_login(tenant_user)
+        response = client.get(self.STAFF_LIST_URL)
+        assert response.status_code == 403
+
 
 @pytest.mark.django_db
 class TestStaffCreation:

@@ -1,0 +1,1093 @@
+{% load i18n static %}<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="{% if LANGUAGE_BIDI %}rtl{% else %}ltr{% endif %}" class="h-full scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>{% if LANGUAGE_CODE == 'ur' %}اسکین بکس — AI بلنگ اور اسمارٹ کھاتہ سسٹم{% else %}ScanBooks — AI-Powered Smart Invoicing & Khata{% endif %}</title>
+
+    <!-- PWA & Favicons -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#4f46e5">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'icons/favicon-32x32.png' %}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'icons/apple-touch-icon.png' %}">
+
+    <!-- Tailwind CSS v3 via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            200: '#c7d2fe',
+                            300: '#a5b4fc',
+                            400: '#818cf8',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            800: '#3730a3',
+                            900: '#312e81',
+                            950: '#1e1b4b',
+                        },
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+                        urdu: ["'Jameel Noori Nastaleeq'", "'Noto Sans Arabic'", 'Tahoma', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        none: 'none',
+                        sm: 'none',
+                        DEFAULT: 'none',
+                        md: 'none',
+                        lg: 'none',
+                        xl: 'none',
+                        '2xl': 'none',
+                        inner: 'none',
+                    },
+                },
+            },
+        };
+    </script>
+
+    <!-- Alpine.js -->
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <!-- Google Fonts & Jameel Noori Nastaleeq -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        @font-face {
+            font-family: 'Jameel Noori Nastaleeq';
+            src: local('Jameel Noori Nastaleeq'),
+                 url('{% static "fonts/jameel-noori-nastaleeq.woff2" %}') format('woff2');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        [x-cloak] { display: none !important; }
+
+        html[dir="rtl"] {
+            font-family: 'Jameel Noori Nastaleeq', 'Noto Sans Arabic', Tahoma, sans-serif;
+            letter-spacing: 0;
+        }
+
+        /* Modern Web Guidance: Native Dialog & Backdrop overscroll containment */
+        dialog:modal {
+            overscroll-behavior: contain;
+        }
+        dialog::backdrop {
+            overflow: hidden;
+            overscroll-behavior: contain;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px);
+        }
+
+        @keyframes scanPulse {
+            0%, 100% { transform: translateY(0); opacity: 0.9; }
+            50% { transform: translateY(180px); opacity: 0.4; }
+        }
+        .animate-scan {
+            animation: scanPulse 2.5s ease-in-out infinite;
+        }
+
+        /* Universal Flat Design - Strictly eliminate box-shadows and gradients */
+        *, *::before, *::after {
+            --tw-shadow: 0 0 #0000 !important;
+            --tw-shadow-colored: 0 0 #0000 !important;
+            box-shadow: none !important;
+        }
+        [class*="bg-gradient-"] {
+            background-image: none !important;
+        }
+        :focus-visible {
+            outline: 2px solid #6366f1 !important;
+            outline-offset: 1px !important;
+        }
+    </style>
+
+    <!-- Pre-render Theme Check -->
+    <script>
+        (function() {
+            try {
+                const storedTheme = localStorage.getItem('theme');
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                if (storedTheme === 'dark' || (!storedTheme && prefersDark)) {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+            } catch (e) {}
+        })();
+    </script>
+</head>
+<body 
+    x-data="{
+        currency: 'PKR',
+        videoOpen: false,
+        videoPlaying: true,
+        videoStep: 1,
+        darkMode: document.documentElement.classList.contains('dark'),
+        toggleTheme() {
+            this.darkMode = !this.darkMode;
+            if (this.darkMode) {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            }
+        },
+        openDemoVideo() {
+            this.videoOpen = true;
+            this.videoStep = 1;
+            const modal = document.getElementById('demo-video-modal');
+            if (modal) modal.showModal();
+        },
+        closeDemoVideo() {
+            this.videoOpen = false;
+            const modal = document.getElementById('demo-video-modal');
+            if (modal) modal.close();
+        }
+    }"
+    class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 antialiased selection:bg-primary-500 selection:text-white transition-colors duration-200">
+
+    <!-- ──────────────────────────────────────────────────────────────────────────
+         1. TOP NAVIGATION BAR
+         ────────────────────────────────────────────────────────────────────────── -->
+    <nav class="sticky top-0 z-40 w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/70 dark:border-slate-800/80 transition-colors">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 py-3 flex items-center justify-between">
+            
+            <!-- Logo & Brand -->
+            <a href="{% url 'landing' %}" class="flex items-center gap-3 group focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-xl">
+                <img src="{% static 'img/logo-icon.png' %}" alt="ScanBooks" class="h-10 w-auto object-contain transition-transform group-hover:scale-105">
+                <span class="font-black text-2xl tracking-tight text-slate-950 dark:text-white">
+                    Scan<span class="text-primary-600 dark:text-primary-400">Books</span>
+                </span>
+            </a>
+
+            <!-- Desktop Nav Links -->
+            <div class="hidden md:flex items-center gap-8 text-sm font-semibold text-slate-600 dark:text-slate-300">
+                <a href="#features" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                    {% if LANGUAGE_CODE == 'ur' %}خصوصیات{% else %}Features{% endif %}
+                </a>
+                <a href="#how-it-works" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                    {% if LANGUAGE_CODE == 'ur' %}طریقہ کار{% else %}How It Works{% endif %}
+                </a>
+                <a href="#pricing" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                    {% if LANGUAGE_CODE == 'ur' %}قیمتیں و پیکجز{% else %}Pricing{% endif %}
+                </a>
+                <a href="#faq" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                    {% if LANGUAGE_CODE == 'ur' %}عام سوالات{% else %}FAQ{% endif %}
+                </a>
+            </div>
+
+            <!-- Action Controls (Language, Theme, Login, Register) -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                
+                <!-- Language Switcher -->
+                <form action="{% url 'set_language' %}" method="post" class="inline-flex items-center">
+                    {% csrf_token %}
+                    <input name="next" type="hidden" value="{{ request.get_full_path }}">
+                    {% if LANGUAGE_CODE == 'ur' %}
+                        <button type="submit" name="language" value="en" class="px-2.5 py-1.5 text-xs font-bold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" title="Switch to English">
+                            EN
+                        </button>
+                    {% else %}
+                        <button type="submit" name="language" value="ur" class="px-2.5 py-1.5 text-xs font-bold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" title="اردو میں دیکھیں">
+                            اردو
+                        </button>
+                    {% endif %}
+                </form>
+
+                <!-- Theme Switcher -->
+                <button @click="toggleTheme()" type="button" class="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors" title="Toggle theme">
+                    <svg x-show="darkMode" x-cloak class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                    <svg x-show="!darkMode" class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+                </button>
+
+                <!-- Login Button -->
+                <a href="{% url 'accounts:login' %}" class="hidden sm:inline-flex px-3.5 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                    {% if LANGUAGE_CODE == 'ur' %}لاگ ان{% else %}Log In{% endif %}
+                </a>
+
+                <!-- Primary CTA Button -->
+                <a href="{% url 'accounts:register' %}" class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-primary-600 hover:bg-primary-700 active:scale-95 rounded-xl transition-all">
+                    <span>{% if LANGUAGE_CODE == 'ur' %}مفت شروع کریں{% else %}Start Free{% endif %}</span>
+                    <span class="text-xs bg-primary-500/80 px-1.5 py-0.5 rounded-full font-mono">10</span>
+                </a>
+
+            </div>
+        </div>
+    </nav>
+
+
+    <!-- ──────────────────────────────────────────────────────────────────────────
+         2. HERO SECTION
+         ────────────────────────────────────────────────────────────────────────── -->
+    <section class="relative overflow-hidden pt-12 pb-20 lg:pt-20 lg:pb-32">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-8">
+            
+            <!-- Trust Pill -->
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold bg-primary-50 dark:bg-primary-950/70 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800 animate-fade-in">
+                <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-ping"></span>
+                <span>{% if LANGUAGE_CODE == 'ur' %}{{ site_settings.hero_badge_ur|default:"✨ جدید ترین AI کے ذریعے رسیدیں اور کھاتہ خودکار بنائیں" }}{% else %}{{ site_settings.hero_badge_en|default:"✨ Automated AI Invoicing & Smart Khata" }}{% endif %}</span>
+            </div>
+
+            <!-- Main Heading -->
+            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-950 dark:text-white tracking-tight leading-[1.2] max-w-4xl mx-auto">
+                {% if LANGUAGE_CODE == 'ur' %}
+                    {% if site_settings.hero_title_ur %}
+                        {{ site_settings.hero_title_ur|linebreaksbr }}
+                    {% else %}
+                        کاغذی بلوں اور پرچیوں سے نجات۔  
+                        <span class="text-primary-600 dark:text-primary-400">
+                            صرف 5 سیکنڈ میں
+                        </span>
+                        خودکار ڈیجیٹل کھاتہ!
+                    {% endif %}
+                {% else %}
+                    {% if site_settings.hero_title_en %}
+                        {{ site_settings.hero_title_en|linebreaksbr }}
+                    {% else %}
+                        Turn Paper Bills into Smart Accounts in 
+                        <span class="text-primary-600 dark:text-primary-400">
+                            5 Seconds
+                        </span>
+                    {% endif %}
+                {% endif %}
+            </h1>
+
+            <!-- Subheading -->
+            <p class="text-lg sm:text-xl text-slate-600 dark:text-slate-300 max-w-2xl mx-auto font-normal leading-relaxed">
+                {% if LANGUAGE_CODE == 'ur' %}
+                    {{ site_settings.hero_subtitle_ur|default:"موبائل کیمرے سے کسی بھی ہاتھ سے لکھے یا پرنٹ شدہ بل کی تصویر لیں۔ ہمارا AI خودکار اشیاء، ریٹس اور ٹوٹل نکال کر گاہک کا کھاتہ اور واٹس ایپ رپورٹ فوراً تیار کر دیتا ہے۔" }}
+                {% else %}
+                    {{ site_settings.hero_subtitle_en|default:"Snap a photo of any handwritten or printed receipt. ScanBooks extracts line items, updates customer ledgers, and generates instant WhatsApp bills without manual typing." }}
+                {% endif %}
+            </p>
+
+            <!-- CTA Buttons -->
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+                <!-- Free Trial CTA -->
+                <a href="{% url 'accounts:register' %}" class="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-4 text-base font-bold text-white bg-primary-600 hover:bg-primary-700 active:scale-95 rounded-2xl transition-all cursor-pointer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    <span>{% if LANGUAGE_CODE == 'ur' %}{{ site_settings.hero_cta_text_ur|default:"10 بلز مفت اسکین کریں" }}{% else %}{{ site_settings.hero_cta_text_en|default:"Start 10 Free Scans" }}{% endif %}</span>
+                </a>
+
+                <!-- Watch Video Demo CTA -->
+                <button @click="openDemoVideo()" type="button" class="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-7 py-4 text-base font-semibold text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-2xl transition-all cursor-pointer group">
+                    <span class="w-7 h-7 rounded-full bg-primary-100 dark:bg-primary-950/80 text-primary-600 dark:text-primary-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <svg class="w-4 h-4 translate-x-0.5 rtl:-translate-x-0.5 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    </span>
+                    <span>{% if LANGUAGE_CODE == 'ur' %}{{ site_settings.video_button_text_ur|default:"45 سیکنڈ کی ویڈیو دیکھیں" }}{% else %}{{ site_settings.video_button_text_en|default:"Watch 45s Video Demo" }}{% endif %}</span>
+                </button>
+            </div>
+
+            <!-- Guarantee Note -->
+            <p class="text-xs text-slate-500 dark:text-slate-400">
+                {% if LANGUAGE_CODE == 'ur' %}
+                    🔒 کسی کریڈٹ کارڈ کی ضرورت نہیں۔ فوری سائن اپ — 30 سیکنڈ میں شروع کریں۔
+                {% else %}
+                    🔒 No credit card required. Instant access in under 30 seconds.
+                {% endif %}
+            </p>
+
+            <!-- Product Showcase / Mockup Frame with Play Button -->
+            <div class="relative max-w-5xl mx-auto pt-8">
+                <div class="relative rounded-3xl p-2 sm:p-4 bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                    <div class="relative rounded-2xl overflow-hidden bg-slate-950 aspect-[16/9] max-h-[540px] group cursor-pointer" @click="openDemoVideo()">
+                        <img 
+                            src="{% static 'img/dashboard-preview.png' %}" 
+                            alt="ScanBooks Dashboard Interface" 
+                            class="w-full h-full object-cover object-top opacity-90 group-hover:opacity-75 group-hover:scale-[1.01] transition-all duration-300">
+                        
+                        <!-- Overlay Play Button -->
+                        <div class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/40 group-hover:bg-slate-950/30 transition-colors">
+                            <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-primary-600 text-white flex items-center justify-center group-hover:scale-110 group-hover:bg-primary-500 transition-all duration-300 ring-4 ring-primary-500/20">
+                                <svg class="w-9 h-9 sm:w-10 sm:h-10 translate-x-1 rtl:-translate-x-1 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                            </div>
+                            <span class="mt-4 px-4 py-1.5 rounded-full text-xs font-bold bg-slate-900/80 text-white backdrop-blur-md border border-slate-700/60">
+                                {% if LANGUAGE_CODE == 'ur' %}ویڈیو دیکھیں کہ سسٹم کیسے کام کرتا ہے{% else %}Click to Watch Live Demo Video{% endif %}
+                            </span>
+                        </div>
+
+                        <!-- Floating Badges on Preview -->
+                        <div class="absolute bottom-4 left-4 sm:bottom-6 sm:left-6 flex flex-wrap gap-2 pointer-events-none">
+                            <span class="px-3 py-1.5 rounded-xl bg-slate-900/90 text-emerald-400 text-xs font-bold border border-slate-700/60 backdrop-blur-md flex items-center gap-1.5">
+                                <span>⚡</span> 99.4% OCR Accuracy
+                            </span>
+                            <span class="px-3 py-1.5 rounded-xl bg-slate-900/90 text-primary-300 text-xs font-bold border border-slate-700/60 backdrop-blur-md flex items-center gap-1.5">
+                                <span>📱</span> Urdu & English Receipts
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+
+    <!-- ──────────────────────────────────────────────────────────────────────────
+         3. HOW IT WORKS (VISUAL 3-STEP FLOWCHART)
+         ────────────────────────────────────────────────────────────────────────── -->
+    <section id="how-it-works" class="py-20 bg-white dark:bg-slate-900/50 border-y border-slate-200/70 dark:border-slate-800/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            
+            <div class="text-center max-w-3xl mx-auto mb-16 space-y-4">
+                <span class="text-xs font-bold uppercase tracking-wider text-primary-600 dark:text-primary-400">
+                    {% if LANGUAGE_CODE == 'ur' %}آسان اور خودکار طریقہ کار{% else %}3 Simple Steps{% endif %}
+                </span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-950 dark:text-white tracking-tight">
+                    {% if LANGUAGE_CODE == 'ur' %}
+                        صرف 3 مراحل میں بل اسکین کریں اور کھاتہ بنائیں
+                    {% else %}
+                        How ScanBooks Works in 3 Quick Steps
+                    {% endif %}
+                </h2>
+                <p class="text-base text-slate-600 dark:text-slate-400">
+                    {% if LANGUAGE_CODE == 'ur' %}
+                        کوئی لمبا اندراج نہیں، کوئی حساب کتاب کی غلطی نہیں۔ کیمرہ کھولیں اور باقی کام AI کرے گا۔
+                    {% else %}
+                        No manual data entry, no math errors. Just snap, verify in 3 seconds, and your books are updated.
+                    {% endif %}
+                </p>
+            </div>
+
+            <!-- Flowchart Grid with connecting lines -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+                
+                <!-- Step 1 Card -->
+                <div class="relative bg-slate-50 dark:bg-slate-800/70 rounded-3xl p-8 border border-slate-200 dark:border-slate-700/70 hover:border-primary-500/50 transition-all group">
+                    <div class="w-14 h-14 rounded-2xl bg-primary-600/10 dark:bg-primary-500/20 text-primary-600 dark:text-primary-400 flex items-center justify-center text-2xl font-black mb-6 group-hover:scale-110 transition-transform">
+                        📸
+                    </div>
+                    <div class="text-xs font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest mb-1">
+                        {% if LANGUAGE_CODE == 'ur' %}مرحلہ 1{% else %}Step 01{% endif %}
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-3">
+                        {% if LANGUAGE_CODE == 'ur' %}تصویر لیں یا اپلوڈ کریں{% else %}Snap or Upload Receipt{% endif %}
+                    </h3>
+                    <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                        {% if LANGUAGE_CODE == 'ur' %}
+                            موبائل کیمرے سے کسی بھی پرچے، رسید یا بل کی تصویر لیں۔ یہ ہاتھ کی لکھی ہوئی اردو پرچی ہو یا کمپیوٹر کا انگلش بل۔
+                        {% else %}
+                            Use your mobile phone camera to snap any paper bill, cash memo, or invoice, in both Urdu and English formats.
+                        {% endif %}
+                    </p>
+                </div>
+
+                <!-- Step 2 Card -->
+                <div class="relative bg-slate-50 dark:bg-slate-800/70 rounded-3xl p-8 border border-slate-200 dark:border-slate-700/70 hover:border-primary-500/50 transition-all group">
+                    <div class="w-14 h-14 rounded-2xl bg-indigo-600/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-2xl font-black mb-6 group-hover:scale-110 transition-transform">
+                        ⚡
+                    </div>
+                    <div class="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-1">
+                        {% if LANGUAGE_CODE == 'ur' %}مرحلہ 2{% else %}Step 02{% endif %}
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-3">
+                        {% if LANGUAGE_CODE == 'ur' %}AI خودکار ڈیٹا نکالے گا{% else %}AI Extracts Everything{% endif %}
+                    </h3>
+                    <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                        {% if LANGUAGE_CODE == 'ur' %}
+                            جدید ترین Gemini AI صرف 3 سیکنڈ میں دکان دار کا نام، تمام آئٹمز، تعداد، ریٹس، ڈسکاؤنٹ اور کل رقم پڑھ لیتا ہے۔
+                        {% else %}
+                            Google Gemini AI reads vendor details, items, quantities, rates, taxes, and totals in seconds with 99%+ accuracy.
+                        {% endif %}
+                    </p>
+                </div>
+
+                <!-- Step 3 Card -->
+                <div class="relative bg-slate-50 dark:bg-slate-800/70 rounded-3xl p-8 border border-slate-200 dark:border-slate-700/70 hover:border-primary-500/50 transition-all group">
+                    <div class="w-14 h-14 rounded-2xl bg-emerald-600/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-2xl font-black mb-6 group-hover:scale-110 transition-transform">
+                        📊
+                    </div>
+                    <div class="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-1">
+                        {% if LANGUAGE_CODE == 'ur' %}مرحلہ 3{% else %}Step 03{% endif %}
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-3">
+                        {% if LANGUAGE_CODE == 'ur' %}کھاتہ اپڈیٹ و واٹس ایپ بل{% else %}Ledger Updated & Shared{% endif %}
+                    </h3>
+                    <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                        {% if LANGUAGE_CODE == 'ur' %}
+                            ایک کلک پر بل سیو، کسٹمر کا بقایا بیلنس اپڈیٹ، اور واٹس ایپ پر خوبصورت پی ڈی ایف بل گاہک کو روانہ۔
+                        {% else %}
+                            In 1 click, the invoice is saved, customer khata balance is updated, and a branded WhatsApp receipt is sent instantly.
+                        {% endif %}
+                    </p>
+                </div>
+
+            </div>
+
+            <!-- Bottom CTA inside Flowchart -->
+            <div class="mt-12 text-center">
+                <a href="{% url 'accounts:register' %}" class="inline-flex items-center gap-2 text-sm font-bold text-primary-600 dark:text-primary-400 hover:underline">
+                    <span>{% if LANGUAGE_CODE == 'ur' %}ابھی اپنے پہلے 10 بلز مفت اسکین کر کے دیکھیں →{% else %}Test with your first 10 bills free now →{% endif %}</span>
+                </a>
+            </div>
+
+        </div>
+    </section>
+
+
+    <!-- ──────────────────────────────────────────────────────────────────────────
+         4. KEY FEATURES GRID
+         ────────────────────────────────────────────────────────────────────────── -->
+    <section id="features" class="py-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            
+            <div class="text-center max-w-3xl mx-auto mb-16 space-y-4">
+                <span class="text-xs font-bold uppercase tracking-wider text-primary-600 dark:text-primary-400">
+                    {% if LANGUAGE_CODE == 'ur' %}بزنس کے لیے بہترین ٹولز{% else %}Built For Modern Businesses{% endif %}
+                </span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-950 dark:text-white tracking-tight">
+                    {% if LANGUAGE_CODE == 'ur' %}
+                        وہ تمام فیچرز جن کی آپ کے کاروبار کو ضرورت ہے
+                    {% else %}
+                        Everything You Need to Run Your Accounts Effortlessly
+                    {% endif %}
+                </h2>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+                
+                <!-- Feature 1 -->
+                <div class="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/70 hover:border-slate-300 dark:hover:border-slate-600 transition-colors">
+                    <div class="w-12 h-12 rounded-xl bg-primary-100 dark:bg-primary-950 text-primary-600 dark:text-primary-400 flex items-center justify-center text-xl mb-5">
+                        ✍️
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                        {% if LANGUAGE_CODE == 'ur' %}اردو اور انگلش کی مکمل شناخت{% else %}Handwritten Urdu & English OCR{% endif %}
+                    </h3>
+                    <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                        {% if LANGUAGE_CODE == 'ur' %}
+                            پاکستانی مارکیٹ کے عام ہاتھ کے لکھے ہوئے کچے پرچے، دکانداروں کی رسیدیں اور کمپیوٹر کے پرنٹ شدہ بل سب اسکین ہوتے ہیں۔
+                        {% else %}
+                            Specially trained on diverse handwritten regional receipts and printed invoices for unparalleled reading accuracy.
+                        {% endif %}
+                    </p>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/70 hover:border-slate-300 dark:hover:border-slate-600 transition-colors">
+                    <div class="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl mb-5">
+                        💬
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                        {% if LANGUAGE_CODE == 'ur' %}ایک کلک پر واٹس ایپ بلنگ{% else %}1-Click WhatsApp Invoicing{% endif %}
+                    </h3>
+                    <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                        {% if LANGUAGE_CODE == 'ur' %}
+                            بل بنتے ہی بٹن دبائیں اور گاہک کے واٹس ایپ پر مکمل بل کا خلاصہ اور پی ڈی ایف لنک روانہ ہو جاتا ہے۔
+                        {% else %}
+                            Instantly send beautiful branded invoices and payment reminders directly to customer WhatsApp with one click.
+                        {% endif %}
+                    </p>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/70 hover:border-slate-300 dark:hover:border-slate-600 transition-colors">
+                    <div class="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xl mb-5">
+                        📒
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                        {% if LANGUAGE_CODE == 'ur' %}مکمل کسٹمر اور وینڈر کھاتہ{% else %}Customer & Vendor Khata Ledger{% endif %}
+                    </h3>
+                    <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                        {% if LANGUAGE_CODE == 'ur' %}
+                            کس سے کتنا لینا ہے اور کس کو کتنا دینا ہے؟ تمام ادھار اور نقد کا خودکار لیجر ہر وقت تیار رہتا ہے۔
+                        {% else %}
+                            Track receivables and payables automatically. Keep accurate balances for every party with full transaction history.
+                        {% endif %}
+                    </p>
+                </div>
+
+                <!-- Feature 4 -->
+                <div class="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/70 hover:border-slate-300 dark:hover:border-slate-600 transition-colors">
+                    <div class="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xl mb-5">
+                        📈
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                        {% if LANGUAGE_CODE == 'ur' %}منافع اور خرچ کے لائیو گراف{% else %}Real-Time Spending & Profit Analytics{% endif %}
+                    </h3>
+                    <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                        {% if LANGUAGE_CODE == 'ur' %}
+                            روزانہ، ہفتہ وار اور ماہانہ بنیادوں پر اپنے اخراجات اور منافع کے تصویری چارٹس دیکھیں۔
+                        {% else %}
+                            Visualize your business performance with interactive daily, weekly, and monthly spending charts and top vendor breakdowns.
+                        {% endif %}
+                    </p>
+                </div>
+
+                <!-- Feature 5 -->
+                <div class="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/70 hover:border-slate-300 dark:hover:border-slate-600 transition-colors">
+                    <div class="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xl mb-5">
+                        📱
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                        {% if LANGUAGE_CODE == 'ur' %}موبائل اور کمپیوٹر پر تیز رفتار (PWA){% else %}Install-Free Mobile PWA{% endif %}
+                    </h3>
+                    <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                        {% if LANGUAGE_CODE == 'ur' %}
+                            کسی پلے اسٹور سے بڑی ایپ ڈاؤنلوڈ کرنے کی ضرورت نہیں۔ موبائل براؤزر میں کھولیں یا ایک کلک پر ہوم اسکرین پر شامل کریں۔
+                        {% else %}
+                            Works right inside your phone browser or desktop with zero app store installation and lightning-fast offline capability.
+                        {% endif %}
+                    </p>
+                </div>
+
+                <!-- Feature 6 -->
+                <div class="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/70 hover:border-slate-300 dark:hover:border-slate-600 transition-colors">
+                    <div class="w-12 h-12 rounded-xl bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400 flex items-center justify-center text-xl mb-5">
+                        🔒
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                        {% if LANGUAGE_CODE == 'ur' %}100% پرائیویٹ اور محفوظ ڈیٹا{% else %}Bank-Grade Multi-Tenant Privacy{% endif %}
+                    </h3>
+                    <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                        {% if LANGUAGE_CODE == 'ur' %}
+                            آپ کی دکان کا ڈیٹا صرف آپ کے پاس ہے۔ کسی دوسرے شخص یا دکان دار کو آپ کے بل یا کھاتے تک رسائی نہیں ہو سکتی۔
+                        {% else %}
+                            Isolated tenant databases guarantee complete financial privacy. Your accounting records are encrypted and accessible only to you.
+                        {% endif %}
+                    </p>
+                </div>
+
+            </div>
+
+        </div>
+    </section>
+
+
+    <!-- ──────────────────────────────────────────────────────────────────────────
+         5. PRICING SECTION (PKR / USD TOGGLE)
+         ────────────────────────────────────────────────────────────────────────── -->
+    <section id="pricing" class="py-20 bg-slate-100/70 dark:bg-slate-900/40 border-y border-slate-200/70 dark:border-slate-800/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            
+            <div class="text-center max-w-3xl mx-auto mb-12 space-y-4">
+                <span class="text-xs font-bold uppercase tracking-wider text-primary-600 dark:text-primary-400">
+                    {% if LANGUAGE_CODE == 'ur' %}سادہ اور شفاف قیمتیں{% else %}Transparent Pricing{% endif %}
+                </span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-950 dark:text-white tracking-tight">
+                    {% if LANGUAGE_CODE == 'ur' %}
+                        پہلے 10 بلز مفت آزمائیں، پھر مناسب پلان کا انتخاب کریں
+                    {% else %}
+                        Start Free with 10 Scans. Upgrade as You Grow.
+                    {% endif %}
+                </h2>
+                
+                <!-- Currency Toggle Buttons -->
+                <div class="pt-4 flex items-center justify-center">
+                    <div class="inline-flex items-center p-1 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                        <button 
+                            @click="currency = 'PKR'" 
+                            type="button" 
+                            :class="currency === 'PKR' ? 'bg-primary-600 text-white' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'"
+                            class="px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all">
+                            🇵🇰 پاکستان (PKR)
+                        </button>
+                        <button 
+                            @click="currency = 'USD'" 
+                            type="button" 
+                            :class="currency === 'USD' ? 'bg-primary-600 text-white' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'"
+                            class="px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all">
+                            🌍 Global (USD)
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pricing Cards Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch max-w-6xl mx-auto">
+                
+                <!-- Free Tier Card -->
+                <div class="rounded-3xl p-8 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex flex-col justify-between">
+                    <div>
+                        <div class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+                            {% if LANGUAGE_CODE == 'ur' %}مفت ٹرائل{% else %}Free Trial{% endif %}
+                        </div>
+                        <h3 class="text-2xl font-bold text-slate-900 dark:text-white mb-4">
+                            {% if LANGUAGE_CODE == 'ur' %}اسٹارٹر{% else %}Starter{% endif %}
+                        </h3>
+                        <div class="flex items-baseline gap-1 mb-6">
+                            <span class="text-4xl font-extrabold text-slate-900 dark:text-white">
+                                <span x-show="currency === 'PKR'">{{ site_settings.starter_price_pkr|default:"0" }} روپے</span>
+                                <span x-show="currency === 'USD'">${{ site_settings.starter_price_usd|default:"0" }}</span>
+                            </span>
+                            <span class="text-sm text-slate-500">/ {% if LANGUAGE_CODE == 'ur' %}ہمیشہ کے لیے{% else %}forever{% endif %}</span>
+                        </div>
+                        <ul class="space-y-3.5 text-sm text-slate-600 dark:text-slate-300 mb-8">
+                            <li class="flex items-center gap-2.5">
+                                <span class="text-emerald-500 font-bold">✓</span>
+                                <strong class="text-slate-900 dark:text-white">{{ site_settings.starter_scans|default:10 }} AI Bill Scans</strong>
+                            </li>
+                            <li class="flex items-center gap-2.5">
+                                <span class="text-emerald-500 font-bold">✓</span>
+                                <span>{% if LANGUAGE_CODE == 'ur' %}اردو اور انگلش کیمرہ اسکیننگ{% else %}Handwritten & Printed OCR{% endif %}</span>
+                            </li>
+                            <li class="flex items-center gap-2.5">
+                                <span class="text-emerald-500 font-bold">✓</span>
+                                <span>{% if LANGUAGE_CODE == 'ur' %}کسٹمر اور وینڈر لیجر کھاتہ{% else %}Khata Ledger Tracking{% endif %}</span>
+                            </li>
+                            <li class="flex items-center gap-2.5">
+                                <span class="text-emerald-500 font-bold">✓</span>
+                                <span>{% if LANGUAGE_CODE == 'ur' %}پی ڈی ایف بل ڈاؤنلوڈ{% else %}PDF Invoice Generation{% endif %}</span>
+                            </li>
+                            <li class="flex items-center gap-2.5 text-slate-400 dark:text-slate-500">
+                                <span>✕</span>
+                                <span>{% if LANGUAGE_CODE == 'ur' %}واٹس ایپ براہ راست بلنگ{% else %}Direct WhatsApp Integration{% endif %}</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <a href="{% url 'accounts:register' %}" class="w-full py-3.5 px-4 rounded-xl text-center text-sm font-bold border border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                        {% if LANGUAGE_CODE == 'ur' %}ابھی مفت شروع کریں{% else %}Get Started Free{% endif %}
+                    </a>
+                </div>
+
+                <!-- Pro Tier Card (Highlighted) -->
+                <div class="relative rounded-3xl p-8 bg-white dark:bg-slate-800 border-2 border-primary-600 dark:border-primary-500 flex flex-col justify-between transform lg:-translate-y-2">
+                    <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-black bg-primary-600 text-white uppercase tracking-wider">
+                        {% if LANGUAGE_CODE == 'ur' %}سب سے مقبول پلان{% else %}Most Popular{% endif %}
+                    </div>
+                    <div>
+                        <div class="text-sm font-bold text-primary-600 dark:text-primary-400 uppercase tracking-wider mb-2">
+                            {% if LANGUAGE_CODE == 'ur' %}چھوٹے اور درمیانے کاروبار{% else %}Pro Business{% endif %}
+                        </div>
+                        <h3 class="text-2xl font-bold text-slate-900 dark:text-white mb-4">
+                            {% if LANGUAGE_CODE == 'ur' %}پرو پلان{% else %}Pro{% endif %}
+                        </h3>
+                        <div class="flex items-baseline gap-1 mb-6">
+                            <span class="text-4xl font-extrabold text-slate-900 dark:text-white">
+                                <span x-show="currency === 'PKR'">{{ site_settings.pro_price_pkr|default:"1,499" }} روپے</span>
+                                <span x-show="currency === 'USD'">${{ site_settings.pro_price_usd|default:"9.99" }}</span>
+                            </span>
+                            <span class="text-sm text-slate-500">/ {% if LANGUAGE_CODE == 'ur' %}ماہانہ{% else %}month{% endif %}</span>
+                        </div>
+                        <ul class="space-y-3.5 text-sm text-slate-600 dark:text-slate-300 mb-8">
+                            <li class="flex items-center gap-2.5">
+                                <span class="text-emerald-500 font-bold">✓</span>
+                                <strong class="text-slate-900 dark:text-white">{{ site_settings.pro_scans|default:150 }} AI Bill Scans / mo</strong>
+                            </li>
+                            <li class="flex items-center gap-2.5">
+                                <span class="text-emerald-500 font-bold">✓</span>
+                                <span>{% if LANGUAGE_CODE == 'ur' %}1-کلک واٹس ایپ بلنگ{% else %}1-Click WhatsApp Invoicing{% endif %}</span>
+                            </li>
+                            <li class="flex items-center gap-2.5">
+                                <span class="text-emerald-500 font-bold">✓</span>
+                                <span>{% if LANGUAGE_CODE == 'ur' %}لامحدود کسٹمرز اور وینڈرز کھاتہ{% else %}Unlimited Parties & Ledgers{% endif %}</span>
+                            </li>
+                            <li class="flex items-center gap-2.5">
+                                <span class="text-emerald-500 font-bold">✓</span>
+                                <span>{% if LANGUAGE_CODE == 'ur' %}ایکسل اور پی ڈی ایف مالیاتی رپورٹس{% else %}Excel & PDF Financial Exports{% endif %}</span>
+                            </li>
+                            <li class="flex items-center gap-2.5">
+                                <span class="text-emerald-500 font-bold">✓</span>
+                                <span>{% if LANGUAGE_CODE == 'ur' %}ترجیحی AI اسپیڈ (1.5 سیکنڈ){% else %}Priority Fast-Track Extraction{% endif %}</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <a href="{% url 'accounts:register' %}" class="w-full py-3.5 px-4 rounded-xl text-center text-sm font-bold bg-primary-600 hover:bg-primary-700 text-white transition-all">
+                        {% if LANGUAGE_CODE == 'ur' %}پرو ٹرائل شروع کریں{% else %}Start Pro Trial{% endif %}
+                    </a>
+                </div>
+
+                <!-- Business Tier Card -->
+                <div class="rounded-3xl p-8 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex flex-col justify-between">
+                    <div>
+                        <div class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+                            {% if LANGUAGE_CODE == 'ur' %}ہول سیل اور بڑے ادارے{% else %}High Volume{% endif %}
+                        </div>
+                        <h3 class="text-2xl font-bold text-slate-900 dark:text-white mb-4">
+                            {% if LANGUAGE_CODE == 'ur' %}بزنس / ہول سیل{% else %}Business{% endif %}
+                        </h3>
+                        <div class="flex items-baseline gap-1 mb-6">
+                            <span class="text-4xl font-extrabold text-slate-900 dark:text-white">
+                                <span x-show="currency === 'PKR'">{{ site_settings.business_price_pkr|default:"3,999" }} روپے</span>
+                                <span x-show="currency === 'USD'">${{ site_settings.business_price_usd|default:"24.99" }}</span>
+                            </span>
+                            <span class="text-sm text-slate-500">/ {% if LANGUAGE_CODE == 'ur' %}ماہانہ{% else %}month{% endif %}</span>
+                        </div>
+                        <ul class="space-y-3.5 text-sm text-slate-600 dark:text-slate-300 mb-8">
+                            <li class="flex items-center gap-2.5">
+                                <span class="text-emerald-500 font-bold">✓</span>
+                                <strong class="text-slate-900 dark:text-white">{{ site_settings.business_scans|default:500 }} AI Bill Scans / mo</strong>
+                            </li>
+                            <li class="flex items-center gap-2.5">
+                                <span class="text-emerald-500 font-bold">✓</span>
+                                <span>{% if LANGUAGE_CODE == 'ur' %}ملٹیپل اسٹاف لاگ ان اکاؤنٹس{% else %}Multiple Staff Member Logins{% endif %}</span>
+                            </li>
+                            <li class="flex items-center gap-2.5">
+                                <span class="text-emerald-500 font-bold">✓</span>
+                                <span>{% if LANGUAGE_CODE == 'ur' %}کسٹم شاپ برانڈنگ اور لوگو{% else %}Custom Shop Logo on Invoices{% endif %}</span>
+                            </li>
+                            <li class="flex items-center gap-2.5">
+                                <span class="text-emerald-500 font-bold">✓</span>
+                                <span>{% if LANGUAGE_CODE == 'ur' %}وی آئی پی واٹس ایپ سپورٹ{% else %}VIP Dedicated Support{% endif %}</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <a href="{% url 'accounts:register' %}" class="w-full py-3.5 px-4 rounded-xl text-center text-sm font-bold border border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                        {% if LANGUAGE_CODE == 'ur' %}بزنس پیکج منتخب کریں{% else %}Choose Business{% endif %}
+                    </a>
+                </div>
+
+            </div>
+
+        </div>
+    </section>
+
+
+    <!-- ──────────────────────────────────────────────────────────────────────────
+         6. FREQUENTLY ASKED QUESTIONS (FAQ)
+         ────────────────────────────────────────────────────────────────────────── -->
+    <section id="faq" class="py-20">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            
+            <div class="text-center mb-16 space-y-4">
+                <span class="text-xs font-bold uppercase tracking-wider text-primary-600 dark:text-primary-400">FAQ</span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-950 dark:text-white tracking-tight">
+                    {% if LANGUAGE_CODE == 'ur' %}عام پوچھے جانے والے سوالات{% else %}Frequently Asked Questions{% endif %}
+                </h2>
+            </div>
+
+            <div class="space-y-4" x-data="{ openQ: 1 }">
+                
+                <!-- Q1 -->
+                <div class="p-6 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80">
+                    <button @click="openQ = (openQ === 1 ? null : 1)" class="w-full flex justify-between items-center text-left rtl:text-right font-bold text-base text-slate-900 dark:text-white cursor-pointer">
+                        <span>{% if LANGUAGE_CODE == 'ur' %}کیا میں اسے اپنے موبائل فون پر استعمال کر سکتا ہوں؟{% else %}Can I use ScanBooks on my mobile phone?{% endif %}</span>
+                        <span class="text-xl text-slate-400" x-text="openQ === 1 ? '−' : '+'"></span>
+                    </button>
+                    <div x-show="openQ === 1" x-collapse class="mt-3 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                        {% if LANGUAGE_CODE == 'ur' %}
+                            جی ہاں، بالکل! اسکین بکس کو خاص طور پر موبائل کے لیے بنایا گیا ہے۔ آپ اپنے موبائل کے کروم یا سفاری براؤزر میں کھول کر سیدھا کیمرے سے تصویر لے سکتے ہیں۔
+                        {% else %}
+                            Yes, absolutely! ScanBooks is designed mobile-first. You can open it in any smartphone browser (Chrome, Safari) and use your phone camera directly.
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Q2 -->
+                <div class="p-6 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80">
+                    <button @click="openQ = (openQ === 2 ? null : 2)" class="w-full flex justify-between items-center text-left rtl:text-right font-bold text-base text-slate-900 dark:text-white cursor-pointer">
+                        <span>{% if LANGUAGE_CODE == 'ur' %}کیا مفت ٹرائل کے لیے کریڈٹ کارڈ ضروری ہے؟{% else %}Do I need a credit card for the free trial?{% endif %}</span>
+                        <span class="text-xl text-slate-400" x-text="openQ === 2 ? '−' : '+'"></span>
+                    </button>
+                    <div x-show="openQ === 2" x-collapse class="mt-3 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                        {% if LANGUAGE_CODE == 'ur' %}
+                            بالکل نہیں! آپ صرف اپنا نام اور ای میل درج کر کے فوراً 10 فری اسکینز حاصل کر سکتے ہیں۔ کسی کریڈٹ کارڈ کی ضرورت نہیں۔
+                        {% else %}
+                            Not at all! You only need a username and password to start. 10 free scans are added to your account instantly with zero payment info required.
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Q3 -->
+                <div class="p-6 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80">
+                    <button @click="openQ = (openQ === 3 ? null : 3)" class="w-full flex justify-between items-center text-left rtl:text-right font-bold text-base text-slate-900 dark:text-white cursor-pointer">
+                        <span>{% if LANGUAGE_CODE == 'ur' %}کیا یہ ہاتھ سے لکھی ہوئی اردو پرچیاں پڑھ سکتا ہے؟{% else %}Does it support handwritten Urdu receipts?{% endif %}</span>
+                        <span class="text-xl text-slate-400" x-text="openQ === 3 ? '−' : '+'"></span>
+                    </button>
+                    <div x-show="openQ === 3" x-collapse class="mt-3 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                        {% if LANGUAGE_CODE == 'ur' %}
+                            جی ہاں! گوگل جیمنائی کے جدید ویژن ماڈل کی بدولت یہ اردو اور انگلش دونوں زبانوں میں ہاتھ سے لکھی اور پرنٹ شدہ رسیدوں کو باآسانی پڑھ لیتا ہے۔
+                        {% else %}
+                            Yes! Powered by Gemini multimodal AI, ScanBooks reads handwritten Urdu text, Pakistani market notes, and standard English invoices with high accuracy.
+                        {% endif %}
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </section>
+
+
+    <!-- ──────────────────────────────────────────────────────────────────────────
+         7. BOTTOM CALL TO ACTION
+         ────────────────────────────────────────────────────────────────────────── -->
+    <section class="py-16 bg-primary-600 text-white text-center">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+            <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight">
+                {% if LANGUAGE_CODE == 'ur' %}
+                    آج ہی اپنے کاروبار کو ڈیجیٹل اور خودکار بنائیں
+                {% else %}
+                    Ready to Automate Your Business Invoicing?
+                {% endif %}
+            </h2>
+            <p class="text-base sm:text-lg text-primary-100 max-w-2xl mx-auto font-normal">
+                {% if LANGUAGE_CODE == 'ur' %}
+                    30 سیکنڈ میں مفت اکاؤنٹ بنائیں اور 10 بلز اسکین کر کے دیکھیں کہ آپ کا کتنا وقت بچتا ہے۔
+                {% else %}
+                    Create your free account in 30 seconds and experience the magic with 10 free scans.
+                {% endif %}
+            </p>
+            <div class="pt-2">
+                <a href="{% url 'accounts:register' %}" class="inline-flex items-center gap-2 px-8 py-4 text-base font-black text-primary-700 bg-white hover:bg-slate-100 active:scale-95 rounded-2xl transition-all cursor-pointer">
+                    <span>{% if LANGUAGE_CODE == 'ur' %}ابھی 10 مفت اسکینز حاصل کریں{% else %}Claim Your 10 Free Scans Now{% endif %}</span>
+                    <span class="rtl:rotate-180">→</span>
+                </a>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ──────────────────────────────────────────────────────────────────────────
+         8. FOOTER & CONTACT INFORMATION
+         ────────────────────────────────────────────────────────────────────────── -->
+    <footer class="py-12 bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 text-slate-500 text-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <!-- Col 1: Brand & Bio -->
+                <div class="space-y-3 md:col-span-1">
+                    <div class="flex items-center gap-3">
+                        <img src="{% static 'img/logo-icon.png' %}" alt="ScanBooks" class="h-8 w-auto object-contain">
+                        <span class="font-bold text-lg text-slate-900 dark:text-white">{{ site_settings.site_title|default:"ScanBooks" }}</span>
+                    </div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                        {% if LANGUAGE_CODE == 'ur' %}
+                            AI پر مبنی جدید اسمارٹ بلنگ، کیمرہ اسکیننگ اور واٹس ایپ کھاتہ مینجمنٹ سافٹ ویئر۔
+                        {% else %}
+                            Smart AI-powered bill scanning, digital khata, and 1-click WhatsApp invoicing for retail and wholesale businesses.
+                        {% endif %}
+                    </p>
+                </div>
+
+                <!-- Col 2: Contact Info -->
+                <div class="space-y-2 text-xs">
+                    <h4 class="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[11px]">
+                        {% if LANGUAGE_CODE == 'ur' %}رابطہ و سپورٹ{% else %}{% trans "Contact & Support" %}{% endif %}
+                    </h4>
+                    {% if site_settings.support_phone %}
+                    <p class="flex items-center gap-2">
+                        <span>📞</span>
+                        <a href="tel:{{ site_settings.support_phone }}" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">{{ site_settings.support_phone }}</a>
+                    </p>
+                    {% endif %}
+                    {% if site_settings.support_email %}
+                    <p class="flex items-center gap-2">
+                        <span>✉️</span>
+                        <a href="mailto:{{ site_settings.support_email }}" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">{{ site_settings.support_email }}</a>
+                    </p>
+                    {% endif %}
+                    {% if site_settings.contact_address %}
+                    <p class="flex items-center gap-2">
+                        <span>📍</span>
+                        <span>{{ site_settings.contact_address }}</span>
+                    </p>
+                    {% endif %}
+                    {% if site_settings.contact_hours %}
+                    <p class="flex items-center gap-2 text-slate-400">
+                        <span>⏰</span>
+                        <span>{{ site_settings.contact_hours }}</span>
+                    </p>
+                    {% endif %}
+                </div>
+
+                <!-- Col 3: Quick Links -->
+                <div class="space-y-2 text-xs">
+                    <h4 class="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[11px]">
+                        {% if LANGUAGE_CODE == 'ur' %}فوری روابط{% else %}{% trans "Navigation" %}{% endif %}
+                    </h4>
+                    <ul class="space-y-1.5">
+                        <li><a href="#features" class="hover:text-primary-600 dark:hover:text-primary-400">{% if LANGUAGE_CODE == 'ur' %}خصوصیات{% else %}Features{% endif %}</a></li>
+                        <li><a href="#pricing" class="hover:text-primary-600 dark:hover:text-primary-400">{% if LANGUAGE_CODE == 'ur' %}قیمتیں و پیکجز{% else %}Pricing{% endif %}</a></li>
+                        <li><a href="{% url 'accounts:login' %}" class="hover:text-primary-600 dark:hover:text-primary-400">{% if LANGUAGE_CODE == 'ur' %}لاگ ان{% else %}Login{% endif %}</a></li>
+                        <li><a href="{% url 'accounts:register' %}" class="hover:text-primary-600 dark:hover:text-primary-400 font-semibold text-primary-600 dark:text-primary-400">{% if LANGUAGE_CODE == 'ur' %}مفت ٹرائل رجسٹر کریں{% else %}Create Free Account{% endif %}</a></li>
+                    </ul>
+                </div>
+
+                <!-- Col 4: WhatsApp Support & Social -->
+                <div class="space-y-3 text-xs">
+                    <h4 class="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[11px]">
+                        {% if LANGUAGE_CODE == 'ur' %}براہ راست رابطہ{% else %}{% trans "Connect With Us" %}{% endif %}
+                    </h4>
+                    {% if site_settings.clean_whatsapp %}
+                    <a href="https://wa.me/{{ site_settings.clean_whatsapp }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition-colors">
+                        <span>💬</span>
+                        <span>{% if LANGUAGE_CODE == 'ur' %}واٹس ایپ پر رابطہ کریں{% else %}Chat on WhatsApp{% endif %}</span>
+                    </a>
+                    {% endif %}
+                    <div class="flex items-center gap-3 pt-2 text-slate-400">
+                        {% if site_settings.facebook_url %}<a href="{{ site_settings.facebook_url }}" target="_blank" rel="noopener noreferrer" class="hover:text-primary-600" title="Facebook">FB</a>{% endif %}
+                        {% if site_settings.twitter_url %}<a href="{{ site_settings.twitter_url }}" target="_blank" rel="noopener noreferrer" class="hover:text-primary-600" title="Twitter / X">X</a>{% endif %}
+                        {% if site_settings.linkedin_url %}<a href="{{ site_settings.linkedin_url }}" target="_blank" rel="noopener noreferrer" class="hover:text-primary-600" title="LinkedIn">IN</a>{% endif %}
+                        {% if site_settings.youtube_url %}<a href="{{ site_settings.youtube_url }}" target="_blank" rel="noopener noreferrer" class="hover:text-primary-600" title="YouTube">YT</a>{% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Copyright Line -->
+            <div class="pt-6 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
+                <div>
+                    &copy; {% now "Y" %} {{ site_settings.site_title|default:"ScanBooks" }}. {% if LANGUAGE_CODE == 'ur' %}{{ site_settings.footer_text_ur|default:"تمام جملہ حقوق محفوظ ہیں۔" }}{% else %}{{ site_settings.footer_text_en|default:"All rights reserved." }}{% endif %}
+                </div>
+                <div class="flex items-center gap-4 text-slate-400">
+                    <span>100% Encrypted & Secure</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+
+    <!-- ──────────────────────────────────────────────────────────────────────────
+         9. INTERACTIVE DEMO VIDEO MODAL (MODERN WEB GUIDANCE COMPLIANT)
+         ────────────────────────────────────────────────────────────────────────── -->
+    <dialog 
+        id="demo-video-modal" 
+        @click="if ($event.target === $el) closeDemoVideo()"
+        class="rounded-3xl p-0 max-w-3xl w-full border border-slate-700/80 bg-slate-950 text-white overflow-hidden focus:outline-none backdrop:bg-slate-950/80">
+        
+        <div class="flex flex-col">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between px-6 py-4 bg-slate-900/90 border-b border-slate-800">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-3 h-3 rounded-full bg-red-500"></span>
+                    <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+                    <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                    <span class="text-xs font-bold text-slate-400 ms-2">
+                        {% if LANGUAGE_CODE == 'ur' %}ScanBooks لائیو اسکیننگ ویڈیو ڈیمو{% else %}ScanBooks Live AI Demo{% endif %}
+                    </span>
+                </div>
+                <button @click="closeDemoVideo()" type="button" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors text-lg" title="Close video">
+                    ✕
+                </button>
+            </div>
+
+            <!-- Video Screen / Player Container -->
+            <div class="p-6 sm:p-8 bg-slate-950 space-y-6">
+                
+                {% if site_settings.embed_video_url %}
+                <!-- Dynamic Embedded Video Player (YouTube, Vimeo, MP4) -->
+                <div class="relative rounded-2xl bg-slate-900 border border-slate-800 aspect-[16/9] w-full overflow-hidden">
+                    <iframe 
+                        src="{{ site_settings.embed_video_url }}" 
+                        class="w-full h-full border-0" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                        allowfullscreen>
+                    </iframe>
+                </div>
+                {% else %}
+                <!-- Simulated Interactive Video Demonstration -->
+                <div class="relative rounded-2xl bg-slate-900 border border-slate-800 aspect-[16/9] flex flex-col justify-between p-6 overflow-hidden">
+                    
+                    <!-- Top Video Overlay Info -->
+                    <div class="flex items-center justify-between text-xs font-mono text-slate-400 z-10">
+                        <span class="flex items-center gap-1.5 text-emerald-400 font-bold">
+                            <span class="h-2 w-2 rounded-full bg-emerald-500 animate-ping"></span>
+                            REC • 00:45
+                        </span>
+                        <span class="bg-slate-800/80 px-2.5 py-1 rounded-md border border-slate-700 text-slate-300">
+                            GEMINI-1.5-FLASH VISION AI
+                        </span>
+                    </div>
+
+                    <!-- Step-based Animated Walkthrough -->
+                    <div class="my-auto text-center space-y-4 z-10" x-show="videoStep === 1">
+                        <div class="w-16 h-16 mx-auto rounded-2xl bg-primary-600/20 text-primary-400 flex items-center justify-center text-3xl">
+                            📸
+                        </div>
+                        <h4 class="text-lg font-bold text-white">
+                            {% if LANGUAGE_CODE == 'ur' %}مرحلہ 1: کاغذی بل کی تصویر لی گئی{% else %}Step 1: Receipt Photo Captured{% endif %}
+                        </h4>
+                        <p class="text-xs text-slate-400 max-w-sm mx-auto">
+                            {% if LANGUAGE_CODE == 'ur' %}
+                                ہاتھ سے لکھی پرچی کیمرے کے سامنے رکھی اور کیپچر کیا گیا۔
+                            {% else %}
+                                Pointed phone camera at handwritten Urdu & English cash memo.
+                            {% endif %}
+                        </p>
+                    </div>
+
+                    <div class="my-auto text-center space-y-4 z-10" x-show="videoStep === 2">
+                        <div class="w-16 h-16 mx-auto rounded-2xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center text-3xl animate-spin">
+                            ⚡
+                        </div>
+                        <h4 class="text-lg font-bold text-white">
+                            {% if LANGUAGE_CODE == 'ur' %}مرحلہ 2: AI بل کا تجزیہ کر رہا ہے...{% else %}Step 2: AI Extracting Line Items...{% endif %}
+                        </h4>
+                        <div class="text-xs font-mono text-emerald-400 bg-slate-950/80 p-3 rounded-xl border border-slate-800 max-w-xs mx-auto text-left rtl:text-right space-y-1">
+                            <div>✓ Vendor: Al-Madina Traders</div>
+                            <div>✓ 4 Items extracted</div>
+                            <div>✓ Total Amount: Rs. 14,850.00</div>
+                        </div>
+                    </div>
+
+                    <div class="my-auto text-center space-y-4 z-10" x-show="videoStep === 3">
+                        <div class="w-16 h-16 mx-auto rounded-2xl bg-emerald-600/20 text-emerald-400 flex items-center justify-center text-3xl">
+                            ✅
+                        </div>
+                        <h4 class="text-lg font-bold text-white">
+                            {% if LANGUAGE_CODE == 'ur' %}مرحلہ 3: کھاتہ اپڈیٹ اور واٹس ایپ تیار!{% else %}Step 3: Khata Updated & WhatsApp Sent!{% endif %}
+                        </h4>
+                        <p class="text-xs text-slate-300 max-w-sm mx-auto">
+                            {% if LANGUAGE_CODE == 'ur' %}
+                                بل سیو ہو گیا، کھاتے میں ادھار درج ہو گیا اور پی ڈی ایف واٹس ایپ پر روانہ۔
+                            {% else %}
+                                Bill saved with zero typing. Customer balance updated and receipt sent.
+                            {% endif %}
+                        </p>
+                    </div>
+
+                    <!-- Video Controls Bar -->
+                    <div class="pt-4 flex items-center justify-between border-t border-slate-800 text-xs text-slate-400 z-10">
+                        <div class="flex items-center gap-2">
+                            <button @click="videoStep = (videoStep % 3) + 1" type="button" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-white font-bold transition-colors">
+                                ▶ Next Step
+                            </button>
+                            <span class="font-mono" x-text="`Stage ${videoStep} of 3`"></span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <button @click="videoStep = 1" :class="videoStep === 1 ? 'bg-primary-500 w-5' : 'bg-slate-700 w-2'" class="h-2 rounded-full transition-all"></button>
+                            <button @click="videoStep = 2" :class="videoStep === 2 ? 'bg-primary-500 w-5' : 'bg-slate-700 w-2'" class="h-2 rounded-full transition-all"></button>
+                            <button @click="videoStep = 3" :class="videoStep === 3 ? 'bg-primary-500 w-5' : 'bg-slate-700 w-2'" class="h-2 rounded-full transition-all"></button>
+                        </div>
+                    </div>
+
+                </div>
+                {% endif %}
+
+                <!-- Modal CTA -->
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
+                    <p class="text-xs text-slate-400 text-center sm:text-left rtl:sm:text-right">
+                        {% if LANGUAGE_CODE == 'ur' %}
+                            ابھی اپنے بلوں پر آزمائیں اور خود دیکھیں!
+                        {% else %}
+                            Ready to try it on your own real receipts?
+                        {% endif %}
+                    </p>
+                    <a href="{% url 'accounts:register' %}" class="w-full sm:w-auto px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-primary-600 hover:bg-primary-500 text-center transition-all">
+                        {% if LANGUAGE_CODE == 'ur' %}10 بلز مفت اسکین کریں{% else %}Start 10 Free Scans{% endif %}
+                    </a>
+                </div>
+
+            </div>
+        </div>
+    </dialog>
+
+    {% if site_settings.clean_whatsapp %}
+    <!-- Floating WhatsApp Support Button -->
+    <a 
+        href="https://wa.me/{{ site_settings.clean_whatsapp }}?text={% if LANGUAGE_CODE == 'ur' %}السلام علیکم، مجھے ScanBooks کے بارے میں معلومات چاہیے۔{% else %}Hi, I need assistance with ScanBooks.{% endif %}" 
+        target="_blank" 
+        rel="noopener noreferrer" 
+        class="fixed bottom-6 end-6 z-40 inline-flex items-center gap-2 px-4 py-3 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-none transition-all active:scale-95 group focus:outline-none focus:ring-2 focus:ring-emerald-400"
+        title="WhatsApp Support">
+        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.312.045-.634.075-1.29-.191-.741-.301-1.639-1.049-2.376-1.785-.826-.827-1.397-1.802-1.579-2.221-.183-.418-.021-.645.105-.795.111-.132.253-.332.38-.475.126-.143.169-.238.253-.4.085-.162.042-.304-.021-.428s-.571-1.378-.782-1.888c-.206-.497-.417-.43-.573-.438-.148-.008-.318-.009-.488-.009s-.445.064-.678.318c-.233.254-.89 0.869-.89 2.12s.911 2.457 1.038 2.628c.127.171 1.792 2.736 4.341 3.836 2.55 1.1 2.55.733 3.01.691.46-.042 1.482-.605 1.693-1.19.211-.585.211-1.086.148-1.191-.063-.105-.233-.169-.487-.295z"/></svg>
+        <span class="hidden sm:inline">{% if LANGUAGE_CODE == 'ur' %}واٹس ایپ پر رابطہ کریں{% else %}Chat on WhatsApp{% endif %}</span>
+    </a>
+    {% endif %}
+
+</body>
+</html>

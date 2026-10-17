@@ -4,7 +4,7 @@
 {% block settings_title %}{% trans "Add Staff Member" %}{% endblock %}
 
 {% block settings_content %}
-<div class="max-w-2xl mx-auto bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm overflow-hidden">
+<div class="max-w-2xl mx-auto bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 overflow-hidden">
     <div class="p-6 border-b border-slate-200 dark:border-slate-700">
         <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <span>➕</span>
@@ -144,7 +144,7 @@
             <a href="{% url 'staff_list' %}" class="px-4 py-2 min-h-[44px] inline-flex items-center text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
                 {% trans "Cancel" %}
             </a>
-            <button type="submit" class="px-5 py-2.5 min-h-[44px] rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold text-sm shadow-sm shadow-primary-500/25 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
+            <button type="submit" class="px-5 py-2.5 min-h-[44px] rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
                 {% trans "Save Staff Member" %}
             </button>
         </div>

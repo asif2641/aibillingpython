@@ -28,44 +28,45 @@ from django.urls import reverse
 class TestDashboardAccess:
     """Access control and authentication guards for the base dashboard shell."""
 
-    def test_unauthenticated_user_redirected_from_root(self, client):
-        """Unauthenticated user visiting / is redirected toward the login page."""
-        response = client.get("/", follow=True)
-        assert response.status_code == 200
-        login_url = reverse("accounts:login")
-        assert login_url in response.request.get(
-            "PATH_INFO", ""
-        ) or "login" in response.request.get("PATH_INFO", "")
-
-    def test_unauthenticated_user_redirected_from_en_root(self, client):
-        """Unauthenticated user visiting /en/ is redirected to login page."""
-        response = client.get("/en/")
+    def test_unauthenticated_user_accessing_dashboard_redirects_to_login(self, client):
+        """Unauthenticated user visiting /en/dashboard/ is redirected to the login page."""
+        response = client.get("/en/dashboard/")
         assert response.status_code == 302
         login_url = reverse("accounts:login")
         assert login_url in response.url or "/accounts/login/" in response.url
 
         # Follow redirect to verify login page renders
-        response_follow = client.get("/en/", follow=True)
+        response_follow = client.get("/en/dashboard/", follow=True)
         assert response_follow.status_code == 200
         assert login_url in response_follow.request.get(
             "PATH_INFO", ""
         ) or "login" in response_follow.request.get("PATH_INFO", "")
 
+    def test_unauthenticated_user_sees_landing_page_at_root(self, client):
+        """Unauthenticated user visiting /en/ receives HTTP 200 with the SaaS landing page."""
+        response = client.get("/en/")
+        assert response.status_code == 200
+        content = response.content.decode("utf-8")
+        assert "ScanBooks" in content
+        assert "Start 10 Free Scans" in content
+
     def test_authenticated_superadmin_can_access_dashboard(self, superadmin_client):
-        """Authenticated superadmin visiting /en/ receives HTTP 200."""
+        """Authenticated superadmin visiting /en/ receives HTTP 200 with dashboard."""
         response = superadmin_client.get("/en/")
         assert response.status_code == 200
+        assert "Dashboard" in response.content.decode()
 
     def test_authenticated_staff_can_access_dashboard(self, staff_client):
-        """Authenticated staff user visiting /en/ receives HTTP 200."""
+        """Authenticated staff user visiting /en/ receives HTTP 200 with dashboard."""
         response = staff_client.get("/en/")
         assert response.status_code == 200
+        assert "Dashboard" in response.content.decode()
 
     def test_authenticated_user_root_redirects_to_localized_dashboard(self, staff_client):
-        """Authenticated user visiting / is redirected to /en/ with HTTP 200."""
+        """Authenticated user visiting / receives HTTP 200 with dashboard."""
         response = staff_client.get("/", follow=True)
         assert response.status_code == 200
-        assert response.request.get("PATH_INFO") == "/en/"
+        assert "Dashboard" in response.content.decode()
 
 
 @pytest.mark.django_db
@@ -88,7 +89,7 @@ class TestDashboardSidebarNavigation:
 
     def test_dashboard_sidebar_contains_all_navigation_items(self, staff_client):
         """Dashboard response contains all required sidebar navigation links."""
-        response = staff_client.get("/en/")
+        response = staff_client.get("/en/dashboard/")
         assert response.status_code == 200
         content = response.content.decode().lower()
 
@@ -102,7 +103,7 @@ class TestDashboardTopBar:
 
     def test_top_bar_displays_user_profile_name(self, staff_client, staff_user):
         """Top bar displays logged-in user profile / username or full name."""
-        response = staff_client.get("/en/")
+        response = staff_client.get("/en/dashboard/")
         assert response.status_code == 200
         content = response.content.decode()
 
@@ -112,7 +113,7 @@ class TestDashboardTopBar:
 
     def test_top_bar_contains_language_switcher(self, staff_client):
         """Top bar includes a language switcher (English / Urdu)."""
-        response = staff_client.get("/en/")
+        response = staff_client.get("/en/dashboard/")
         assert response.status_code == 200
         content = response.content.decode().lower()
 
@@ -123,7 +124,7 @@ class TestDashboardTopBar:
 
     def test_top_bar_contains_theme_toggle(self, staff_client):
         """Top bar includes a theme toggle for switching light / dark modes."""
-        response = staff_client.get("/en/")
+        response = staff_client.get("/en/dashboard/")
         assert response.status_code == 200
         content = response.content.decode().lower()
 
@@ -139,7 +140,7 @@ class TestDashboardMobileLayout:
 
     def test_bottom_navigation_bar_markup_present(self, staff_client):
         """Dashboard markup contains a bottom navigation bar for mobile screens."""
-        response = staff_client.get("/en/")
+        response = staff_client.get("/en/dashboard/")
         assert response.status_code == 200
         content = response.content.decode().lower()
 
@@ -156,21 +157,21 @@ class TestDashboardFrontendLibraries:
 
     def test_htmx_script_included(self, staff_client):
         """Dashboard includes HTMX script tag."""
-        response = staff_client.get("/en/")
+        response = staff_client.get("/en/dashboard/")
         assert response.status_code == 200
         content = response.content.decode().lower()
         assert "htmx" in content, "HTMX script tag missing from dashboard"
 
     def test_alpine_js_script_included(self, staff_client):
         """Dashboard includes Alpine.js script tag."""
-        response = staff_client.get("/en/")
+        response = staff_client.get("/en/dashboard/")
         assert response.status_code == 200
         content = response.content.decode().lower()
         assert "alpine" in content, "Alpine.js script tag missing from dashboard"
 
     def test_tailwind_css_included(self, staff_client):
         """Dashboard includes Tailwind CSS stylesheet or script."""
-        response = staff_client.get("/en/")
+        response = staff_client.get("/en/dashboard/")
         assert response.status_code == 200
         content = response.content.decode().lower()
         assert "tailwind" in content, "Tailwind CSS link/script missing from dashboard"
@@ -181,15 +182,15 @@ class TestDashboardInternationalization:
     """Tests for internationalization: English (LTR) vs Urdu (RTL) layout."""
 
     def test_english_layout_ltr(self, staff_client):
-        """English dashboard (/en/) uses LTR direction."""
-        response = staff_client.get("/en/")
+        """English dashboard (/en/dashboard/) uses LTR direction."""
+        response = staff_client.get("/en/dashboard/")
         assert response.status_code == 200
         content = response.content.decode().lower()
         assert 'dir="ltr"' in content or 'lang="en"' in content
 
     def test_urdu_layout_rtl(self, staff_client):
-        """Urdu dashboard (/ur/) uses RTL direction."""
-        response = staff_client.get("/ur/")
+        """Urdu dashboard (/ur/dashboard/) uses RTL direction."""
+        response = staff_client.get("/ur/dashboard/")
         assert response.status_code == 200
         content = response.content.decode().lower()
         assert 'dir="rtl"' in content or 'lang="ur"' in content
@@ -211,7 +212,7 @@ class TestDashboardEmptyState:
 
     def test_empty_state_action_buttons_have_valid_urls(self, staff_client):
         """Empty state 'Scan Bill' and 'Add Bill' buttons link to actual application routes, not fragment hashes."""
-        response = staff_client.get("/en/")
+        response = staff_client.get("/en/dashboard/")
         assert response.status_code == 200
         content = response.content.decode()
 
@@ -232,7 +233,7 @@ class TestDashboardActionButtonsLayout:
 
     def test_dashboard_renders_all_three_buttons_in_centered_single_row(self, staff_client):
         """Dashboard renders Take Photo, Scan Bill, and Add Bill in a centered single row container."""
-        response = staff_client.get("/en/")
+        response = staff_client.get("/en/dashboard/")
         assert response.status_code == 200
         content = response.content.decode()
 
@@ -249,7 +250,7 @@ class TestDashboardActionButtonsLayout:
 
     def test_dashboard_urdu_renders_all_three_buttons(self, staff_client):
         """Urdu dashboard renders all 3 action buttons with RTL-friendly labels."""
-        response = staff_client.get("/ur/")
+        response = staff_client.get("/ur/dashboard/")
         assert response.status_code == 200
         content = response.content.decode()
 

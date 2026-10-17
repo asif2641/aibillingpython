@@ -26,6 +26,19 @@ LOCKOUT_ERROR_MESSAGE = _(
 class CustomAuthenticationForm(AuthenticationForm):
     """Authentication form enforcing the 5-attempt account lockout policy."""
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["username"].widget.attrs.update(
+            {
+                "placeholder": _("Enter your username"),
+            }
+        )
+        self.fields["password"].widget.attrs.update(
+            {
+                "placeholder": "••••••••",
+            }
+        )
+
     def clean(self):
         """Validate credentials and enforce account lockout rules."""
         username = self.cleaned_data.get("username")
@@ -162,5 +175,81 @@ class StaffPasswordResetForm(forms.Form):
 
         if new_password and new_password_confirm and new_password != new_password_confirm:
             self.add_error("new_password_confirm", _("Passwords do not match."))
+
+        return cleaned_data
+
+
+class UserRegistrationForm(forms.Form):
+    """Self-service registration form for new SaaS business owners."""
+
+    business_name = forms.CharField(
+        max_length=150,
+        required=True,
+        label=_("Business / Shop Name"),
+        widget=forms.TextInput(
+            attrs={
+                "class": "w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500",
+                "placeholder": _("e.g. Ali Traders or City Pharmacy"),
+            }
+        ),
+    )
+    username = forms.CharField(
+        max_length=150,
+        required=True,
+        label=_("Username"),
+        widget=forms.TextInput(
+            attrs={
+                "class": "w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500",
+                "placeholder": _("Choose a unique username"),
+            }
+        ),
+    )
+    email = forms.EmailField(
+        required=False,
+        label=_("Email (Optional)"),
+        widget=forms.EmailInput(
+            attrs={
+                "class": "w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500",
+                "placeholder": "name@example.com",
+            }
+        ),
+    )
+    password = forms.CharField(
+        widget=forms.PasswordInput(
+            attrs={
+                "class": "w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500",
+                "placeholder": "••••••••",
+            }
+        ),
+        required=True,
+        label=_("Password"),
+    )
+    password_confirm = forms.CharField(
+        widget=forms.PasswordInput(
+            attrs={
+                "class": "w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500",
+                "placeholder": "••••••••",
+            }
+        ),
+        required=True,
+        label=_("Confirm Password"),
+    )
+
+    def clean_username(self):
+        username = self.cleaned_data.get("username", "").strip()
+        if not username:
+            raise forms.ValidationError(_("Username is required."))
+        User = get_user_model()
+        if User.objects.filter(username=username).exists():
+            raise forms.ValidationError(_("A user with that username already exists."))
+        return username
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get("password")
+        password_confirm = cleaned_data.get("password_confirm")
+
+        if password and password_confirm and password != password_confirm:
+            self.add_error("password_confirm", _("Passwords do not match."))
 
         return cleaned_data

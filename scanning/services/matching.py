@@ -110,6 +110,7 @@ CATEGORY_KEYWORD_MAP = {
 def resolve_scan_party(
     party_data: Optional[Dict[str, Any]],
     party_type: str = Party.PartyType.VENDOR,
+    user: Any = None,
 ) -> Tuple[Party, bool]:
     """Match existing party or create a new party from extracted AI vendor/customer fields.
 
@@ -118,10 +119,13 @@ def resolve_scan_party(
     """
     if not party_data or not isinstance(party_data, dict):
         # Default fallback party
-        fallback, is_new = Party.objects.get_or_create(
-            name="Cash / Unspecified",
-            party_type=party_type,
-        )
+        fallback_kwargs = {
+            "name": "Cash / Unspecified",
+            "party_type": party_type,
+        }
+        if user is not None:
+            fallback_kwargs["user"] = user
+        fallback, is_new = Party.objects.get_or_create(**fallback_kwargs)
         return fallback, is_new
 
     name = party_data.get("name") or "Unspecified Vendor"
@@ -135,7 +139,10 @@ def resolve_scan_party(
     if re.search(r"[\u0600-\u06FF]", name) and not urdu_name:
         urdu_name = name
 
-    existing_before = Party.objects.filter(name__iexact=name.strip()).first()
+    party_filter = {"name__iexact": name.strip()}
+    if user is not None and not getattr(user, "is_superuser", False):
+        party_filter["user"] = user
+    existing_before = Party.objects.filter(**party_filter).first()
     party = match_or_create_party(
         name=name,
         phone=phone,
@@ -143,6 +150,7 @@ def resolve_scan_party(
         urdu_name=urdu_name,
         address=address,
         tax_number=tax_number,
+        user=user,
     )
     update_fields = []
     if urdu_name and not party.urdu_name:

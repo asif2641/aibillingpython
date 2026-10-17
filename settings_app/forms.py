@@ -54,3 +54,52 @@ class ShopProfileForm(forms.ModelForm):
         if limit is not None and limit < 0:
             raise forms.ValidationError(_("Monthly scan limit cannot be negative."))
         return limit
+
+
+class LandingPageSettingsForm(forms.ModelForm):
+    """Form for editing public landing page marketing content, video, and contact details."""
+
+    class Meta:
+        from .models import LandingPageSettings
+
+        model = LandingPageSettings
+        fields = [
+            "site_title",
+            "hero_badge_en",
+            "hero_badge_ur",
+            "hero_title_en",
+            "hero_title_ur",
+            "hero_subtitle_en",
+            "hero_subtitle_ur",
+            "hero_cta_text_en",
+            "hero_cta_text_ur",
+            "free_scans_badge_count",
+            "demo_video_url",
+            "video_button_text_en",
+            "video_button_text_ur",
+            "support_phone",
+            "support_email",
+            "whatsapp_number",
+            "contact_address",
+            "contact_hours",
+            "starter_price_pkr",
+            "starter_price_usd",
+            "starter_scans",
+            "pro_price_pkr",
+            "pro_price_usd",
+            "pro_scans",
+            "business_price_pkr",
+            "business_price_usd",
+            "business_scans",
+            "facebook_url",
+            "twitter_url",
+            "linkedin_url",
+            "instagram_url",
+            "youtube_url",
+            "footer_text_en",
+            "footer_text_ur",
+        ]
+        widgets = {
+            "hero_subtitle_en": forms.Textarea(attrs={"rows": 2}),
+            "hero_subtitle_ur": forms.Textarea(attrs={"rows": 2}),
+        }
