@@ -25,6 +25,8 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 
+from bills.models import Bill
+
 User = get_user_model()
 
 
@@ -201,3 +203,212 @@ class TestSuperadminTenantActions:
         assert created.monthly_scan_quota == 120
         assert created.scans_used_this_month == 0
         assert created.check_password("Password123!")
+
+
+@pytest.mark.django_db
+class TestManualBillAndScanQuotaTracking:
+    """Verify that manual bills are explicitly mentioned, broken down, and counted in monthly quota usage."""
+
+    def test_tenant_with_scanned_and_manual_bills_shows_breakdown_and_effective_quota(
+        self, superadmin_client
+    ):
+        """Happy path: 10 scans + 1 manual entry shows 11 bills, breakdown, and quota usage of 11."""
+        from parties.models import Party
+
+        tenant = User.objects.create_user(
+            username="zz_ansari",
+            email="zaid62390@gmail.com",
+            business_name="ZZ ansari",
+            plan=User.Plan.FREE,
+            monthly_scan_quota=10,
+            scans_used_this_month=10,
+        )
+        party = Party.objects.create(
+            name="Vendor Ansari", party_type=Party.PartyType.VENDOR, user=tenant
+        )
+
+        for i in range(10):
+            Bill.objects.create(
+                created_by=tenant,
+                party=party,
+                invoice_no=f"SCAN-{i}",
+                source=Bill.Source.SCAN,
+                grand_total=Decimal("100.00"),
+            )
+        Bill.objects.create(
+            created_by=tenant,
+            party=party,
+            invoice_no="MANUAL-1",
+            source=Bill.Source.MANUAL,
+            grand_total=Decimal("250.00"),
+        )
+
+        url = reverse("accounts:superadmin_dashboard")
+        response = superadmin_client.get(url)
+        assert response.status_code == 200
+
+        content = response.content.decode("utf-8")
+        assert "ZZ ansari" in content
+        # Breakdown of scans and manual bills is present
+        assert "10" in content
+        assert "1" in content
+        assert "11" in content
+
+        tenants_in_ctx = response.context["tenants"]
+        zz = next(t for t in tenants_in_ctx if t.username == "zz_ansari")
+        assert zz.bills_count == 11
+        assert zz.scanned_bills_count == 10
+        assert zz.manual_bills_count == 1
+        assert zz.effective_scans_used == 11
+        assert zz.effective_remaining_scans == 0
+
+    def test_tenant_with_only_manual_bills_counts_towards_quota(self, superadmin_client):
+        """Edge case 1: Tenant with only manual entries has quota tracked accordingly."""
+        from parties.models import Party
+
+        tenant = User.objects.create_user(
+            username="manual_only_shop",
+            business_name="Manual Only Shop",
+            plan=User.Plan.FREE,
+            monthly_scan_quota=10,
+            scans_used_this_month=0,
+        )
+        party = Party.objects.create(
+            name="Manual Vendor", party_type=Party.PartyType.VENDOR, user=tenant
+        )
+
+        for i in range(3):
+            Bill.objects.create(
+                created_by=tenant,
+                party=party,
+                invoice_no=f"MAN-{i}",
+                source=Bill.Source.MANUAL,
+                grand_total=Decimal("50.00"),
+            )
+
+        url = reverse("accounts:superadmin_dashboard")
+        response = superadmin_client.get(url)
+        assert response.status_code == 200
+
+        tenants_in_ctx = response.context["tenants"]
+        t = next(t for t in tenants_in_ctx if t.username == "manual_only_shop")
+        assert t.bills_count == 3
+        assert t.scanned_bills_count == 0
+        assert t.manual_bills_count == 3
+        assert t.effective_scans_used == 3
+        assert t.effective_remaining_scans == 7
+
+    def test_tenant_with_only_scanned_bills(self, superadmin_client):
+        """Edge case 2: Tenant with only scans displays breakdown cleanly."""
+        from parties.models import Party
+
+        tenant = User.objects.create_user(
+            username="scans_only_shop",
+            business_name="Scans Only Shop",
+            plan=User.Plan.FREE,
+            monthly_scan_quota=10,
+            scans_used_this_month=5,
+        )
+        party = Party.objects.create(
+            name="Scan Vendor", party_type=Party.PartyType.VENDOR, user=tenant
+        )
+
+        for i in range(5):
+            Bill.objects.create(
+                created_by=tenant,
+                party=party,
+                invoice_no=f"SC-{i}",
+                source=Bill.Source.SCAN,
+                grand_total=Decimal("50.00"),
+            )
+
+        url = reverse("accounts:superadmin_dashboard")
+        response = superadmin_client.get(url)
+        assert response.status_code == 200
+
+        tenants_in_ctx = response.context["tenants"]
+        t = next(t for t in tenants_in_ctx if t.username == "scans_only_shop")
+        assert t.bills_count == 5
+        assert t.scanned_bills_count == 5
+        assert t.manual_bills_count == 0
+        assert t.effective_scans_used == 5
+        assert t.effective_remaining_scans == 5
+
+    def test_manual_bill_creation_increments_quota_usage(self, client):
+        """Edge case 3: Creating a manual bill increments tenant's monthly quota usage."""
+        from parties.models import Party
+
+        tenant = User.objects.create_user(
+            username="shop_owner_1",
+            password="Password123!",
+            monthly_scan_quota=10,
+            scans_used_this_month=2,
+        )
+        client.login(username="shop_owner_1", password="Password123!")
+
+        vendor = Party.objects.create(
+            name="Vendor A", party_type=Party.PartyType.VENDOR, user=tenant
+        )
+
+        url = reverse("bills:bill_add")
+        post_data = {
+            "bill_type": Bill.BillType.PURCHASE,
+            "party": vendor.pk,
+            "invoice_no": "INV-MAN-100",
+            "bill_date": "2026-10-18",
+            "status": Bill.Status.VERIFIED,
+        }
+        resp = client.post(url, post_data)
+        assert resp.status_code == 302
+
+        tenant.refresh_from_db()
+        assert tenant.scans_used_this_month == 3
+        created_bill = Bill.objects.get(invoice_no="INV-MAN-100")
+        assert created_bill.source == Bill.Source.MANUAL
+
+    def test_manual_bill_creation_blocked_when_quota_exhausted(self, client):
+        """Failure case: Tenant at quota limit cannot create a manual bill and is redirected with error."""
+        User.objects.create_user(
+            username="quota_capped_user",
+            password="Password123!",
+            monthly_scan_quota=10,
+            scans_used_this_month=10,
+        )
+        client.login(username="quota_capped_user", password="Password123!")
+
+        url = reverse("bills:bill_add")
+        resp = client.get(url)
+        assert resp.status_code == 302
+        assert reverse("accounts:subscription") in resp.url
+
+        post_resp = client.post(url, {"invoice_no": "INV-CAPPED"})
+        assert post_resp.status_code == 302
+        assert reverse("accounts:subscription") in post_resp.url
+
+    def test_offline_manual_bill_sync_increments_quota_usage(self):
+        """Offline manual bill sync also consumes user quota."""
+        from sync.models import SyncQueue
+        from sync.services import process_sync_queue_item
+
+        tenant = User.objects.create_user(
+            username="offline_sync_user",
+            monthly_scan_quota=10,
+            scans_used_this_month=4,
+        )
+        queue_item = SyncQueue.objects.create(
+            client_id="client-offline-999",
+            user=tenant,
+            action=SyncQueue.Action.CREATE,
+            record_type=SyncQueue.RecordType.BILL,
+            payload={
+                "bill_type": "purchase",
+                "party_name": "Offline Vendor",
+                "invoice_no": "OFFLINE-999",
+                "bill_date": "2026-10-18",
+                "items": [{"name": "Milk", "quantity": 2, "unit_price": 100}],
+            },
+        )
+        success, msg, bill_id = process_sync_queue_item(queue_item, user=tenant)
+        assert success is True
+        tenant.refresh_from_db()
+        assert tenant.scans_used_this_month == 5

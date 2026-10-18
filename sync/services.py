@@ -295,6 +295,14 @@ def process_sync_queue_item(
             else:
                 queue_item.save()
 
+            bill_user = queue_item.user or user
+            if (
+                bill_user
+                and not getattr(bill_user, "is_superuser", False)
+                and hasattr(bill_user, "increment_scans_used")
+            ):
+                bill_user.increment_scans_used()
+
         return True, "Bill synced successfully", bill.pk
 
     except Exception as e:

@@ -10,7 +10,6 @@ import re
 from typing import Any
 
 from django.core.exceptions import ValidationError
-from django.db.models import Q
 
 from parties.models import Party
 
@@ -56,8 +55,8 @@ def match_or_create_party(
     norm_phone = normalize_phone(phone)
 
     active_parties = Party.objects.filter(is_active=True)
-    if user is not None and not getattr(user, "is_superuser", False):
-        active_parties = active_parties.filter(Q(user=user) | Q(user__isnull=True))
+    if user is not None:
+        active_parties = active_parties.filter(user=user)
 
     # 1. Match by phone if phone is provided
     if norm_phone:

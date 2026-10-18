@@ -62,10 +62,11 @@ def resolve_candidate_url(candidate_paths, reverse_names=None):
 
 
 @pytest.fixture
-def sample_vendor(db):
+def sample_vendor(db, staff_user):
     """Create a baseline vendor party."""
     assert Party is not None, "Party model is not implemented in parties.models."
     return Party.objects.create(
+        user=staff_user,
         name="Al-Madina Traders",
         urdu_name="المدینہ ٹریڈرز",
         phone="03001234567",
@@ -79,10 +80,11 @@ def sample_vendor(db):
 
 
 @pytest.fixture
-def sample_customer(db):
+def sample_customer(db, staff_user):
     """Create a baseline customer party."""
     assert Party is not None, "Party model is not implemented in parties.models."
     return Party.objects.create(
+        user=staff_user,
         name="Ahmed Ali",
         urdu_name="احمد علی",
         phone="03219876543",
@@ -394,10 +396,12 @@ class TestPartyViewsAndAccessControl:
         # Pure vendor should not appear in customers list
         assert sample_vendor.name not in content
 
-    def test_party_with_both_type_appears_in_both_lists(self, staff_client):
+    def test_party_with_both_type_appears_in_both_lists(self, staff_client, staff_user):
         """Party marked with party_type='both' appears in both vendors and customers lists."""
         assert Party is not None, "Party model is missing."
-        both_party = Party.objects.create(name="Dual Purpose Merchant", party_type="both")
+        both_party = Party.objects.create(
+            name="Dual Purpose Merchant", party_type="both", user=staff_user
+        )
 
         resp_vendors = staff_client.get(self._vendors_url())
         assert resp_vendors.status_code == 200
@@ -509,3 +513,77 @@ class TestPartyViewsAndAccessControl:
         # Inactive party should not appear in active vendor list
         list_resp = staff_client.get(self._vendors_url())
         assert sample_vendor not in list_resp.context["parties"].object_list
+
+    def test_multi_tenant_party_isolation(self, client, db):
+        """Tenants must only see, edit, and match their own parties."""
+        user_a = User.objects.create_user(
+            username="tenant_a",
+            email="tenant_a@example.com",
+            password="TestPassword123!",
+            role=User.Role.STAFF,
+        )
+        user_b = User.objects.create_user(
+            username="tenant_b",
+            email="tenant_b@example.com",
+            password="TestPassword123!",
+            role=User.Role.STAFF,
+        )
+
+        vendor_a = Party.objects.create(
+            name="Vendor Of User A",
+            party_type=Party.PartyType.VENDOR,
+            user=user_a,
+        )
+        customer_a = Party.objects.create(
+            name="Customer Of User A",
+            party_type=Party.PartyType.CUSTOMER,
+            user=user_a,
+        )
+
+        vendor_b = Party.objects.create(
+            name="Vendor Of User B",
+            party_type=Party.PartyType.VENDOR,
+            user=user_b,
+        )
+        customer_b = Party.objects.create(
+            name="Customer Of User B",
+            party_type=Party.PartyType.CUSTOMER,
+            user=user_b,
+        )
+
+        # 1. User A sees only User A's parties
+        client.force_login(user_a)
+        resp_v_a = client.get(self._vendors_url())
+        assert resp_v_a.status_code == 200
+        vendor_list_a = resp_v_a.context["parties"].object_list
+        assert vendor_a in vendor_list_a
+        assert vendor_b not in vendor_list_a
+
+        resp_c_a = client.get(self._customers_url())
+        assert resp_c_a.status_code == 200
+        customer_list_a = resp_c_a.context["parties"].object_list
+        assert customer_a in customer_list_a
+        assert customer_b not in customer_list_a
+
+        # 2. User B sees only User B's parties
+        client.force_login(user_b)
+        resp_v_b = client.get(self._vendors_url())
+        assert resp_v_b.status_code == 200
+        vendor_list_b = resp_v_b.context["parties"].object_list
+        assert vendor_b in vendor_list_b
+        assert vendor_a not in vendor_list_b
+
+        # 3. User B cannot edit or delete User A's party
+        edit_resp = client.get(self._edit_url(vendor_a.pk))
+        assert edit_resp.status_code == 404
+
+        del_url = reverse("parties:party_delete", kwargs={"pk": vendor_a.pk})
+        del_resp = client.post(del_url)
+        assert del_resp.status_code == 404
+        vendor_a.refresh_from_db()
+        assert vendor_a.is_active is True
+
+        # 4. Fuzzy match for User B does NOT return User A's party
+        matched = match_or_create_party("Vendor Of User A", user=user_b)
+        assert matched.pk != vendor_a.pk
+        assert matched.user == user_b

@@ -9,7 +9,6 @@ from decimal import Decimal
 from typing import Any, Dict, List
 
 from django.core.exceptions import ValidationError
-from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
@@ -72,14 +71,16 @@ def record_payment(
     return payment
 
 
-def get_party_ledger_statement(party: Party) -> Dict[str, Any]:
+def get_party_ledger_statement(party: Party, user=None) -> Dict[str, Any]:
     """Calculate running ledger balance and chronological transaction timeline (Khata)."""
-    bills = (
-        Bill.objects.filter(party=party, is_deleted=False)
-        .prefetch_related("items")
-        .order_by("bill_date", "id")
-    )
-    payments = Payment.objects.filter(party=party, is_deleted=False).order_by("payment_date", "id")
+    bill_filter = {"party": party, "is_deleted": False}
+    pay_filter = {"party": party, "is_deleted": False}
+    if user is not None and not getattr(user, "is_superuser", False):
+        bill_filter["created_by"] = user
+        pay_filter["created_by"] = user
+
+    bills = Bill.objects.filter(**bill_filter).prefetch_related("items").order_by("bill_date", "id")
+    payments = Payment.objects.filter(**pay_filter).order_by("payment_date", "id")
 
     timeline: List[Dict[str, Any]] = []
 
@@ -158,15 +159,16 @@ def get_party_ledger_statement(party: Party) -> Dict[str, Any]:
         "total_billed": money_round(total_billed),
         "total_paid": money_round(total_paid),
         "net_balance": net_balance,
+        "balance": net_balance,
         "balance_type": balance_type,
         "balance_label": balance_label,
         "entries": timeline,
     }
 
 
-def generate_ledger_csv(party: Party) -> str:
+def generate_ledger_csv(party: Party, user=None) -> str:
     """Export party Khata ledger entries to CSV string format."""
-    statement = get_party_ledger_statement(party)
+    statement = get_party_ledger_statement(party, user=user)
     output = io.StringIO()
     writer = csv.writer(output)
 
@@ -195,7 +197,7 @@ def get_all_parties_ledger_summary(
     """Calculate aggregated ledger balances (receivables, payables) across active parties."""
     parties_qs = Party.objects.filter(is_active=True)
     if user is not None and not getattr(user, "is_superuser", False):
-        parties_qs = parties_qs.filter(Q(user=user) | Q(user__isnull=True))
+        parties_qs = parties_qs.filter(user=user)
     parties_qs = parties_qs.order_by("name")
 
     total_receivable = Decimal("0.00")
@@ -203,7 +205,7 @@ def get_all_parties_ledger_summary(
     party_summaries = []
 
     for party in parties_qs:
-        stmt = get_party_ledger_statement(party)
+        stmt = get_party_ledger_statement(party, user=user)
         bal = stmt["net_balance"]
         b_type = stmt["balance_type"]
 

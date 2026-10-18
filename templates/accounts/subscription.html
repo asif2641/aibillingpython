@@ -69,13 +69,24 @@
                     {% endif %}
                 </div>
                 <h2 class="text-2xl font-bold text-slate-900 dark:text-white">
-                    {% trans "Monthly AI Scan Quota" %}
+                    {% trans "Monthly Bill & Scan Quota" %}
                 </h2>
                 <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                    {% blocktrans with used=user.scans_used_this_month quota=user.monthly_scan_quota %}
-                    You have used {{ used }} of your {{ quota }} available scans for this billing cycle.
+                    {% blocktrans with used=effective_scans_used quota=user.monthly_scan_quota %}
+                    You have used {{ used }} of your {{ quota }} available bills for this billing cycle.
                     {% endblocktrans %}
                 </p>
+                <div class="mt-2 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 flex-wrap">
+                    <span class="inline-flex items-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-primary-500"></span>
+                        <span>{{ scanned_bills_count }} {% trans "scans" %}</span>
+                    </span>
+                    <span>&bull;</span>
+                    <span class="inline-flex items-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                        <span class="font-medium text-amber-600 dark:text-amber-400">{{ manual_bills_count }} {% trans "manual entries" %}</span>
+                    </span>
+                </div>
             </div>
 
             <div class="sm:text-right shrink-0">
@@ -83,7 +94,7 @@
                     {{ remaining_scans }}
                 </div>
                 <div class="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                    {% trans "Scans Remaining" %}
+                    {% trans "Bills Remaining" %}
                 </div>
             </div>
         </div>
@@ -97,7 +108,7 @@
                 </div>
             </div>
             <div class="flex justify-between text-xs text-slate-500 dark:text-slate-400 mt-2 font-medium">
-                <span>{{ user.scans_used_this_month }} {% trans "used" %} ({{ usage_percent }}%)</span>
+                <span>{{ effective_scans_used }} {% trans "used" %} ({{ usage_percent }}%)</span>
                 <span>{{ user.monthly_scan_quota }} {% trans "monthly limit" %}</span>
             </div>
         </div>

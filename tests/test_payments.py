@@ -79,10 +79,11 @@ def resolve_candidate_url(candidate_paths, reverse_names=None):
 
 
 @pytest.fixture
-def sample_vendor(db):
+def sample_vendor(db, staff_user):
     """Create a baseline vendor party."""
     assert Party is not None, "Party model is not implemented in parties.models."
     return Party.objects.create(
+        user=staff_user,
         name="Habib Oil Mills",
         urdu_name="حبیب آئل ملز",
         phone="03007654321",
@@ -91,10 +92,11 @@ def sample_vendor(db):
 
 
 @pytest.fixture
-def sample_customer(db):
+def sample_customer(db, staff_user):
     """Create a baseline customer party."""
     assert Party is not None, "Party model is not implemented in parties.models."
     return Party.objects.create(
+        user=staff_user,
         name="Tariq Mahmood",
         urdu_name="طارق محمود",
         phone="03215554433",
@@ -103,10 +105,11 @@ def sample_customer(db):
 
 
 @pytest.fixture
-def sample_bill(db, sample_vendor):
+def sample_bill(db, sample_vendor, staff_user):
     """Create a baseline unpaid bill with grand_total=1000.00."""
     assert Bill is not None, "Bill model is not implemented in bills.models."
     return Bill.objects.create(
+        created_by=staff_user,
         bill_type="purchase",
         party=sample_vendor,
         invoice_no="INV-PAY-001",

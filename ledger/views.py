@@ -56,9 +56,7 @@ def payment_add_view(request: HttpRequest) -> HttpResponse:
 
     bill_qs = Bill.objects.filter(is_deleted=False)
     if not request.user.is_superuser:
-        from django.db.models import Q
-
-        bill_qs = bill_qs.filter(Q(created_by=request.user) | Q(created_by__isnull=True))
+        bill_qs = bill_qs.filter(created_by=request.user)
 
     bills_data = [
         {
@@ -136,13 +134,11 @@ def payment_add_view(request: HttpRequest) -> HttpResponse:
 @login_required
 def party_ledger_view(request: HttpRequest, party_id: int) -> HttpResponse:
     """Render the running ledger statement (Khata) for a specific party."""
-    from django.db.models import Q
-
     party_qs = Party.objects.all()
     if not request.user.is_superuser:
-        party_qs = party_qs.filter(Q(user=request.user) | Q(user__isnull=True))
+        party_qs = party_qs.filter(user=request.user)
     party = get_object_or_404(party_qs, pk=party_id)
-    statement = get_party_ledger_statement(party)
+    statement = get_party_ledger_statement(party, user=request.user)
     context = {
         "party": party,
         "statement": statement,
@@ -153,13 +149,11 @@ def party_ledger_view(request: HttpRequest, party_id: int) -> HttpResponse:
 @login_required
 def party_ledger_csv_view(request: HttpRequest, party_id: int) -> HttpResponse:
     """Export the party running ledger statement as a downloadable CSV."""
-    from django.db.models import Q
-
     party_qs = Party.objects.all()
     if not request.user.is_superuser:
-        party_qs = party_qs.filter(Q(user=request.user) | Q(user__isnull=True))
+        party_qs = party_qs.filter(user=request.user)
     party = get_object_or_404(party_qs, pk=party_id)
-    csv_content = generate_ledger_csv(party)
+    csv_content = generate_ledger_csv(party, user=request.user)
     today_str = timezone.now().date().strftime("%Y-%m-%d")
     response = HttpResponse(csv_content, content_type="text/csv")
     response["Content-Disposition"] = f'attachment; filename="ledger-{party.pk}-{today_str}.csv"'

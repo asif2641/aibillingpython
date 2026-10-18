@@ -111,20 +111,22 @@
             </div>
         </div>
 
-        <!-- Card 3: AI Scans Used -->
+        <!-- Card 3: AI Scans & Bills Used -->
         <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700/80 relative overflow-hidden">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    {% trans "AI Scans Consumed" %}
+                    {% trans "Quota Used (Bills & Scans)" %}
                 </span>
                 <div class="p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                 </div>
             </div>
             <div class="mt-3">
-                <div class="text-3xl font-extrabold text-slate-900 dark:text-white">{{ total_scans_used }}</div>
-                <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                    {% trans "Total bill scans processed this cycle" %}
+                <div class="text-3xl font-extrabold text-slate-900 dark:text-white">{{ total_quota_consumed }}</div>
+                <div class="mt-1 text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5 flex-wrap">
+                    <span>{{ total_platform_scans }} {% trans "scans" %}</span>
+                    <span>&bull;</span>
+                    <span class="font-medium text-amber-600 dark:text-amber-400">{{ total_platform_manual }} {% trans "manual" %}</span>
                 </div>
             </div>
         </div>
@@ -370,28 +372,40 @@
                         </td>
 
                         <!-- Quota & Usage Progress -->
-                        <td class="px-5 py-4 min-w-[180px]">
+                        <td class="px-5 py-4 min-w-[200px]">
                             <div class="space-y-1.5">
                                 <div class="flex items-center justify-between text-xs">
                                     <span class="font-semibold text-slate-700 dark:text-slate-300">
-                                        {{ tenant.scans_used_this_month }} / {{ tenant.monthly_scan_quota }} {% trans "scans" %}
+                                        {{ tenant.effective_scans_used }} / {{ tenant.monthly_scan_quota }} {% trans "bills" %}
                                     </span>
                                     <span class="text-slate-500 dark:text-slate-400">
-                                        {{ tenant.remaining_scans }} {% trans "remaining" %}
+                                        {{ tenant.effective_remaining_scans }} {% trans "remaining" %}
                                     </span>
                                 </div>
                                 <div class="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
-                                    <div class="{% if tenant.remaining_scans <= 2 %}bg-rose-500{% elif tenant.remaining_scans <= 10 %}bg-amber-500{% else %}bg-amber-600{% endif %} h-2 rounded-full transition-all"
-                                         style="width: {% widthratio tenant.scans_used_this_month tenant.monthly_scan_quota 100 %}%;"></div>
+                                    <div class="{% if tenant.effective_remaining_scans <= 2 %}bg-rose-500{% elif tenant.effective_remaining_scans <= 10 %}bg-amber-500{% else %}bg-amber-600{% endif %} h-2 rounded-full transition-all"
+                                         style="width: {{ tenant.usage_percent }}%;"></div>
+                                </div>
+                                <div class="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5 flex-wrap">
+                                    <span>{{ tenant.scanned_bills_count|default:0 }} {% trans "scans" %}</span>
+                                    <span>&bull;</span>
+                                    <span class="font-medium text-amber-600 dark:text-amber-400">{{ tenant.manual_bills_count|default:0 }} {% trans "manual" %}</span>
                                 </div>
                             </div>
                         </td>
 
                         <!-- Invoices Count -->
                         <td class="px-5 py-4 text-center whitespace-nowrap">
-                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 dark:bg-slate-700/60 text-slate-800 dark:text-slate-200">
-                                {{ tenant.bills_count|default:0 }}
-                            </span>
+                            <div class="flex flex-col items-center gap-1">
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 dark:bg-slate-700/60 text-slate-800 dark:text-slate-200">
+                                    {{ tenant.bills_count|default:0 }}
+                                </span>
+                                <div class="text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-center gap-1">
+                                    <span>{{ tenant.scanned_bills_count|default:0 }} {% trans "scans" %}</span>
+                                    <span>&bull;</span>
+                                    <span class="font-medium text-amber-600 dark:text-amber-400">{{ tenant.manual_bills_count|default:0 }} {% trans "manual" %}</span>
+                                </div>
+                            </div>
                         </td>
 
                         <!-- Active / Suspended Status -->

@@ -33,7 +33,7 @@ class BillForm(forms.ModelForm):
 
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
-        if user is not None and not getattr(user, "is_superuser", False) and "party" in self.fields:
+        if "party" in self.fields and user is not None and not getattr(user, "is_superuser", False):
             self.fields["party"].queryset = Party.objects.filter(is_active=True).filter(
                 Q(user=user) | Q(user__isnull=True)
             )

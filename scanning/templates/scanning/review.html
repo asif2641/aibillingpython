@@ -263,20 +263,83 @@
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <!-- Party Selection -->
-                        <div class="sm:col-span-2">
-                            <label for="id_party" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                                <span x-show="billType === 'purchase'">{% trans "Party (Vendor / Supplier)" %} <span class="text-red-500">*</span></span>
-                                <span x-show="billType === 'sale'" x-cloak style="display: none;">{% trans "Party (Customer / Client)" %} <span class="text-red-500">*</span></span>
-                            </label>
-                            <select name="party" id="id_party" 
-                                    class="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-500">
-                                {% for p in parties %}
-                                    <option value="{{ p.pk }}" {% if p.pk == bill.party.pk %}selected{% endif %}>
-                                        {{ p.name }}{% if p.phone %} ({{ p.phone }}){% endif %} ({{ p.get_party_type_display }})
-                                    </option>
-                                {% endfor %}
-                            </select>
+                        <!-- Party Selection (Editable Combobox + Dropdown) -->
+                        <div class="sm:col-span-2" x-data="{
+                            partyName: '{{ bill.party.name|default:''|escapejs }}',
+                            partyId: '{{ bill.party.pk|default:'' }}',
+                            onPartyNameInput(e) {
+                                this.partyName = e.target.value;
+                                const datalist = document.getElementById('parties_datalist');
+                                let matchedId = '';
+                                if (datalist) {
+                                    for (const opt of datalist.options) {
+                                        if (opt.value.trim().toLowerCase() === this.partyName.trim().toLowerCase()) {
+                                            matchedId = opt.getAttribute('data-id') || '';
+                                            const phone = opt.getAttribute('data-phone');
+                                            const phoneInput = document.getElementById('id_party_phone');
+                                            if (phone && phoneInput && !phoneInput.value) {
+                                                phoneInput.value = phone;
+                                            }
+                                            break;
+                                        }
+                                    }
+                                }
+                                this.partyId = matchedId;
+                            },
+                            selectExisting(e) {
+                                const sel = e.target;
+                                const opt = sel.options[sel.selectedIndex];
+                                if (opt && opt.value) {
+                                    this.partyName = opt.getAttribute('data-name') || opt.text;
+                                    this.partyId = opt.value;
+                                    const phone = opt.getAttribute('data-phone');
+                                    const phoneInput = document.getElementById('id_party_phone');
+                                    if (phone && phoneInput) {
+                                        phoneInput.value = phone;
+                                    }
+                                }
+                            }
+                        }">
+                            <div class="flex items-center justify-between mb-1">
+                                <label for="id_party_name" class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                    <span x-show="billType === 'purchase'">{% trans "Party (Vendor / Supplier)" %} <span class="text-red-500">*</span></span>
+                                    <span x-show="billType === 'sale'" x-cloak style="display: none;">{% trans "Party (Customer / Client)" %} <span class="text-red-500">*</span></span>
+                                </label>
+                                <span class="text-[11px] text-slate-500 dark:text-slate-400">
+                                    {% trans "Editable — Type name or pick below" %}
+                                </span>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                                <div class="sm:col-span-7 relative">
+                                    <input type="text" 
+                                           name="party_name" 
+                                           id="id_party_name" 
+                                           :value="partyName"
+                                           @input="onPartyNameInput($event)"
+                                           list="parties_datalist"
+                                           placeholder="{% trans 'Edit or enter party name...' %}" 
+                                           autocomplete="off"
+                                           class="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm font-medium focus:ring-2 focus:ring-primary-500"
+                                           required>
+                                    <datalist id="parties_datalist">
+                                        {% for p in parties %}
+                                            <option value="{{ p.name }}" data-id="{{ p.pk }}" data-phone="{{ p.phone|default:'' }}">
+                                        {% endfor %}
+                                    </datalist>
+                                    <input type="hidden" name="party" id="id_party" :value="partyId">
+                                </div>
+                                <div class="sm:col-span-5">
+                                    <select @change="selectExisting($event)"
+                                            class="w-full px-3 py-2.5 min-h-[44px] rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs focus:ring-2 focus:ring-primary-500">
+                                        <option value="">-- {% trans "Choose Existing Account" %} --</option>
+                                        {% for p in parties %}
+                                            <option value="{{ p.pk }}" data-name="{{ p.name }}" data-phone="{{ p.phone|default:'' }}" {% if p.pk == bill.party.pk %}selected{% endif %}>
+                                                {{ p.name }}{% if p.phone %} ({{ p.phone }}){% endif %} ({{ p.get_party_type_display }})
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Party Phone Number -->
@@ -426,11 +489,11 @@
                                     {% trans "Option 1 keeps original slip total in Incorrect Bills records. Option 2 corrects calculation." %}
                                 </p>
                             </div>
-                            <div class="flex flex-wrap items-center gap-2">
+                            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                                 <!-- Discard Button in Discrepancy Panel -->
                                 <button type="submit" name="action" value="discard"
                                         onclick="return confirm('{% trans "Are you sure you want to discard this bill? It will be removed from your records." %}')"
-                                        class="px-3.5 py-2 min-h-[42px] inline-flex items-center justify-center gap-1.5 rounded-xl border border-rose-300 dark:border-rose-800 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 font-bold text-xs transition-all focus:ring-2 focus:ring-rose-500"
+                                        class="w-full sm:w-auto px-3.5 py-2 min-h-[42px] inline-flex items-center justify-center gap-1.5 rounded-xl border border-rose-300 dark:border-rose-800 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 font-bold text-xs transition-all focus:ring-2 focus:ring-rose-500"
                                         title="{% trans 'Cancel and discard this bill' %}">
                                     <span>🗑️</span>
                                     <span>
@@ -444,7 +507,7 @@
 
                                 <!-- Option 1: Go with Incorrect Bill -->
                                 <button type="submit" name="action" value="accept_incorrect"
-                                        class="flex-1 sm:flex-none px-3.5 py-2 min-h-[42px] inline-flex items-center justify-center gap-1.5 rounded-xl border border-amber-400 bg-amber-100 hover:bg-amber-200 dark:bg-amber-950 dark:hover:bg-amber-900/60 text-amber-900 dark:text-amber-200 font-bold text-xs transition-all focus:ring-2 focus:ring-amber-500"
+                                        class="w-full sm:w-auto px-3.5 py-2 min-h-[42px] inline-flex items-center justify-center gap-1.5 rounded-xl border border-amber-400 bg-amber-100 hover:bg-amber-200 dark:bg-amber-950 dark:hover:bg-amber-900/60 text-amber-900 dark:text-amber-200 font-bold text-xs transition-all focus:ring-2 focus:ring-amber-500 text-center"
                                         title="{% trans 'Accept original slip total and log into Incorrect Bills records' %}">
                                     <span>⚠️</span>
                                     <span>{% trans "1. Go with Incorrect Bill" %} (PKR <span class="slip-total-label">{{ bill.grand_total|floatformat:2 }}</span>)</span>
@@ -452,7 +515,7 @@
 
                                 <!-- Option 2: Correct & Go -->
                                 <button type="submit" name="action" value="correct_and_go"
-                                        class="flex-1 sm:flex-none px-4 py-2 min-h-[42px] inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-all focus:ring-2 focus:ring-emerald-500"
+                                        class="w-full sm:w-auto px-4 py-2 min-h-[42px] inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-all focus:ring-2 focus:ring-emerald-500 text-center"
                                         title="{% trans 'Auto-correct grand total to real sum of items and approve' %}">
                                     <span>⚡</span>
                                     <span>{% trans "2. Correct & Go" %} (PKR <span class="computed-total-label">{{ expected_grand_total|floatformat:2 }}</span>)</span>
@@ -461,11 +524,11 @@
                         </div>
 
                         <!-- Standard Verify & Approve when Total has No Discrepancy -->
-                        <div id="standard-approve-panel" class="pt-3 border-t border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3 {% if is_total_invalid %}hidden{% endif %}">
+                        <div id="standard-approve-panel" class="pt-3 border-t border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 {% if is_total_invalid %}hidden{% endif %}">
                             <!-- Discard Button -->
                             <button type="submit" name="action" value="discard"
                                     onclick="return confirm('{% trans "Are you sure you want to discard this bill? It will be removed from your records." %}')"
-                                    class="px-4 py-2.5 min-h-[44px] inline-flex items-center gap-1.5 rounded-xl border border-rose-300 dark:border-rose-800 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 font-bold text-xs transition-all focus:outline-none focus:ring-2 focus:ring-rose-500"
+                                    class="w-full sm:w-auto px-4 py-2.5 min-h-[44px] inline-flex items-center justify-center gap-1.5 rounded-xl border border-rose-300 dark:border-rose-800 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 font-bold text-xs transition-all focus:outline-none focus:ring-2 focus:ring-rose-500"
                                     title="{% trans 'Cancel and discard this bill' %}">
                                 <svg class="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                 <span>
@@ -478,7 +541,7 @@
                             </button>
 
                             <button type="submit" name="action" value="verify"
-                                    class="px-6 py-2.5 min-h-[44px] inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                    class="w-full sm:w-auto px-6 py-2.5 min-h-[44px] inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                                 <span>{% trans "Verify & Approve Bill" %}</span>
                             </button>
@@ -643,19 +706,16 @@
             if (taxInput) taxInput.addEventListener('input', recalculate);
 
             window.selectCustomerParty = function(name) {
-                const sel = document.getElementById('id_party');
-                if (!sel || !name) return;
-                const target = name.toLowerCase().trim();
-                for (let i = 0; i < sel.options.length; i++) {
-                    if (sel.options[i].text.toLowerCase().includes(target)) {
-                        sel.selectedIndex = i;
-                        const phoneInput = document.getElementById('id_party_phone');
-                        const custPhone = document.getElementById('id_customer_phone');
-                        if (phoneInput && custPhone && custPhone.value) {
-                            phoneInput.value = custPhone.value;
-                        }
-                        break;
-                    }
+                if (!name) return;
+                const nameInput = document.getElementById('id_party_name');
+                if (nameInput) {
+                    nameInput.value = name;
+                    nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+                const phoneInput = document.getElementById('id_party_phone');
+                const custPhone = document.getElementById('id_customer_phone');
+                if (phoneInput && custPhone && custPhone.value) {
+                    phoneInput.value = custPhone.value;
                 }
             };
         });

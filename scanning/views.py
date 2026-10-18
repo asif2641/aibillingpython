@@ -325,6 +325,7 @@ def review_view(request: HttpRequest, job_id: int) -> HttpResponse:
         # Update core invoice details
         invoice_no = request.POST.get("invoice_no", "").strip()
         bill_type_val = request.POST.get("bill_type", "").strip()
+        party_name = request.POST.get("party_name", "").strip()
         party_id = request.POST.get("party")
         party_phone = request.POST.get("party_phone", "").strip()
         customer_name = request.POST.get("customer_name", "").strip()
@@ -341,6 +342,7 @@ def review_view(request: HttpRequest, job_id: int) -> HttpResponse:
             customer_party, _created = resolve_scan_party(
                 {"name": customer_name, "phone": customer_phone},
                 party_type=Party.PartyType.CUSTOMER,
+                user=request.user,
             )
             if customer_phone and customer_party.phone != customer_phone:
                 customer_party.phone = customer_phone
@@ -348,15 +350,56 @@ def review_view(request: HttpRequest, job_id: int) -> HttpResponse:
 
         if invoice_no:
             bill.invoice_no = invoice_no
-        if party_id:
-            party = Party.objects.filter(pk=party_id).first()
-            if party:
-                bill.party = party
-                if party_phone and party.phone != party_phone:
-                    party.phone = party_phone
-                    party.save(update_fields=["phone"])
+
+        target_party = None
+        # 1. If party_name is specified (user edited or selected)
+        if party_name:
+            if party_id:
+                p_filter = {"pk": party_id}
+                if not request.user.is_superuser:
+                    p_filter["user"] = request.user
+                existing = Party.objects.filter(**p_filter).first()
+                if existing:
+                    target_party = existing
+                    if existing.name.strip().lower() != party_name.lower():
+                        name_match_filter = {"name__iexact": party_name, "is_active": True}
+                        if not request.user.is_superuser:
+                            name_match_filter["user"] = request.user
+                        name_match = Party.objects.filter(**name_match_filter).first()
+                        target_party = name_match if name_match else None
+            if not target_party:
+                default_type = (
+                    Party.PartyType.CUSTOMER
+                    if bill.bill_type == Bill.BillType.SALE
+                    else Party.PartyType.VENDOR
+                )
+                target_party, _created_party = resolve_scan_party(
+                    {"name": party_name, "phone": party_phone},
+                    party_type=default_type,
+                    user=request.user,
+                )
+        elif party_id:
+            p_filter = {"pk": party_id}
+            if not request.user.is_superuser:
+                p_filter["user"] = request.user
+            target_party = Party.objects.filter(**p_filter).first()
         elif bill.bill_type == Bill.BillType.SALE and customer_party:
-            bill.party = customer_party
+            target_party = customer_party
+
+        if target_party:
+            if (
+                bill.bill_type == Bill.BillType.SALE
+                and target_party.party_type == Party.PartyType.VENDOR
+                or bill.bill_type == Bill.BillType.PURCHASE
+                and target_party.party_type == Party.PartyType.CUSTOMER
+            ):
+                target_party.party_type = Party.PartyType.BOTH
+                target_party.save(update_fields=["party_type"])
+
+            bill.party = target_party
+            if party_phone and target_party.phone != party_phone:
+                target_party.phone = party_phone
+                target_party.save(update_fields=["phone"])
         elif party_phone and bill.party:
             if bill.party.phone != party_phone:
                 bill.party.phone = party_phone
@@ -575,7 +618,10 @@ def review_view(request: HttpRequest, job_id: int) -> HttpResponse:
             "is_total_invalid": is_total_invalid,
             "errors": errors,
             "files": files,
-            "parties": Party.objects.filter(is_active=True).order_by("name"),
+            "parties": Party.objects.filter(
+                is_active=True,
+                **({} if request.user.is_superuser else {"user": request.user}),
+            ).order_by("name"),
             "extracted_vendor_phone": extracted_vendor_phone,
             "extracted_customer_name": extracted_customer_name,
             "extracted_customer_phone": extracted_customer_phone,

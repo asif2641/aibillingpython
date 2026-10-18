@@ -140,7 +140,7 @@ def resolve_scan_party(
         urdu_name = name
 
     party_filter = {"name__iexact": name.strip()}
-    if user is not None and not getattr(user, "is_superuser", False):
+    if user is not None:
         party_filter["user"] = user
     existing_before = Party.objects.filter(**party_filter).first()
     party = match_or_create_party(

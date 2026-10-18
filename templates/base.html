@@ -531,7 +531,7 @@
                         {% if not request.user.is_superuser %}
                         <a href="{% url 'accounts:subscription' %}" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900 transition-colors" title="{% trans 'Manage Subscription' %}">
                             <svg class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                            <span>{{ request.user.scans_used_this_month }}/{{ request.user.monthly_scan_quota }} {% trans "Scans" %}</span>
+                            <span>{{ request.user.scans_used_this_month }}/{{ request.user.monthly_scan_quota }} {% trans "Bills" %}</span>
                             <span class="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-200 dark:bg-emerald-800 text-emerald-900 dark:text-emerald-100">{% trans "Upgrade" %}</span>
                         </a>
                         {% else %}

@@ -78,7 +78,7 @@ def get_spending_summary(
         status=Bill.Status.VERIFIED,
     )
     if user is not None and not getattr(user, "is_superuser", False):
-        bills = bills.filter(Q(created_by=user) | Q(created_by__isnull=True))
+        bills = bills.filter(created_by=user)
 
     if start_date:
         bills = bills.filter(bill_date__gte=start_date)
@@ -119,7 +119,7 @@ def get_spending_summary(
         status__in=[Bill.Status.NEEDS_REVIEW, Bill.Status.DRAFT],
     )
     if user is not None and not getattr(user, "is_superuser", False):
-        pending_bills = pending_bills.filter(Q(created_by=user) | Q(created_by__isnull=True))
+        pending_bills = pending_bills.filter(created_by=user)
 
     if start_date:
         pending_bills = pending_bills.filter(bill_date__gte=start_date)
@@ -150,7 +150,7 @@ def get_spending_by_category(start_date=None, end_date=None, user=None) -> List[
         status=Bill.Status.VERIFIED,
     )
     if user is not None and not getattr(user, "is_superuser", False):
-        bills = bills.filter(Q(created_by=user) | Q(created_by__isnull=True))
+        bills = bills.filter(created_by=user)
 
     if start_date:
         bills = bills.filter(bill_date__gte=start_date)
@@ -205,7 +205,7 @@ def get_top_vendors(
         status=Bill.Status.VERIFIED,
     )
     if user is not None and not getattr(user, "is_superuser", False):
-        bills = bills.filter(Q(created_by=user) | Q(created_by__isnull=True))
+        bills = bills.filter(created_by=user)
 
     if start_date:
         bills = bills.filter(bill_date__gte=start_date)
@@ -250,7 +250,7 @@ def get_spending_over_time(
         status=Bill.Status.VERIFIED,
     )
     if user is not None and not getattr(user, "is_superuser", False):
-        bills = bills.filter(Q(created_by=user) | Q(created_by__isnull=True))
+        bills = bills.filter(created_by=user)
 
     if start_date:
         bills = bills.filter(bill_date__gte=start_date)
@@ -284,7 +284,7 @@ def get_item_price_history(item_name: str, user=None) -> Dict[str, Any]:
         .order_by("bill__bill_date", "bill__id", "id")
     )
     if user is not None and not getattr(user, "is_superuser", False):
-        items_qs = items_qs.filter(Q(bill__created_by=user) | Q(bill__created_by__isnull=True))
+        items_qs = items_qs.filter(bill__created_by=user)
 
     items = list(items_qs)
     if not items:
@@ -349,7 +349,7 @@ def get_all_items_price_summary(user=None) -> List[Dict[str, Any]]:
         bill__bill_type=Bill.BillType.PURCHASE,
     )
     if user is not None and not getattr(user, "is_superuser", False):
-        items_qs = items_qs.filter(Q(bill__created_by=user) | Q(bill__created_by__isnull=True))
+        items_qs = items_qs.filter(bill__created_by=user)
     items_qs = items_qs.order_by("bill__bill_date", "bill__id", "id")
 
     grouped_items: Dict[str, List[Decimal]] = defaultdict(list)
@@ -406,7 +406,7 @@ def generate_spending_csv(start_date=None, end_date=None, user=None) -> str:
         .order_by("-bill_date", "-id")
     )
     if user is not None and not getattr(user, "is_superuser", False):
-        bills = bills.filter(Q(created_by=user) | Q(created_by__isnull=True))
+        bills = bills.filter(created_by=user)
     if start_date:
         bills = bills.filter(bill_date__gte=start_date)
     if end_date:
@@ -488,7 +488,7 @@ def get_incorrect_bills_report(
     )
 
     if user is not None and not getattr(user, "is_superuser", False):
-        qs = qs.filter(Q(created_by=user) | Q(created_by__isnull=True))
+        qs = qs.filter(created_by=user)
 
     if start_date:
         qs = qs.filter(bill_date__gte=start_date)

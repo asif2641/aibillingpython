@@ -1559,6 +1559,96 @@ class TestAIExtractorProviderResolution:
         assert bill.bill_type == "sale"
         assert bill.party == cust_party
 
+    def test_review_view_editable_party_name_creates_or_updates_party(
+        self, client, superadmin_user, sample_image
+    ):
+        """User can freely type or edit party_name on review screen, which creates/matches party under user."""
+        from scanning.models import BillFile, ScanJob
+        from scanning.services.extraction import process_scan_job
+
+        job = ScanJob.objects.create(provider="mock", created_by=superadmin_user)
+        BillFile.objects.create(
+            scan_job=job, file=sample_image, page_number=1, file_hash="hash_edit_party_1"
+        )
+        bill = process_scan_job(job)
+
+        client.force_login(superadmin_user)
+        # Post review with edited party_name
+        resp = client.post(
+            f"/en/scanning/review/{job.pk}/",
+            {
+                "action": "verify",
+                "party_name": "Unique Editable Super Market",
+                "party": "",
+                "party_phone": "0311-9876543",
+                "invoice_no": "INV-EDIT-PARTY-1",
+                "bill_date": "2026-10-15",
+            },
+        )
+        assert resp.status_code == 302
+        bill.refresh_from_db()
+        assert bill.party is not None
+        assert bill.party.name == "Unique Editable Super Market"
+        assert bill.party.phone == "0311-9876543"
+        assert bill.party.user == superadmin_user
+
+    def test_customer_khata_statement_calculates_receivables_for_sales(
+        self, client, superadmin_user, sample_image
+    ):
+        """Customer ledger khata properly reflects receivable balance for sales bills and payments."""
+        from decimal import Decimal
+
+        from ledger.services import get_party_ledger_statement, record_payment
+        from parties.models import Party
+        from scanning.models import BillFile, ScanJob
+        from scanning.services.extraction import process_scan_job
+
+        job = ScanJob.objects.create(provider="mock", created_by=superadmin_user)
+        BillFile.objects.create(
+            scan_job=job, file=sample_image, page_number=1, file_hash="hash_cust_khata_1"
+        )
+        bill = process_scan_job(job)
+
+        cust = Party.objects.create(
+            name="Khata Test Customer",
+            party_type=Party.PartyType.CUSTOMER,
+            user=superadmin_user,
+        )
+
+        client.force_login(superadmin_user)
+        # Verify as Sale bill
+        resp = client.post(
+            f"/en/scanning/review/{job.pk}/",
+            {
+                "action": "verify",
+                "bill_type": "sale",
+                "party": cust.pk,
+                "party_name": cust.name,
+                "invoice_no": "SALE-KHATA-101",
+                "bill_date": "2026-10-15",
+            },
+        )
+        assert resp.status_code == 302
+        bill.refresh_from_db()
+        assert bill.party == cust
+        assert bill.bill_type == "sale"
+
+        # Customer statement reflects the sale receivable
+        statement = get_party_ledger_statement(cust, user=superadmin_user)
+        assert statement["total_billed"] == bill.grand_total
+        assert statement["balance"] == bill.grand_total
+
+        # When a payment is recorded
+        record_payment(
+            party=cust,
+            amount=Decimal("500.00"),
+            bill=bill,
+            created_by=superadmin_user,
+        )
+        updated_stmt = get_party_ledger_statement(cust, user=superadmin_user)
+        assert updated_stmt["total_paid"] == Decimal("500.00")
+        assert updated_stmt["balance"] == bill.grand_total - Decimal("500.00")
+
     def test_missing_item_price_detected_as_error(self):
         """Line item with missing or 0.00 unit price and line total is flagged as error."""
         from scanning.services.validation import detect_bill_errors

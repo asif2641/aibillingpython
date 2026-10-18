@@ -278,15 +278,33 @@ def subscription_view(request):
         .first()
     )
 
+    scanned_bills_count = (
+        user.created_bills.filter(is_deleted=False, source=Bill.Source.SCAN).count()
+        if hasattr(user, "created_bills")
+        else 0
+    )
+    manual_bills_count = (
+        user.created_bills.filter(is_deleted=False, source=Bill.Source.MANUAL).count()
+        if hasattr(user, "created_bills")
+        else 0
+    )
+    effective_scans_used = max(user.scans_used_this_month, scanned_bills_count + manual_bills_count)
+    remaining_scans = (
+        max(0, user.monthly_scan_quota - effective_scans_used) if not user.is_superuser else 9999
+    )
+
     usage_percent = 0
     if user.monthly_scan_quota > 0:
-        usage_percent = min(100, int((user.scans_used_this_month / user.monthly_scan_quota) * 100))
+        usage_percent = min(100, int((effective_scans_used / user.monthly_scan_quota) * 100))
 
     context = {
         "title": _("Subscription & Plan"),
         "user": user,
         "usage_percent": usage_percent,
-        "remaining_scans": user.remaining_scans,
+        "remaining_scans": remaining_scans,
+        "effective_scans_used": effective_scans_used,
+        "scanned_bills_count": scanned_bills_count,
+        "manual_bills_count": manual_bills_count,
         "site_settings": site_settings,
         "pending_request": pending_request,
         "payment_form": SubscriptionPaymentSubmissionForm(),
@@ -313,7 +331,10 @@ def superadmin_dashboard_view(request):
     business_price = Decimal("4000.00")
     estimated_mrr = (Decimal(pro_count) * pro_price) + (Decimal(business_count) * business_price)
 
+    total_platform_scans = Bill.objects.active().filter(source=Bill.Source.SCAN).count()
+    total_platform_manual = Bill.objects.active().filter(source=Bill.Source.MANUAL).count()
     total_scans_used = tenants_base.aggregate(total=Sum("scans_used_this_month"))["total"] or 0
+    total_quota_consumed = max(total_scans_used, total_platform_scans + total_platform_manual)
 
     total_platform_bills = Bill.objects.active().count()
     total_platform_volume = Bill.objects.active().aggregate(total=Sum("grand_total"))[
@@ -325,7 +346,25 @@ def superadmin_dashboard_view(request):
     selected_plan = request.GET.get("plan", "").strip().lower()
 
     tenants_qs = tenants_base.annotate(
-        bills_count=Count("created_bills", filter=Q(created_bills__is_deleted=False), distinct=True)
+        bills_count=Count(
+            "created_bills", filter=Q(created_bills__is_deleted=False), distinct=True
+        ),
+        scanned_bills_count=Count(
+            "created_bills",
+            filter=Q(
+                created_bills__is_deleted=False,
+                created_bills__source=Bill.Source.SCAN,
+            ),
+            distinct=True,
+        ),
+        manual_bills_count=Count(
+            "created_bills",
+            filter=Q(
+                created_bills__is_deleted=False,
+                created_bills__source=Bill.Source.MANUAL,
+            ),
+            distinct=True,
+        ),
     ).order_by("-date_joined")
 
     if q:
@@ -338,6 +377,25 @@ def superadmin_dashboard_view(request):
     paginator = Paginator(tenants_qs, 20)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
+
+    for tenant in page_obj.object_list:
+        tenant.effective_scans_used = max(
+            tenant.scans_used_this_month,
+            (tenant.scanned_bills_count or 0) + (tenant.manual_bills_count or 0),
+        )
+        tenant.effective_remaining_scans = (
+            max(0, tenant.monthly_scan_quota - tenant.effective_scans_used)
+            if not tenant.is_superuser
+            else 9999
+        )
+        tenant.usage_percent = (
+            min(
+                100,
+                int((tenant.effective_scans_used / tenant.monthly_scan_quota) * 100),
+            )
+            if tenant.monthly_scan_quota > 0
+            else 0
+        )
 
     from .models import SubscriptionPaymentRequest
 
@@ -356,6 +414,9 @@ def superadmin_dashboard_view(request):
         "free_count": free_count,
         "estimated_mrr": estimated_mrr,
         "total_scans_used": total_scans_used,
+        "total_quota_consumed": total_quota_consumed,
+        "total_platform_scans": total_platform_scans,
+        "total_platform_manual": total_platform_manual,
         "total_platform_bills": total_platform_bills,
         "total_platform_volume": total_platform_volume,
         "page_obj": page_obj,

@@ -28,7 +28,6 @@ class PaymentForm(forms.ModelForm):
 
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
-        from django.db.models import Q
 
         from bills.models import Bill
         from parties.models import Party
@@ -37,8 +36,8 @@ class PaymentForm(forms.ModelForm):
         bill_qs = Bill.objects.filter(is_deleted=False)
 
         if user is not None and not getattr(user, "is_superuser", False):
-            party_qs = party_qs.filter(Q(user=user) | Q(user__isnull=True))
-            bill_qs = bill_qs.filter(Q(created_by=user) | Q(created_by__isnull=True))
+            party_qs = party_qs.filter(user=user)
+            bill_qs = bill_qs.filter(created_by=user)
 
         if "party" in self.fields:
             self.fields["party"].queryset = party_qs

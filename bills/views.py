@@ -133,6 +133,17 @@ def bill_list_view(request: HttpRequest) -> HttpResponse:
 @login_required
 def bill_add_view(request: HttpRequest) -> HttpResponse:
     """Create a new manual bill along with line items."""
+    if not request.user.is_superuser and not request.user.has_scans_remaining:
+        error_msg = _(
+            "You have reached your monthly quota limit (%(used)d / %(quota)d bills). "
+            "Please upgrade your plan to add or scan more bills."
+        ) % {
+            "used": request.user.scans_used_this_month,
+            "quota": request.user.monthly_scan_quota,
+        }
+        messages.error(request, error_msg)
+        return redirect("accounts:subscription")
+
     if request.method == "POST":
         form = BillForm(request.POST, user=request.user)
         has_items = "items-TOTAL_FORMS" in request.POST
@@ -153,6 +164,8 @@ def bill_add_view(request: HttpRequest) -> HttpResponse:
                         item.save()
 
             recalculate_bill_totals(bill)
+            if not request.user.is_superuser:
+                request.user.increment_scans_used()
             return redirect("bills:bill_detail", pk=bill.pk)
 
         return render(

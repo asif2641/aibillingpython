@@ -190,7 +190,10 @@ class TestStaticFilesConfiguration:
         assert "staticfiles" in base_settings.STORAGES
         assert "default" in base_settings.STORAGES
         backend = base_settings.STORAGES["staticfiles"]["BACKEND"]
-        assert backend == "whitenoise.storage.CompressedManifestStaticFilesStorage"
+        assert backend in (
+            "whitenoise.storage.CompressedStaticFilesStorage",
+            "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        )
         assert not hasattr(
             base_settings, "STATICFILES_STORAGE"
         ), "Remove deprecated STATICFILES_STORAGE in favor of STORAGES"

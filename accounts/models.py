@@ -154,10 +154,15 @@ class User(AbstractUser):
 
     @property
     def has_scans_remaining(self) -> bool:
-        """Return True if user has scans remaining in the current cycle."""
+        """Return True if user has quota remaining in the current cycle."""
         if self.is_superuser:
             return True
         return self.scans_used_this_month < self.monthly_scan_quota
+
+    @property
+    def has_quota_remaining(self) -> bool:
+        """Alias for has_scans_remaining."""
+        return self.has_scans_remaining
 
     @property
     def remaining_scans(self) -> int:
@@ -166,11 +171,20 @@ class User(AbstractUser):
             return 9999
         return max(0, self.monthly_scan_quota - self.scans_used_this_month)
 
+    @property
+    def remaining_quota(self) -> int:
+        """Alias for remaining_scans."""
+        return self.remaining_scans
+
     def increment_scans_used(self) -> int:
         """Increment scans consumed counter and persist."""
         self.scans_used_this_month += 1
         self.save(update_fields=["scans_used_this_month"])
         return self.scans_used_this_month
+
+    def increment_quota_used(self) -> int:
+        """Increment quota usage counter for scans or manual entries."""
+        return self.increment_scans_used()
 
 
 class SubscriptionPaymentRequest(models.Model):

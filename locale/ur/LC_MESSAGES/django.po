@@ -867,3 +867,30 @@ msgstr "تمام کارروائیاں"
 msgid "Business Owner"
 msgstr "کاروباری مالک"
 
+msgid "scans"
+msgstr "اسکینز"
+
+msgid "manual"
+msgstr "مینول"
+
+msgid "manual entries"
+msgstr "مینول اندراجات"
+
+msgid "bills"
+msgstr "بلز"
+
+msgid "Bills"
+msgstr "بلز"
+
+msgid "Quota Used (Bills & Scans)"
+msgstr "استعمال شدہ کوٹا (بلز اور اسکینز)"
+
+msgid "Monthly Bill & Scan Quota"
+msgstr "ماہانہ بل اور اسکین کوٹا"
+
+msgid "Bills Remaining"
+msgstr "باقی بلز"
+
+msgid "You have used %(used)s of your %(quota)s available bills for this billing cycle."
+msgstr "آپ نے اس بلنگ سائیکل کے لیے اپنے دستیاب %(quota)s بلوں میں سے %(used)s استعمال کر لیے ہیں۔"
+
