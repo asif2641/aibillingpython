@@ -2242,3 +2242,108 @@ class TestAIExtractorProviderResolution:
         assert response.status_code == 200
         content = response.content.decode("utf-8")
         assert "بل رد کریں" in content
+
+    def test_scan_duplicate_detection_strictly_isolated_per_tenant(
+        self, client, superadmin_user, staff_user, sample_image
+    ):
+        """Cross-tenant duplicate isolation:
+        When User A has scanned a document, a newly created User B scanning the exact same document
+        must NOT receive duplicate warnings or be exposed to User A's bill ID.
+        Only scanning the same document twice within User B's own account flags duplicate suspect.
+        """
+        from bills.models import Bill
+        from parties.models import Party
+        from scanning.models import BillError, BillFile, ScanJob
+        from scanning.services.extraction import process_scan_job
+        from scanning.services.validation import detect_bill_errors
+
+        # 1. User A (Superadmin) scans a bill
+        party_a = Party.objects.create(
+            name="Vendor Tenant A", party_type="vendor", user=superadmin_user
+        )
+        bill_a = Bill.objects.create(
+            party=party_a,
+            invoice_no="INV-ISOLATED-999",
+            bill_date="2026-10-15",
+            grand_total=Decimal("4500.00"),
+            created_by=superadmin_user,
+        )
+        job_a = ScanJob.objects.create(
+            provider="mock",
+            bill=bill_a,
+            status=ScanJob.Status.COMPLETED,
+            created_by=superadmin_user,
+            extracted_data={
+                "vendor": {"name": "Vendor Tenant A"},
+                "invoice_no": "INV-ISOLATED-999",
+                "date": "2026-10-15",
+                "subtotal": 4500.0,
+                "grand_total": 4500.0,
+                "items": [
+                    {"name": "Item A", "quantity": 1, "unit_price": 4500.0, "line_total": 4500.0}
+                ],
+            },
+        )
+        test_hash = "isolated_tenant_file_hash_11223344"
+        BillFile.objects.create(
+            scan_job=job_a,
+            bill=bill_a,
+            file=sample_image,
+            page_number=1,
+            file_hash=test_hash,
+        )
+
+        # 2. User B (Staff User / New Tenant) checks duplicate endpoint -> must be False
+        client.force_login(staff_user)
+        resp = client.get(f"/en/scanning/check-duplicate/?hash={test_hash}")
+        assert resp.status_code == 200
+        assert resp.json()["is_duplicate"] is False
+
+        # 3. User B scans the same document -> must NOT match User A's bill
+        job_b = ScanJob.objects.create(
+            provider="mock",
+            created_by=staff_user,
+        )
+        BillFile.objects.create(
+            scan_job=job_b,
+            file=sample_image,
+            page_number=1,
+            file_hash=test_hash,
+        )
+        bill_b = process_scan_job(job_b)
+        assert bill_b is not None
+        assert bill_b.created_by == staff_user
+        # User B must NOT have any duplicate error referencing User A or bill_a.pk
+        b_errors = bill_b.errors.filter(error_type=BillError.ErrorType.DUPLICATE_SUSPECT)
+        assert (
+            not b_errors.exists()
+        ), f"User B was falsely flagged as duplicate of User A: {[e.message for e in b_errors]}"
+
+        # 4. detect_bill_errors directly for User B must also be isolated
+        val_errors_b = detect_bill_errors(
+            {
+                "invoice_no": "INV-ISOLATED-999",
+                "date": "2026-10-15",
+                "grand_total": 4500.0,
+            },
+            user=staff_user,
+        )
+        assert not any(e["error_type"] == "duplicate_suspect" for e in val_errors_b)
+
+        # 5. User B scans the same document a second time -> User B DOES get duplicate warning pointing to bill_b
+        job_b2 = ScanJob.objects.create(
+            provider="mock",
+            created_by=staff_user,
+        )
+        BillFile.objects.create(
+            scan_job=job_b2,
+            file=sample_image,
+            page_number=1,
+            file_hash=test_hash,
+        )
+        bill_b2 = process_scan_job(job_b2)
+        assert bill_b2 is not None
+        b2_errors = bill_b2.errors.filter(error_type=BillError.ErrorType.DUPLICATE_SUSPECT)
+        assert b2_errors.exists()
+        assert f"Bill #{bill_b.pk}" in b2_errors.first().message
+        assert f"Bill #{bill_a.pk}" not in b2_errors.first().message

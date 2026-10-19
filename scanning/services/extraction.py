@@ -12,6 +12,7 @@ from typing import Any, Dict
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import close_old_connections
+from django.db.models import Q
 from django.utils import timezone
 
 from billing.utils import money_round
@@ -682,13 +683,17 @@ def process_scan_job(job: ScanJob) -> Bill:
         # reuse its extracted data instantly in 0.05s instead of waiting 10-15s for Gemini AI!
         cached_existing_job = None
         if first_file and first_file.file_hash:
-            existing_bf = (
-                BillFile.objects.filter(file_hash=first_file.file_hash, bill__isnull=False)
-                .exclude(scan_job=job)
-                .select_related("scan_job__bill", "bill")
-                .order_by("-id")
-                .first()
-            )
+            bf_query = BillFile.objects.filter(
+                file_hash=first_file.file_hash, bill__isnull=False
+            ).exclude(scan_job=job)
+            if job.created_by is not None:
+                if getattr(job.created_by, "is_superuser", False):
+                    bf_query = bf_query.filter(
+                        Q(bill__created_by=job.created_by) | Q(bill__created_by__isnull=True)
+                    )
+                else:
+                    bf_query = bf_query.filter(bill__created_by=job.created_by)
+            existing_bf = bf_query.select_related("scan_job__bill", "bill").order_by("-id").first()
             if existing_bf and existing_bf.scan_job and existing_bf.scan_job.extracted_data:
                 cached_existing_job = existing_bf.scan_job
 
@@ -822,7 +827,9 @@ def process_scan_job(job: ScanJob) -> Bill:
             )
 
         # 5. Detect and attach errors
-        discrepancies = detect_bill_errors(validated_data, exclude_bill_id=bill.pk)
+        discrepancies = detect_bill_errors(
+            validated_data, exclude_bill_id=bill.pk, user=job.created_by
+        )
         if is_fast_duplicate and prev_bill and not prev_bill.is_deleted:
             discrepancies.append(
                 {

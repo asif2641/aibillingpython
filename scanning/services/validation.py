@@ -10,6 +10,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, List, Optional
 
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Q
 from django.utils import timezone
 
 from billing.utils import money_round
@@ -19,6 +20,7 @@ from bills.models import Bill
 def detect_bill_errors(
     extracted_data: Dict[str, Any],
     exclude_bill_id: Optional[int] = None,
+    user: Any = None,
 ) -> List[Dict[str, Any]]:
     """Scan extracted document data against accounting integrity rules.
 
@@ -201,6 +203,11 @@ def detect_bill_errors(
                 grand_total=money_round(Decimal(str(grand_total_raw))),
                 is_deleted=False,
             )
+            if user is not None:
+                if getattr(user, "is_superuser", False):
+                    query = query.filter(Q(created_by=user) | Q(created_by__isnull=True))
+                else:
+                    query = query.filter(created_by=user)
             target_exclude_id = (
                 exclude_bill_id or extracted_data.get("bill_id") or extracted_data.get("id")
             )
