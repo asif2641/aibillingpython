@@ -211,6 +211,33 @@ All confirmed bugs are recorded here. Each entry has: what happened, why, how it
   - `tests/test_settings_ui.py::TestSettingsSubNavigationAndShell::test_staff_management_tab_hidden_for_tenant`
   - `tests/test_settings_ui.py::TestSettingsSubNavigationAndShell::test_reset_data_tab_visible_only_for_superadmin`
 
+---
+
+## BUG-011: Customer Khata Ledger Showed Zero / Empty Cards for Bills with Extracted Customers
+
+- **Date:** 2026-10-19
+- **Reported by:** user
+- **Severity:** High
+- **What happened:** When a user scanned receipts that contained customer/student details (such as school fee vouchers for "ESHAL ASIM"), the scanner automatically created the customer's profile under Customers, but clicking "Ledger" for that customer showed PKR 0.00 for Total Billed, Total Paid, and 0 records in Transaction History.
+- **Root cause:** 
+  1. `Bill` model only possessed a single `party` ForeignKey, which was being assigned to the Vendor (e.g. Rah-e-Danish Lahore Cantt Public High School).
+  2. While the scanner extracted the customer name and created a `Party` of type `customer`, there was no model relationship on `Bill` to store this customer; it was only stored as a string in `bill.notes`.
+  3. `get_party_ledger_statement(party)` filtered bills strictly by `party=party`. Because `party` on those bills was set to the Vendor, zero bills matched the Customer party, rendering empty PKR 0.00 cards.
+  4. `PaymentForm` and `record_payment` rejected payments if `bill.party != party`, preventing on-bill payment recording by the customer.
+- **How fixed:**
+  1. Added `customer = models.ForeignKey("parties.Party", null=True, blank=True, on_delete=models.SET_NULL, related_name="customer_bills")` to `Bill` in `bills/models.py` along with index.
+  2. Created and applied migration `0005_bill_customer_bill_bills_bill_custome_f73e08_idx.py`.
+  3. Updated `scanning/services/extraction.py` and `scanning/views.py` to persist `customer_party` to `bill.customer`.
+  4. Updated `ledger/services.py`:
+     - In `get_party_ledger_statement`: query bills matching `(Q(party=party) | Q(customer=party)) & Q(is_deleted=False)`.
+     - In `record_payment`: allow payments towards bills matching `bill.party` or `bill.customer`.
+  5. Updated `ledger/forms.py` and `ledger/templates/ledger/payment_form.html` to support customer bills in the reactive bill dropdown.
+  6. Backfilled existing scanned bills to link their respective customer profiles (`ESHAL ASIM`, `KHADIJA ASIM`, `MINAL ASIM`, `FARWA ASIM`, `Rukhsana Haji`).
+- **Regression test:** 
+  - `tests/test_ledger_reports.py::TestPartyLedgerService::test_customer_linked_bill_appears_in_customer_ledger`
+  - `tests/test_payments.py::TestPaymentServicesAndRecalculation::test_payment_for_customer_on_customer_linked_bill_succeeds`
+
+
 
 
 

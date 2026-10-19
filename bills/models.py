@@ -98,6 +98,17 @@ class Bill(models.Model):
         related_name="bills",
         verbose_name=_("party"),
     )
+    customer = models.ForeignKey(
+        "parties.Party",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="customer_bills",
+        verbose_name=_("customer / client"),
+        help_text=_(
+            "Optional customer or client associated with this bill (e.g. for fee slips or client billing)."
+        ),
+    )
     invoice_no = models.CharField(
         max_length=100,
         blank=True,
@@ -245,6 +256,7 @@ class Bill(models.Model):
         indexes = [
             models.Index(fields=["bill_date"]),
             models.Index(fields=["party"]),
+            models.Index(fields=["customer"]),
             models.Index(fields=["category"]),
             models.Index(fields=["invoice_no"]),
             models.Index(fields=["payment_status"]),

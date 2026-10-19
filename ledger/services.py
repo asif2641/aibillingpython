@@ -41,7 +41,7 @@ def record_payment(
 
     rounded_amount = money_round(Decimal(str(amount)))
 
-    if bill is not None and bill.party != party:
+    if bill is not None and bill.party != party and getattr(bill, "customer", None) != party:
         raise ValidationError("Bill party does not match payment party.")
 
     if payment_date is None:
@@ -73,13 +73,20 @@ def record_payment(
 
 def get_party_ledger_statement(party: Party, user=None) -> Dict[str, Any]:
     """Calculate running ledger balance and chronological transaction timeline (Khata)."""
-    bill_filter = {"party": party, "is_deleted": False}
+    from django.db.models import Q
+
+    bill_filter = (Q(party=party) | Q(customer=party)) & Q(is_deleted=False)
     pay_filter = {"party": party, "is_deleted": False}
     if user is not None and not getattr(user, "is_superuser", False):
-        bill_filter["created_by"] = user
+        bill_filter &= Q(created_by=user)
         pay_filter["created_by"] = user
 
-    bills = Bill.objects.filter(**bill_filter).prefetch_related("items").order_by("bill_date", "id")
+    bills = (
+        Bill.objects.filter(bill_filter)
+        .distinct()
+        .prefetch_related("items")
+        .order_by("bill_date", "id")
+    )
     payments = Payment.objects.filter(**pay_filter).order_by("payment_date", "id")
 
     timeline: List[Dict[str, Any]] = []

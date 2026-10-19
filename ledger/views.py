@@ -62,6 +62,7 @@ def payment_add_view(request: HttpRequest) -> HttpResponse:
         {
             "id": b.pk,
             "party_id": b.party_id,
+            "customer_id": b.customer_id,
             "invoice_no": b.invoice_no or f"#{b.pk}",
             "grand_total": str(b.grand_total),
             "amount_due": str(max(Decimal("0.00"), b.grand_total - b.amount_paid)),

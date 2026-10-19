@@ -198,7 +198,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         const matchingBills = billsData.filter(function(b) {
-            return String(b.party_id) === String(selectedPartyId);
+            return String(b.party_id) === String(selectedPartyId) || String(b.customer_id) === String(selectedPartyId);
         });
 
         if (matchingBills.length === 0) {

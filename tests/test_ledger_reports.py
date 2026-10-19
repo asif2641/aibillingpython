@@ -209,6 +209,46 @@ class TestPartyLedgerService:
             "receive" in statement["balance_label"].lower() or "وصول" in statement["balance_label"]
         )
 
+    def test_customer_linked_bill_appears_in_customer_ledger(
+        self, superadmin_user, vendor_party, customer_party, sample_category
+    ):
+        """When a bill has a vendor party and a linked customer, it appears in both ledgers."""
+        bill = Bill.objects.create(
+            party=vendor_party,
+            customer=customer_party,
+            category=sample_category,
+            invoice_no="FEE-001",
+            bill_date=timezone.now().date(),
+            bill_type=Bill.BillType.PURCHASE,
+            subtotal=Decimal("2500.00"),
+            grand_total=Decimal("2500.00"),
+            payment_status=Bill.PaymentStatus.UNPAID,
+            created_by=superadmin_user,
+        )
+        BillItem.objects.create(
+            bill=bill,
+            serial_no=1,
+            item_name="Tuition Fee",
+            quantity=Decimal("1.000"),
+            unit="month",
+            unit_price=Decimal("2500.00"),
+            line_total=Decimal("2500.00"),
+        )
+
+        # Check customer's ledger
+        from ledger.services import get_party_ledger_statement
+
+        stmt_cust = get_party_ledger_statement(customer_party)
+        assert stmt_cust["total_billed"] >= Decimal("2500.00")
+        matching_entries = [e for e in stmt_cust["entries"] if e["reference"] == "FEE-001"]
+        assert len(matching_entries) == 1
+        assert matching_entries[0]["billed_amount"] == Decimal("2500.00")
+
+        # Check vendor's ledger
+        stmt_vend = get_party_ledger_statement(vendor_party)
+        vend_entries = [e for e in stmt_vend["entries"] if e["reference"] == "FEE-001"]
+        assert len(vend_entries) == 1
+
     def test_party_ledger_csv_export_format(self, seeded_financial_data):
         """CSV export returns attachment with formatted transactions."""
         from ledger.services import generate_ledger_csv

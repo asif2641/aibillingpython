@@ -405,6 +405,11 @@ def review_view(request: HttpRequest, job_id: int) -> HttpResponse:
                 bill.party.phone = party_phone
                 bill.party.save(update_fields=["phone"])
 
+        if customer_party:
+            bill.customer = customer_party
+        elif not customer_name:
+            bill.customer = None
+
         if customer_name:
             cust_note = f"Client / Customer: {customer_name}" + (
                 f" ({customer_phone})" if customer_phone else ""

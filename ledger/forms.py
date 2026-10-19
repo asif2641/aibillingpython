@@ -54,7 +54,9 @@ class PaymentForm(forms.ModelForm):
             party_id = self.instance.party_id
 
         if party_id:
-            bill_qs = bill_qs.filter(party_id=party_id)
+            from django.db.models import Q
+
+            bill_qs = bill_qs.filter(Q(party_id=party_id) | Q(customer_id=party_id))
 
         if "bill" in self.fields:
             self.fields["bill"].queryset = bill_qs
@@ -79,7 +81,12 @@ class PaymentForm(forms.ModelForm):
         cleaned_data = super().clean()
         party = cleaned_data.get("party")
         bill = cleaned_data.get("bill")
-        if party and bill and bill.party_id != party.pk:
+        if (
+            party
+            and bill
+            and bill.party_id != party.pk
+            and getattr(bill, "customer_id", None) != party.pk
+        ):
             self.add_error(
                 "bill", forms.ValidationError("Bill party does not match payment party.")
             )

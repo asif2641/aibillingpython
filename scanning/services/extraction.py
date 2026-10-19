@@ -756,6 +756,7 @@ def process_scan_job(job: ScanJob) -> Bill:
 
         bill = Bill.objects.create(
             party=party,
+            customer=customer_party,
             category=category,
             invoice_no=str(validated_data.get("invoice_no") or "").strip(),
             bill_date=bill_date,

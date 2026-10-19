@@ -377,6 +377,26 @@ class TestPaymentRecordingService:
                 bill=sample_bill,
             )
 
+    def test_payment_for_customer_on_customer_linked_bill_succeeds(
+        self, sample_vendor, sample_customer, sample_bill, staff_user
+    ):
+        """Recording payment for customer towards a bill where customer is linked succeeds."""
+        assert record_payment is not None, "record_payment is missing."
+        sample_bill.customer = sample_customer
+        sample_bill.save(update_fields=["customer"])
+
+        payment = record_payment(
+            party=sample_customer,
+            amount=Decimal("200.00"),
+            bill=sample_bill,
+            created_by=staff_user,
+        )
+        assert payment.pk is not None
+        assert payment.party == sample_customer
+        assert payment.bill == sample_bill
+        sample_bill.refresh_from_db()
+        assert sample_bill.amount_paid == Decimal("200.00")
+
     def test_payment_amount_rounded_with_money_round(self, sample_vendor, sample_bill):
         """Payment amount with extra fractional decimals is rounded to 2 places using money_round."""
         assert record_payment is not None, "record_payment is missing."

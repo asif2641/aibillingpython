@@ -143,6 +143,20 @@
                         </span>
                     {% endif %}
                 </div>
+                {% if bill.customer %}
+                <div class="col-span-2 sm:col-span-4 bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/60 rounded-xl p-3 flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">{% trans "Customer / Client" %}</span>
+                        <p class="font-bold text-slate-900 dark:text-white text-sm">
+                            {{ bill.customer.name }}
+                            {% if bill.customer.phone %}<span class="text-xs font-mono text-slate-500 font-normal">({{ bill.customer.phone }})</span>{% endif %}
+                        </p>
+                    </div>
+                    <a href="{% url 'ledger:party_ledger' bill.customer.pk %}" class="px-3 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 font-semibold text-xs hover:bg-emerald-200 transition-colors">
+                        {% trans "View Customer Khata" %} &rarr;
+                    </a>
+                </div>
+                {% endif %}
             </div>
 
             <!-- Items Table -->
