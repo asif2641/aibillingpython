@@ -879,9 +879,6 @@ msgstr "مینول اندراجات"
 msgid "bills"
 msgstr "بلز"
 
-msgid "Bills"
-msgstr "بلز"
-
 msgid "Quota Used (Bills & Scans)"
 msgstr "استعمال شدہ کوٹا (بلز اور اسکینز)"
 

@@ -17,8 +17,9 @@ from django.utils.translation import gettext as _
 
 from billing.utils import money_round
 from bills.forms import BillForm, BillItemFormSet
-from bills.models import Bill
+from bills.models import Bill, BillItem
 from bills.services import recalculate_bill_totals
+from categories.models import Category, Unit
 from parties.models import Party
 
 
@@ -130,6 +131,57 @@ def bill_list_view(request: HttpRequest) -> HttpResponse:
     )
 
 
+def _get_bill_form_context(request: HttpRequest, bill: Bill | None = None) -> dict:
+    """Prepare context with parties, categories, unique items, and units for manual bill form."""
+    parties_qs = Party.objects.filter(is_active=True)
+    if not request.user.is_superuser:
+        parties_qs = parties_qs.filter(Q(user=request.user) | Q(user__isnull=True))
+    parties = parties_qs.order_by("name")
+
+    categories = Category.objects.filter(is_archived=False).order_by("name")
+
+    items_qs = BillItem.objects.filter(bill__is_deleted=False)
+    if not request.user.is_superuser:
+        items_qs = items_qs.filter(bill__created_by=request.user)
+
+    distinct_item_map = {}
+    for item in items_qs.order_by("id").values("item_name", "unit", "unit_price"):
+        clean_name = (item.get("item_name") or "").strip()
+        if clean_name and clean_name.lower() not in distinct_item_map:
+            distinct_item_map[clean_name.lower()] = {
+                "name": clean_name,
+                "unit": item.get("unit") or "pcs",
+                "price": str(item.get("unit_price") or "0.00"),
+            }
+
+    if not distinct_item_map:
+        for default_name in [
+            "Flour / آٹا",
+            "Sugar / چینی",
+            "Cooking Oil / کوکنگ آئل",
+            "Milk / دودھ",
+            "Rice / چاول",
+            "Tea / چائے",
+            "Panadol Tablet",
+            "General Item",
+        ]:
+            distinct_item_map[default_name.lower()] = {
+                "name": default_name,
+                "unit": "pcs",
+                "price": "0.00",
+            }
+
+    units = Unit.objects.all().order_by("name")
+
+    return {
+        "bill": bill,
+        "parties": parties,
+        "categories": categories,
+        "distinct_items": list(distinct_item_map.values()),
+        "units": units,
+    }
+
+
 @login_required
 def bill_add_view(request: HttpRequest) -> HttpResponse:
     """Create a new manual bill along with line items."""
@@ -168,19 +220,20 @@ def bill_add_view(request: HttpRequest) -> HttpResponse:
                 request.user.increment_scans_used()
             return redirect("bills:bill_detail", pk=bill.pk)
 
-        return render(
-            request,
-            "bills/bill_form.html",
+        context = _get_bill_form_context(request)
+        context.update(
             {
                 "form": form,
                 "formset": formset or BillItemFormSet(prefix="items"),
-            },
-            status=400,
+            }
         )
+        return render(request, "bills/bill_form.html", context, status=400)
 
     form = BillForm(user=request.user)
     formset = BillItemFormSet(prefix="items")
-    return render(request, "bills/bill_form.html", {"form": form, "formset": formset})
+    context = _get_bill_form_context(request)
+    context.update({"form": form, "formset": formset})
+    return render(request, "bills/bill_form.html", context)
 
 
 @login_required
@@ -248,24 +301,20 @@ def bill_edit_view(request: HttpRequest, pk: int) -> HttpResponse:
             messages.success(request, _("Bill updated and totals recalculated successfully!"))
             return redirect("bills:bill_detail", pk=bill.pk)
 
-        return render(
-            request,
-            "bills/bill_form.html",
+        context = _get_bill_form_context(request, bill=bill)
+        context.update(
             {
                 "form": form,
                 "formset": formset or BillItemFormSet(instance=bill, prefix="items"),
-                "bill": bill,
-            },
-            status=400,
+            }
         )
+        return render(request, "bills/bill_form.html", context, status=400)
 
     form = BillForm(instance=bill, user=request.user)
     formset = BillItemFormSet(instance=bill, prefix="items")
-    return render(
-        request,
-        "bills/bill_form.html",
-        {"form": form, "formset": formset, "bill": bill},
-    )
+    context = _get_bill_form_context(request, bill=bill)
+    context.update({"form": form, "formset": formset})
+    return render(request, "bills/bill_form.html", context)
 
 
 @login_required

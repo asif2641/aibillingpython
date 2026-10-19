@@ -980,6 +980,104 @@ class TestBillViewsAndWorkflow:
         response = staff_client.post(self._add_url(), payload)
         assert response.status_code in (200, 400)
 
+    def test_create_manual_bill_with_typed_party_name_creates_party(self, staff_client, staff_user):
+        """Typing a new party name without selecting from dropdown auto-creates the party for this user."""
+        payload = {
+            "bill_type": "sale",
+            "party": "",
+            "party_name": "Tariq Customer & Sons",
+            "invoice_no": "INV-MANUAL-PARTY-01",
+            "bill_date": timezone.now().date().strftime("%Y-%m-%d"),
+            "discount": "0.00",
+            "tax": "0.00",
+            "items-TOTAL_FORMS": "1",
+            "items-INITIAL_FORMS": "0",
+            "items-0-item_name": "USB Cable",
+            "items-0-quantity": "2",
+            "items-0-unit": "pcs",
+            "items-0-unit_price": "250.00",
+        }
+        response = staff_client.post(self._add_url(), payload)
+        assert response.status_code in (302, 201)
+
+        bill = Bill.objects.get(invoice_no="INV-MANUAL-PARTY-01")
+        assert bill.party is not None
+        assert bill.party.name == "Tariq Customer & Sons"
+        assert bill.party.party_type == Party.PartyType.CUSTOMER
+        assert bill.party.user == staff_user
+        assert bill.grand_total == Decimal("500.00")
+
+    def test_create_manual_bill_with_typed_category_name_creates_category(
+        self, staff_client, sample_party
+    ):
+        """Typing a new category name creates the Category and links it to the bill."""
+        cat_name = "Tools & Hardware 99"
+        if Category:
+            Category.objects.filter(name=cat_name).delete()
+
+        payload = {
+            "bill_type": "purchase",
+            "party": sample_party.pk,
+            "category": "",
+            "category_name": cat_name,
+            "invoice_no": "INV-MANUAL-CAT-01",
+            "bill_date": timezone.now().date().strftime("%Y-%m-%d"),
+            "discount": "0.00",
+            "tax": "0.00",
+            "items-TOTAL_FORMS": "1",
+            "items-INITIAL_FORMS": "0",
+            "items-0-item_name": "Wrench",
+            "items-0-quantity": "1",
+            "items-0-unit": "pcs",
+            "items-0-unit_price": "750.00",
+        }
+        response = staff_client.post(self._add_url(), payload)
+        assert response.status_code in (302, 201)
+
+        bill = Bill.objects.get(invoice_no="INV-MANUAL-CAT-01")
+        assert bill.category is not None
+        assert bill.category.name == cat_name
+
+    def test_create_manual_bill_with_typed_existing_party_matches(
+        self, staff_client, sample_party, staff_user
+    ):
+        """Typing an existing party name matches that party without creating a duplicate."""
+        sample_party.user = staff_user
+        sample_party.save(update_fields=["user"])
+
+        party_count_before = Party.objects.filter(name=sample_party.name).count()
+
+        payload = {
+            "bill_type": "purchase",
+            "party": "",
+            "party_name": sample_party.name,
+            "invoice_no": "INV-MANUAL-MATCH-01",
+            "bill_date": timezone.now().date().strftime("%Y-%m-%d"),
+            "discount": "0.00",
+            "tax": "0.00",
+            "items-TOTAL_FORMS": "1",
+            "items-INITIAL_FORMS": "0",
+            "items-0-item_name": "Steel Sheet",
+            "items-0-quantity": "1",
+            "items-0-unit": "pcs",
+            "items-0-unit_price": "1200.00",
+        }
+        response = staff_client.post(self._add_url(), payload)
+        assert response.status_code in (302, 201)
+
+        bill = Bill.objects.get(invoice_no="INV-MANUAL-MATCH-01")
+        assert bill.party == sample_party
+        assert Party.objects.filter(name=sample_party.name).count() == party_count_before
+
+    def test_bill_add_get_context_has_items_and_units(self, staff_client, sample_bill):
+        """GET /bills/add/ provides distinct catalog items, units, and categories in context."""
+        response = staff_client.get(self._add_url())
+        assert response.status_code == 200
+        assert "distinct_items" in response.context
+        assert "units" in response.context
+        assert "categories" in response.context
+        assert "parties" in response.context
+
     def test_view_bill_detail(self, staff_client, sample_bill):
         """Bill detail view displays bill header, items, totals, and payment status."""
         detail_url = self._detail_url(sample_bill.pk)
